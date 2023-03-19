@@ -13,7 +13,6 @@ function setindex!(r::RV,x::Float64,i::Int)
     r.v[r.i+i] = x
 end
 
-
 """
 Node
 """
@@ -24,8 +23,8 @@ end
 
 function Base.getproperty(p::Node{T,N},s::Symbol) where {T,N}
     index = getfield(p,:index)
-    if haskey(T,s)
-        return index[findfirst(x->x==s,keys(T))]
+    if s ∈ T
+        return index[findfirst(x->x==s,T)]
     else
         i,v = getfield(p,:data)[s]
         return v[index[i]]
@@ -44,13 +43,3 @@ end
 
 +(a::T,b::S) where {T<:Node,S<:Node} = (a.x+b.x,a.y+b.y,a.z+b.z)
 -(a::T,b::S) where {T<:Node,S<:Node} = (a.x-b.x,a.y-b.y,a.z-b.z)
-
-function push!(p::Node{T,N},sv::Pair{Symbol,Tuple{Symbol,Vector{Float64}}}) where {T,N}
-    (s,v) = sv
-    push!(getfield(p,:data),s=>(findfirst(x->x==v[1],keys(T)),v[2]))
-end
-function push!(p::Node{T,N},sv::Pair{Symbol,Symbol}) where {T,N}
-    (s,v) = sv
-    push!(getfield(p,:data),s=>(findfirst(x->x==v,keys(T)),zeros(T[v])))
-end
-push!(ps::Vector{T},sv::Pair) where T<:Node = push!(ps[1],sv)
