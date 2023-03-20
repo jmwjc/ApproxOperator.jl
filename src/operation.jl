@@ -1,53 +1,19 @@
 """
 Operator
 """
-struct Operator{T,D}
-    type::Val{T}
-    data::Dict{Symbol,D}
+struct Operator{T}
+    data::Dict{Symbol,Float64}
 end
-Operator{T}() where T = Operator(Val(T),Dict{Symbol,Any}())
-Operator{T}(d::Pair{Symbol,D}...) where {T,D<:Any} = Operator(Val(T),Dict(d))
+Operator{T}(d::Pair{Symbol,D}...) where T = Operator{T}(Dict(d))
 
 
-## General Functions
-push!(op::Operator,d::Pair{Symbol,D}...) where D<:Any = push!(op.data,d...)
-@inline getproperty(op::Operator,f::Symbol) = hasfield(Operator,f) ? getfield(op,f) : getfield(op,:data)[f]
-@inline function setproperty!(op::Operator,f::Symbol,x)
-    getfield(op,:data)[f] = x
-end
+getproperty(op::Operator,f::Symbol) = getfield(op,:data)[f]
 
-@inline function (op::Operator)(aps::Vector{T},gps::Vector{S},k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
-    for i in 1:length(aps)
-        @inbounds op(aps[i],gps[i],k,f)
-    end
-end
-
-@inline function (op::Operator)(aps::Vector{T},k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
-    for ap in aps
-        op(ap,k,f)
-    end
-end
-@inline function (op::Operator)(aps::Vector{T},k::AbstractMatrix{Float64}) where T<:AbstractElement
-    for ap in aps
-        op(ap,k)
-    end
-end
-@inline function (op::Operator)(aps::Vector{T},f::AbstractVector{Float64}) where T<:AbstractElement
-    for ap in aps
-        op(ap,f)
-    end
-end
-
-@inline function (op::Operator)(aps::Vector{T},s::Symbol) where T<:AbstractElement
-    for ap in aps
-        op(ap,s)
-    end
-end
-@inline function (op::Operator)(aps::Vector{T}) where T<:AbstractElement
-    for ap in aps
-        op(ap)
-    end
-end
+(op::Operator)(aps::Vector{T},gps::Vector{S},k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement} = op.(aps,gps,k=k,f=f)
+(op::Operator)(aps::Vector{T},k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement = op.(aps,k=k,f=f)
+(op::Operator)(aps::Vector{T},k::AbstractMatrix{Float64}) where T<:AbstractElement = op.(aps,k=k)
+(op::Operator)(aps::Vector{T},f::AbstractVector{Float64}) where T<:AbstractElement = op.(aps,f=f)
+(op::Operator)(aps::Vector{T}) where T<:AbstractElement = op.(ap)
 
 function prescribe!(ap::T,sf::Pair{Symbol,F}) where {T<:AbstractElement,F<:Function}
     𝓖 = ap.𝓖
@@ -75,32 +41,6 @@ function prescribe!(aps::Vector{T},sf::Pair{Symbol,F}) where {T<:AbstractElement
         prescribe!(ap,sf)
     end
 end
-
-"""
-# Potential Problem
-"""
-function (op::Operator{:𝑓𝑣})(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
-    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    for ξ in 𝓖
-        𝑤 = ξ.𝑤
-        N = ξ[:𝝭]
-        u = ξ.u
-        for (i,xᵢ) in enumerate(𝓒)
-            I = xᵢ.𝐼
-            f[I] += N[i]*u*𝑤
-        end
-    end
-end
-
-
-
-
-
-
-
-"""
-Plane Strain
-"""
 
 """
 Phase field modeling fracture
