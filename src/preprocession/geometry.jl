@@ -8,6 +8,7 @@ abstract type AbstracQuadrilateralt<:AbstractSurface end
 abstract type AbstractTetrahedron<:AbstractVolume end
 
 struct Point
+    i::Int
     x::Float64
     y::Float64
     z::Float64
@@ -170,4 +171,18 @@ function (a::Tri6)(ξ::Float64,η::Float64)
     return x₁*N₁+x₂*N₂+x₃*N₃+x₄*N₄+x₅*N₅+x₆*N₆,
            y₁*N₁+y₂*N₂+y₃*N₃+y₄*N₄+y₅*N₅+y₆*N₆,
            z₁*N₁+z₂*N₂+z₃*N₃+z₄*N₄+z₅*N₅+z₆*N₆
+end
+
+function get𝐴(a::Tri3)
+    x₁ = a.vertices[1].x
+    x₂ = a.vertices[2].x
+    x₃ = a.vertices[3].x
+    y₁ = a.vertices[1].y
+    y₂ = a.vertices[2].y
+    y₃ = a.vertices[3].y
+    z₁ = a.vertices[1].z
+    z₂ = a.vertices[2].z
+    z₃ = a.vertices[3].z
+
+    return 0.5*(x₁*y₂+x₂*y₃+x₃*y₁-x₂*y₁-x₃*y₂-x₁*y₃)
 end
