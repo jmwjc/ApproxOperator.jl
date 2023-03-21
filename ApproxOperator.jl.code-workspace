@@ -3,6 +3,9 @@
 		{
 			"path": "."
 		},
+		{
+			"path": "../../../wave-base"
+		}
 	],
 	"settings": {
 		"git.ignoreLimitWarning": true
