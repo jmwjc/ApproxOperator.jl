@@ -58,6 +58,8 @@ ops = [
 # assembly
 k = zeros(nₚ,nₚ)
 f = zeros(nₚ)
+d = zeros(nₚ)
+push!(nodes,:d=>d)
 ops[1](elements["Ω"],k)
 ops[2](elements["Ω"],f)
 ops[3](elements["Γᵗ"],f)
