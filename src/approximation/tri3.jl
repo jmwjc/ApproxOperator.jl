@@ -21,15 +21,16 @@ end
 @inline get𝑤(ap::T,ξ::Node) where T<:AbstractElement{:Tri3} = get𝐴(ap)*ξ.w
 
 function get𝐴(ap::T) where T<:AbstractElement{:Tri3}
-    x₁ = ap.𝓒[1].x
-    y₁ = ap.𝓒[1].y
-    z₁ = ap.𝓒[1].z
-    x₂ = ap.𝓒[2].x
-    y₂ = ap.𝓒[2].y
-    z₂ = ap.𝓒[2].z
-    x₃ = ap.𝓒[3].x
-    y₃ = ap.𝓒[3].y
-    z₃ = ap.𝓒[3].z
+    v₁,v₂,v₃ = ap.𝓒
+    x₁ = v₁.x
+    y₁ = v₁.y
+    z₁ = v₁.z
+    x₂ = v₂.x
+    y₂ = v₂.y
+    z₂ = v₂.z
+    x₃ = v₃.x
+    y₃ = v₃.y
+    z₃ = v₃.z
     𝐴₁ = 0.5*(y₁*z₂+y₂*z₃+y₃*z₁-y₂*z₁-y₃*z₂-y₁*z₃)
     𝐴₂ = 0.5*(z₁*x₂+z₂*x₃+z₃*x₁-z₂*x₁-z₃*x₂-z₁*x₃)
     𝐴₃ = 0.5*(x₁*y₂+x₂*y₃+x₃*y₁-x₂*y₁-x₃*y₂-x₁*y₃)
@@ -87,12 +88,13 @@ function set𝝭!(ap::Element{:Tri3},x::Node)
 end
 function set∇𝝭!(ap::Element{:Tri3},x::Node)
     𝐴 = get𝐴(ap)
-    x₁ = ap.𝓒[1].x
-    x₂ = ap.𝓒[2].x
-    x₃ = ap.𝓒[3].x
-    y₁ = ap.𝓒[1].y
-    y₂ = ap.𝓒[2].y
-    y₃ = ap.𝓒[3].y
+    v₁,v₂,v₃ = ap.𝓒
+    x₁ = v₁.x
+    y₁ = v₁.y
+    x₂ = v₂.x
+    y₂ = v₂.y
+    x₃ = v₃.x
+    y₃ = v₃.y
     ∂𝝭∂x = x[:∂𝝭∂x]
     ∂𝝭∂y = x[:∂𝝭∂y]
     ∂𝝭∂x[1] = (y₂-y₃)/2.0/𝐴

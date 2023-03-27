@@ -3,6 +3,7 @@ function importcomsol(filename::String)
     fid = open(filename,"r")
     points = Point[]
     elements = Dict(["Ω"=>Tri3[],"Γ"=>Seg2[]])
+    entities = Dict(["Ω"=>Int[],"Γ"=>Int[]])
     nₚ = 0
     for line in eachline(fid)
         if occursin("# number of mesh vertices",line)
@@ -31,6 +32,14 @@ function importcomsol(filename::String)
                 i2 = parse(Int,i2)+1
                 push!(elements["Γ"],Seg2((points[i1],points[i2])))
             end
+            for i in 1:3
+                readline(fid)
+            end
+            for i in 1:n
+                line = readline(fid)
+                j = parse(Int,line)
+                push!(entities["Γ"],j)
+            end
         elseif line == "# Type #2"
             for i in 1:5
                 readline(fid)
@@ -49,7 +58,7 @@ function importcomsol(filename::String)
             end
         end
     end
-    return elements,points
+    return elements,points,entities
 end
 
 function importcomsol_fem(filename::String)
@@ -87,6 +96,8 @@ function importcomsol_fem(filename::String)
         :z=>(2,zeros(ng*nₑ)),
         :𝑤=>(2,zeros(ng*nₑ)),
         :𝝭=>(4,zeros(ng*nₑ*3)),
+        :∂𝝭∂x=>(4,zeros(ng*nₑ*3)),
+        :∂𝝭∂y=>(4,zeros(ng*nₑ*3)),
     ])
     for (C,a) in enumerate(elms["Ω"])
         element = Element{:Tri3}((c,3,𝓒),(g,ng,𝓖))

@@ -14,5 +14,8 @@ include("element.jl")
 include("preprocession/integration.jl")
 include("preprocession/geometry.jl")
 include("preprocession/importcomsol.jl")
+include("approximation/tri3.jl")
+
+export set𝝭!, set∇𝝭!
 
 end
