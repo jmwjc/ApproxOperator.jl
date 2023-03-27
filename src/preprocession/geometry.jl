@@ -186,3 +186,14 @@ function get𝐴(a::Tri3)
 
     return 0.5*(x₁*y₂+x₂*y₃+x₃*y₁-x₂*y₁-x₃*y₂-x₁*y₃)
 end
+
+function get𝐿(a::Seg2)
+    x₁ = a.vertices[1].x
+    x₂ = a.vertices[2].x
+    y₁ = a.vertices[1].y
+    y₂ = a.vertices[2].y
+    z₁ = a.vertices[1].z
+    z₂ = a.vertices[2].z
+
+    return sqrt(abs2(x₂-x₁)+abs2(y₂-y₁))
+end
