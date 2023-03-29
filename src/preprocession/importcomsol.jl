@@ -146,6 +146,8 @@ function importcomsol_fem(filename::String)
         :z=>(2,zeros(ng*nₑ)),
         :𝑤=>(2,zeros(ng*nₑ)),
         :𝝭=>(4,zeros(ng*nₑ*2)),
+        :∂𝝭∂x=>(4,zeros(ng*nₑ*2)),
+        :∂𝝭∂y=>(4,zeros(ng*nₑ*2)),
     ])
     for (C,a) in enumerate(elms["Γ"])
         element = Element{:Seg2}((c,2,𝓒),(g,ng,𝓖))

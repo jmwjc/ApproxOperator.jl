@@ -195,5 +195,5 @@ function get𝐿(a::Seg2)
     z₁ = a.vertices[1].z
     z₂ = a.vertices[2].z
 
-    return sqrt(abs2(x₂-x₁)+abs2(y₂-y₁))
+    return ((x₂-x₁)^2+(y₂-y₁)^2)^0.5
 end

@@ -18,12 +18,13 @@ end
 @inline get𝑤(ap::T,ξ::Node) where T<:AbstractElement{:Seg2} = 0.5*get𝐿(ap)*ξ.w
 
 function get𝐿(ap::T) where T<:AbstractElement{:Seg2}
-    x₁ = ap.𝓒[1].x
-    y₁ = ap.𝓒[1].y
-    z₁ = ap.𝓒[1].z
-    x₂ = ap.𝓒[2].x
-    y₂ = ap.𝓒[2].y
-    z₂ = ap.𝓒[2].z
+    v₁,v₂ = ap.𝓒
+    x₁ = v₁.x
+    y₁ = v₁.y
+    z₁ = v₁.z
+    x₂ = v₂.x
+    y₂ = v₂.y
+    z₂ = v₂.z
     return ((x₂-x₁)^2+(y₂-y₁)^2+(z₂-z₁)^2)^0.5
 end
 
