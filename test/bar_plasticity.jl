@@ -4,7 +4,7 @@
 #          u(0) = 0.
 #          EAdu/dx(1) = 1.
 
-using ApproxOperator, Printf
+using ApproxOperator, LinearAlgebra, Printf, CairoMakie
 
 # length of bar
 Lb = 1.
@@ -54,51 +54,76 @@ prescribe!(elements["Γᵍ"],:g=>(x,y,z)->0.0)
 
 # set operator
 ops = [
-    Operator{:∫vₓσdx}(:E=>100.0,:K=>100.0,:σy=>1.0,:tol=>1e14),
+    Operator{:∫vₓσdx}(:E=>100.0,:K=>100.0,:σy=>1.0,:tol=>1e-14),
     Operator{:∫vtdΓ}(),
     Operator{:∫vgdΓ}(:α=>1e15)
 ]
 
 # assembly
 k = zeros(nₚ,nₚ)
+kα = zeros(nₚ,nₚ)
 fint = zeros(nₚ)
 fext = zeros(nₚ)
+fα = zeros(nₚ)
 d = zeros(nₚ)
 Δd = zeros(nₚ)
 push!(nodes,:d=>d)
 push!(nodes,:Δd=>Δd)
 
+ops[3](elements["Γᵍ"],kα,fα)
+
 total_steps = 100
+max_iter = 100
 F = 2.0
+tol = 1e-13
+σ = zeros(total_steps+1)
+ε = zeros(total_steps+1)
 for n in 1:total_steps
-    fill!(k,0.0)
-    fill!(fint,0.0)
     fill!(fext,0.0)
 
     prescribe!(elements["Γᵗ"],:t=>(x,y,z)->F*n/total_steps)
     ops[2](elements["Γᵗ"],fext)
-    ops[1](elements["Ω"],k,fint)
-    ops[3](elements["Γᵍ"],k,fext)
 
-    Δd .= k\(fext-fint)
-    d .+= Δd
-    # update Δεₙ₊₁
+    @printf "Load step=%i, f=%e \n" n F*n/total_steps
+    i = 0
+    Δdnorm = 0.0
+    fnorm = 0.0
+    while i < max_iter
+        i += 1
+        fill!(k,0.0)
+        fill!(fint,0.0)
+        ops[1](elements["Ω"],k,fint)
+
+        Δd .= (k+kα)\(fext-fint+fα)
+        d .+= Δd
+        Δdnorm = LinearAlgebra.norm(Δd)
+        @printf "iter=%i, Δdnorm=%e \n" i Δdnorm
+        if Δdnorm < tol
+            break
+        end
+    end
+
+    # cal ε
     for ap in elements["Ω"]
         𝓒 = ap.𝓒;𝓖 = ap.𝓖
         for ξ in 𝓖
-            Δε = 0.0
-            ε = 0.0
+            εₙ = 0.0
             B = ξ[:∂𝝭∂x]
             for (i,xᵢ) in enumerate(𝓒)
-                Δε += B[i]*xᵢ.Δd
-                ε += B[i]*xᵢ.d
+                εₙ += B[i]*xᵢ.d
             end
-            ξ.Δεₙ = Δε
-            ξ.ε = ε
+            ξ.ε = εₙ
         end
     end
 
     a = elements["Ω"][5]
     ξ = a.𝓖[1]
-    @printf  "Load step=%i,f=%e, σₙ=%e, εₙ₊₁=%e \n" n F*n/total_steps ξ.σₙ ξ.ε
+    σ[n+1] = ξ.σₙ
+    ε[n+1] = ξ.ε
+    @printf "Converge to σₙ=%e, εₙ=%e \n" ξ.σₙ ξ.ε
 end
+
+f = Figure()
+Axis(f[1,1])
+scatterlines!(ε,σ)
+f

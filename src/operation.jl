@@ -1854,8 +1854,11 @@ function (op::Operator{:∫vₓσdx})(ap::T,k::AbstractMatrix{Float64},fint::Abs
         σₙ = ξ.σₙ
         αₙ = ξ.αₙ
         εᵖₙ = ξ.εᵖₙ
-        Δεₙ = ξ.Δεₙ
         𝑤 = ξ.𝑤
+        Δεₙ = 0.0
+        for (i,xᵢ) in enumerate(𝓒)
+            Δεₙ += B[i]*xᵢ.Δd
+        end
         # predict phase
         σᵗʳ = σₙ+E*Δεₙ
         fᵗʳ = abs(σᵗʳ) - (σy+K*αₙ)
@@ -1869,15 +1872,13 @@ function (op::Operator{:∫vₓσdx})(ap::T,k::AbstractMatrix{Float64},fint::Abs
             ξ.σₙ = σᵗʳ
             Eₜ = E
         end
-        # println(σₙ)
-        println(fᵗʳ)
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
                 k[I,J] += B[i]*Eₜ*B[j]*𝑤
             end
-            fint[I] += B[i]*σₙ*𝑤
+            fint[I] += B[i]*ξ.σₙ*𝑤
         end
     end
 end
