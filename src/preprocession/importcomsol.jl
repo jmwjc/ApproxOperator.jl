@@ -62,7 +62,7 @@ function importcomsol(filename::String)
 end
 
 function importcomsol_fem(filename::String)
-    elms,nds = importcomsol(filename)
+    elms,nds,entities = importcomsol(filename)
     nₚ = length(nds)
     nodes = Node{(:𝐼,),1}[]
     data = Dict([:x=>(1,zeros(nₚ)),:y=>(1,zeros(nₚ)),:z=>(1,zeros(nₚ))])
@@ -135,7 +135,8 @@ function importcomsol_fem(filename::String)
     s = 0
     ng = 2 
     gauss_scheme = :SegGI2
-    nₑ = length(elms["Γ"])
+    index = findall(x->x∈(0,1,2,6,8),entities["Γ"])
+    nₑ = length(index)
     scheme = quadraturerule(gauss_scheme)
 
     data_𝓖 = Dict([
@@ -146,10 +147,10 @@ function importcomsol_fem(filename::String)
         :z=>(2,zeros(ng*nₑ)),
         :𝑤=>(2,zeros(ng*nₑ)),
         :𝝭=>(4,zeros(ng*nₑ*2)),
-        :∂𝝭∂x=>(4,zeros(ng*nₑ*2)),
-        :∂𝝭∂y=>(4,zeros(ng*nₑ*2)),
+        # :∂𝝭∂x=>(4,zeros(ng*nₑ*2)),
+        # :∂𝝭∂y=>(4,zeros(ng*nₑ*2)),
     ])
-    for (C,a) in enumerate(elms["Γ"])
+    for (C,a) in enumerate(elms["Γ"][index])
         element = Element{:Seg2}((c,2,𝓒),(g,ng,𝓖))
         for v in a.vertices
             i = v.i

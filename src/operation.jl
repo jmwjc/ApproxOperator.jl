@@ -4,7 +4,7 @@ Operator
 struct Operator{T}
     data::Dict{Symbol,Float64}
 end
-Operator{T}(d::Pair{Symbol,D}...) where T = Operator{T}(Dict(d))
+Operator{T}(d::Pair{Symbol}...) where T = Operator{T}(Dict(d))
 
 
 getproperty(op::Operator,f::Symbol) = getfield(op,:data)[f]
@@ -35,8 +35,10 @@ end
 
 function prescribe!(aps::Vector{T},sf::Pair{Symbol,F}) where {T<:AbstractElement,F<:Function}
     s,f = sf
-    n = length(getfield(aps[1].𝓖[1],:data)[:x][2])
-    haskey(getfield(aps[1].𝓖[1],:data),s) ? nothing : push!(getfield(aps[1].𝓖[1],:data),s=>(2,zeros(n)))
+    # n = length(getfield(aps[1].𝓖[1],:data)[:x][2])
+    data = getfield(getfield(aps[1],:𝓖)[3][1],:data)
+    n = length(data[:x][2])
+    haskey(data,s) ? nothing : push!(data,s=>(2,zeros(n)))
     for ap in aps
         prescribe!(ap,sf)
     end

@@ -69,7 +69,7 @@ function (op::Operator{:∫∇v∇udΩ})(ap::T,k::AbstractMatrix{Float64}) where
     end
 end
 
-function (op::Operator{:∫∫∇v∇udxdy})(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+function (op::Operator{:∫∫∇v∇udxdy})(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     kᶜ = op.k
     for ξ in 𝓖
@@ -112,7 +112,7 @@ function (op::Operator{:∫vtdΓ})(ap::T,f::AbstractVector{Float64}) where T<:Ab
     end
 end
 
-function (op::Operator{:∫vgdΓ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+function (op::Operator{:∫vgdΓ})(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     α = op.α
     for ξ in 𝓖
