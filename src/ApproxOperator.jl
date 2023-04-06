@@ -17,6 +17,7 @@ include("preprocession/importcomsol.jl")
 include("approximation/tri3.jl")
 include("approximation/seg2.jl")
 include("operation/potential.jl")
+include("operation/elasticity.jl")
 
 export Operator
 export set𝝭!, set∇𝝭!
