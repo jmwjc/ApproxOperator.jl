@@ -18,7 +18,8 @@ include("approximation/tri3.jl")
 include("approximation/seg2.jl")
 include("operation/potential.jl")
 include("operation/elasticity.jl")
-
+include("preprocession/importmsh.jl")
+include("operation/Kirchhoff-Love_plate.jl")
 export Operator
 export set𝝭!, set∇𝝭!
 
