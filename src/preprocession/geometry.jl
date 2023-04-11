@@ -26,6 +26,14 @@ struct Tri3<:AbstractTriangle
     vertices::NTuple{3,Point}
     edges::NTuple{3,Seg2}
 end
+function Tri3(vertices::NTuple{3,Point})
+    v₁,v₂,v₃ = vertices 
+    e₁ = Seg2((v₂,v₃))
+    e₂ = Seg2((v₃,v₁))
+    e₃ = Seg2((v₁,v₂))
+    edges = (e₁,e₂,e₃)
+    return Tri3(vertices,edges)
+end
 
 struct Tri6<:AbstractTriangle
     vertices::NTuple{6,Point}
