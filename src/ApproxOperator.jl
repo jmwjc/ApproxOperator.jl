@@ -2,6 +2,7 @@ module ApproxOperator
 
 import Base: +, -, *, /, getindex, setindex!, getproperty, setproperty!, length, push!, fill!, issubset, intersect
 import InteractiveUtils: subtypes
+import Printf: @printf
 
 abstract type AbstractElement{T} end
 abstract type SpatialPartition end
