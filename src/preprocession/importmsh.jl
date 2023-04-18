@@ -139,9 +139,9 @@ function import_msh_2(fid::IO)
                     elements[name] = type[]
                 end
                 if type == Point
-                    push!(elements[name],points[nodeList])
+                   push!(elements[name],points[nodeList])
                 else
-                    push!(elements[name],type(Tuple(points[i] for i in nodeList)))
+                   push!(elements[name],type(Tuple(points[i] for i in nodeList)))
                 end
             end
         end
@@ -259,9 +259,40 @@ function importmsh_fem(filename::String)
         g += ng
         push!(elements["Γ"],element)
     end
- 
+
+
     data = Dict([:x=>(1,[]),:y=>(1,[]),:z=>(1,[])])
     node_Γᵗ = Node
-    elements["Γᵗ"]
-    return elements,nodes
+    elements["Γᵗ"] = [ApproxOperator.Element{:Poi1}([nodes[1]])]
+    𝓒 = Node{(:𝐼,),1}[]
+    𝓖 = Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}[]
+    c = 0
+    g = 0
+    G = 0
+    s = 0
+    ng = 1
+    gauss_scheme = :PoiGI1
+    nₑ = length(elms["Γᵗ"])
+    scheme = quadraturerule(gauss_scheme)
+    data_𝓖 = Dict([
+         :ξ=>(1,scheme[:ξ]),
+         :w=>(1,scheme[:w]),
+         :x=>(2,zeros(ng*nₑ)),
+         :y=>(2,zeros(ng*nₑ)),
+         :z=>(2,zeros(ng*nₑ)),
+         :𝑤=>(2,zeros(ng*nₑ)),
+         :𝝭=>(4,zeros(ng*nₑ)),
+     ])
+     for (C,a) in enumerate(elms["Γᵗ"])
+         element = Element{:Poi1}((c,1,𝓒),(g,ng,𝓖))
+         for v in a.vertices
+             i = v.i
+             push!(𝓒,nodes[i])
+         end
+         c += 1
+         push!(element["Γᵗ"],element)
+     end
+
+     return elements,nodes
 end
+    

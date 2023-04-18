@@ -13,7 +13,9 @@ struct Point
     y::Float64
     z::Float64
 end
-
+ struct Poi1<:AbstractGeometry
+     vertices::NTuple{1,Point}
+ end
 struct Seg2<:AbstractSegment
     vertices::NTuple{2,Point}
 end
@@ -26,6 +28,7 @@ struct Tri3<:AbstractTriangle
     vertices::NTuple{3,Point}
     edges::NTuple{3,Seg2}
 end
+
 function Tri3(vertices::NTuple{3,Point})
     v₁,v₂,v₃ = vertices 
     e₁ = Seg2((v₂,v₃))
