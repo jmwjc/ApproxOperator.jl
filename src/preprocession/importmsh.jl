@@ -138,7 +138,7 @@ function import_msh_2(fid::IO)
                 if ~haskey(elements,name)
                     elements[name] = type[]
                 end
-                if type == Point
+                if type == Poi1
                    push!(elements[name],points[nodeList])
                 else
                    push!(elements[name],type(Tuple(points[i] for i in nodeList)))
@@ -162,7 +162,7 @@ function importmsh_fem(filename::String)
         push!(nodes,node)
     end
 
-    elements = Dict(["Ω"=>Element{:Tri3}[],"Γ"=>Element{:Seg2}[]])
+    elements = Dict(["Ω"=>Element{:Tri3}[],"Γ"=>Element{:Seg2}[],"Γ"=>Element{:Poi1}[]])
 
     𝓒 = Node{(:𝐼,),1}[]
     𝓖 = Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}[]
@@ -223,6 +223,7 @@ function importmsh_fem(filename::String)
     ng = 2 
     gauss_scheme = :SegGI2
     scheme = quadraturerule(gauss_scheme)
+    nₑ = length(elms["Γ"])
 
     data_𝓖 = Dict([
         :ξ=>(1,scheme[:ξ]),
@@ -262,9 +263,7 @@ function importmsh_fem(filename::String)
 
 
     data = Dict([:x=>(1,[]),:y=>(1,[]),:z=>(1,[])])
-    node_Γᵗ = Node
-    elements["Γᵗ"] = [ApproxOperator.Element{:Poi1}([nodes[1]])]
-    𝓒 = Node{(:𝐼,),1}[]
+    𝓒 = [nodes[i]]
     𝓖 = Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}[]
     c = 0
     g = 0
@@ -273,25 +272,16 @@ function importmsh_fem(filename::String)
     ng = 1
     gauss_scheme = :PoiGI1
     nₑ = length(elms["Γᵗ"])
-    scheme = quadraturerule(gauss_scheme)
     data_𝓖 = Dict([
          :ξ=>(1,scheme[:ξ]),
          :w=>(1,scheme[:w]),
-         :x=>(2,zeros(ng*nₑ)),
+         :x=>(2,[0.]),
          :y=>(2,zeros(ng*nₑ)),
          :z=>(2,zeros(ng*nₑ)),
          :𝑤=>(2,zeros(ng*nₑ)),
          :𝝭=>(4,zeros(ng*nₑ)),
      ])
-     for (C,a) in enumerate(elms["Γᵗ"])
-         element = Element{:Poi1}((c,1,𝓒),(g,ng,𝓖))
-         for v in a.vertices
-             i = v.i
-             push!(𝓒,nodes[i])
-         end
-         c += 1
-         push!(element["Γᵗ"],element)
-     end
+     push!(element["Γᵗ"],element)
 
      return elements,nodes
 end
