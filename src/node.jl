@@ -44,17 +44,17 @@ end
 +(a::T,b::S) where {T<:Node,S<:Node} = (a.x+b.x,a.y+b.y,a.z+b.z)
 -(a::T,b::S) where {T<:Node,S<:Node} = (a.x-b.x,a.y-b.y,a.z-b.z)
 
-function printinfo(p::Node{T,N},s::Symbol) where {T,N}
-    if s∈T
-        index = getfield(p,:index)
-        i = findfirst(x->x==s,T)
-        @printf "Node "*string(s)*" = %i \n" index[i]
-        for (key,(j,value)) in getfield(p,:data)
-            if i == j
-                @printf string(key)*" = %e  " value[index[i]]
-            end
-        end
-    else
-        error("No index of $s.")
-    end
-end
+# function printinfo(p::Node{T,N},s::Symbol) where {T,N}
+#     if s∈T
+#         index = getfield(p,:index)
+#         i = findfirst(x->x==s,T)
+#         @printf "Node "*string(s)*" = %i \n" index[i]
+#         for (key,(j,value)) in getfield(p,:data)
+#             if i == j
+#                 @printf string(key)*" = %e  " value[index[i]]
+#             end
+#         end
+#     else
+#         error("No index of $s.")
+#     end
+# end

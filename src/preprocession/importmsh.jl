@@ -85,7 +85,7 @@ end
 function import_msh_4(fid::IO) end
 
 function import_msh_2(fid::IO)
-    etype = Dict(1=>:Seg2,2=>:Tri3,3=>:Quad4,8=>:Seg3,9=>:Tri6,15=>:Poi1)
+    etype = Dict(1=>:Seg2,2=>:Tri3,3=>:Quad4,8=>:Seg3,9=>:Tri6,15=>:Point)
     points = Point[]
     elements = Dict{String,Any}()
     physicalnames = Dict{Int,String}()
@@ -138,8 +138,8 @@ function import_msh_2(fid::IO)
                 if ~haskey(elements,name)
                     elements[name] = type[]
                 end
-                if type == Poi1
-                   push!(elements[name],points[nodeList])
+                if type == Point
+                   push!(elements[name],points[nodeList...])
                 else
                    push!(elements[name],type(Tuple(points[i] for i in nodeList)))
                 end
@@ -162,7 +162,7 @@ function importmsh_fem(filename::String)
         push!(nodes,node)
     end
 
-    elements = Dict(["Ω"=>Element{:Tri3}[],"Γ"=>Element{:Seg2}[],"Γ"=>Element{:Poi1}[]])
+    elements = Dict(["Ω"=>Element{:Tri3}[],"Γ"=>Element{:Seg2}[],"Γᵗ"=>Element{:Poi1}[]])
 
     𝓒 = Node{(:𝐼,),1}[]
     𝓖 = Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}[]
@@ -262,26 +262,21 @@ function importmsh_fem(filename::String)
     end
 
 
-    data = Dict([:x=>(1,[]),:y=>(1,[]),:z=>(1,[])])
-    𝓒 = [nodes[i]]
-    𝓖 = Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}[]
-    c = 0
-    g = 0
-    G = 0
-    s = 0
-    ng = 1
+    data = Dict([:x=>(1,[0]),:y=>(1,[-205]),:z=>(1,[0])])
+    𝓒 = [nodes[5]]
     gauss_scheme = :PoiGI1
     nₑ = length(elms["Γᵗ"])
     data_𝓖 = Dict([
          :ξ=>(1,scheme[:ξ]),
          :w=>(1,scheme[:w]),
          :x=>(2,[0.]),
-         :y=>(2,zeros(ng*nₑ)),
-         :z=>(2,zeros(ng*nₑ)),
-         :𝑤=>(2,zeros(ng*nₑ)),
-         :𝝭=>(4,zeros(ng*nₑ)),
+         :y=>(2,[-205]),
+         :z=>(2,[0]),
+         :𝑤=>(2,[1]),
+         :𝝭=>(4,[1]),
      ])
-     push!(element["Γᵗ"],element)
+     element = Element{:Poi1}((c,1,𝓒),(g,1,𝓖))
+     push!(elements["Γᵗ"],element)
 
      return elements,nodes
 end

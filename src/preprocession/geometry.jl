@@ -13,9 +13,6 @@ struct Point
     y::Float64
     z::Float64
 end
- struct Poi1<:AbstractGeometry
-     vertices::NTuple{1,Point}
- end
 struct Seg2<:AbstractSegment
     vertices::NTuple{2,Point}
 end
