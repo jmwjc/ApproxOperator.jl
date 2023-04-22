@@ -1,5 +1,169 @@
 
-function set∇̃₁𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Poi1}) where {𝒑,𝑠,𝜙}
+struct RKGradientSmoothing{𝑝,𝑠,𝜙,T}<:AbstractReproducingKernel{𝑠,𝜙,T}
+    𝓒::Tuple{Int,Int,Vector{Node{(:𝐼,),1}}}
+    𝓖::Tuple{Int,Int,Vector{Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}}}
+    𝓖ˢ::Tuple{Int,Int,Vector{Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}}}
+end
+
+get𝑛𝒑(    ::RKGradientSmoothing{:Linear1D}) = 1
+get𝒑(     ::RKGradientSmoothing{:Linear1D},::Any) = (1.0,)
+get∂𝒑∂ξ(  ::RKGradientSmoothing{:Linear1D},::Any) = (0.0,)
+get∂²𝒑∂ξ²(::RKGradientSmoothing{:Linear1D},::Any) = (0.0,)
+
+get𝑛𝒑(    ::RKGradientSmoothing{:Quadratic1D}) = 2
+get𝒑(     ::RKGradientSmoothing{:Quadratic1D},ξ::Float64) = (1.0,0.5*(1.0-ξ))
+get∂𝒑∂ξ(  ::RKGradientSmoothing{:Quadratic1D},::Any) = (0.0,1.0)
+get∂²𝒑∂ξ²(::RKGradientSmoothing{:Quadratic1D},::Any) = (0.0,0.0)
+
+get𝑛𝒑(    ::RKGradientSmoothing{:Cubic1D}) = 3
+get𝒑(     ::RKGradientSmoothing{:Cubic1D},ξ::Float64) = (1.0,0.5*(1.0-ξ),0.25*(1.0-ξ)^2)
+get∂𝒑∂ξ(  ::RKGradientSmoothing{:Cubic1D},ξ::Float64) = (0.,1.0,(1.0-ξ))
+get∂²𝒑∂ξ²(::RKGradientSmoothing{:Cubic1D},ξ::Float64) = (0.,0.0,2.0)
+
+get𝑛𝒑(    ::RKGradientSmoothing{:Quartic1D}) = 4
+get𝒑(     ::RKGradientSmoothing{:Quartic1D},ξ::Float64) = (1.0,0.5*(1.0-ξ),0.25*(1.0-ξ)^2,0.125*(1.0-ξ)^3)
+get∂𝒑∂ξ(  ::RKGradientSmoothing{:Quartic1D},ξ::Float64) = (0.,1.0,(1.0-ξ),0.75*(1.0-ξ)^2)
+get∂²𝒑∂ξ²(::RKGradientSmoothing{:Quartic1D},ξ::Float64) = (0.,0.0,2.0,3.0*(1.0-ξ))
+
+get𝑛𝒑(  ::RKGradientSmoothing{:Linear2D}) = 1
+get𝒑(   ::RKGradientSmoothing{:Linear2D},::Any,::Any) = (1.,)
+get∂𝒑∂ξ(::RKGradientSmoothing{:Linear2D},::Any,::Any) = (0.,)
+get∂𝒑∂η(::RKGradientSmoothing{:Linear2D},::Any,::Any) = (0.,)
+
+get𝑛𝒑(     ::RKGradientSmoothing{:Quadratic2D}) = 3
+get𝒑(      ::RKGradientSmoothing{:Quadratic2D},ξ::Float64,η::Float64) = (1.,ξ,η)
+get∂𝒑∂ξ(   ::RKGradientSmoothing{:Quadratic2D},::Any,::Any) = (0.,1.,0.)
+get∂𝒑∂η(   ::RKGradientSmoothing{:Quadratic2D},::Any,::Any) = (0.,0.,1.)
+get∂²𝒑∂ξ²( ::RKGradientSmoothing{:Quadratic2D},::Any,::Any) = (0.,0.,0.)
+get∂²𝒑∂ξ∂η(::RKGradientSmoothing{:Quadratic2D},::Any,::Any) = (0.,0.,0.)
+get∂²𝒑∂η²( ::RKGradientSmoothing{:Quadratic2D},::Any,::Any) = (0.,0.,0.)
+
+get𝑛𝒑(  ::RKGradientSmoothing{:Cubic2D}) = 6
+get𝒑(   ::RKGradientSmoothing{:Cubic2D},ξ::Float64,η::Float64) = (1.,ξ,η,ξ^2,ξ*η,η^2)
+get∂𝒑∂ξ(::RKGradientSmoothing{:Cubic2D},ξ::Float64,η::Float64) = (0.,1.,0.,2.0*ξ,η,0.)
+get∂𝒑∂η(::RKGradientSmoothing{:Cubic2D},ξ::Float64,η::Float64) = (0.,0.,1.,0.,ξ,2.0*η)
+
+get𝑛𝒑(  ::RKGradientSmoothing{:Quartic2D}) = 10
+get𝒑(   ::RKGradientSmoothing{:Quartic2D},ξ::Float64,η::Float64) = (1.,ξ,η,ξ^2,ξ*η,η^2,ξ^3,ξ^2*η,ξ*η^2,η^3)
+get∂𝒑∂ξ(::RKGradientSmoothing{:Quartic2D},ξ::Float64,η::Float64) = (0.,1.,0.,2.0*ξ,η,0.,3.0*ξ^2,2.0*ξ*η,η^2,0.)
+get∂𝒑∂η(::RKGradientSmoothing{:Quartic2D},ξ::Float64,η::Float64) = (0.,0.,1.,0.,ξ,2.0*η,0.,ξ^2,2.0*ξ*η,3.0*η^2)
+
+for 𝒑 in (:Linear1D,Quadratic1D,Cubic1D,Quartic1D)
+    get𝒑(  ap::RKGradientSmoothing{𝒑},ξ::Node) = get𝒑(ap,ξ.ξ)
+    get∇𝒑( ap::RKGradientSmoothing{𝒑},ξ::Node) = get𝒑(ap,ξ.ξ),get∂𝒑∂ξ(ap,ξ.ξ)
+    get∇²𝒑(ap::RKGradientSmoothing{𝒑},ξ::Node) = get𝒑(ap,ξ.ξ),get∂𝒑∂ξ(ap,ξ.ξ),get∂²𝒑∂ξ²(ap,ξ.ξ)
+end
+
+for 𝒑 in (:Linear2D,Quadratic2D,Cubic2D,Quartic2D)
+    get𝒑(  ap::RKGradientSmoothing{𝒑},ξ::Node) = get𝒑(ap,ξ.ξ,ξ.η)
+    get∇𝒑( ap::RKGradientSmoothing{𝒑},ξ::Node) = get𝒑(ap,ξ.ξ,ξ.η),get∂𝒑∂ξ(ap,ξ.ξ,ξ.η)
+    get∇²𝒑(ap::RKGradientSmoothing{𝒑},ξ::Node) = get𝒑(ap,ξ.ξ,ξ.η),get∂𝒑∂ξ(ap,ξ.ξ,ξ.η),get∂²𝒑∂ξ²(ap,ξ.ξ,ξ.η)
+end
+
+function get𝗚(ap::ReproducingKernel,s::Symbol)
+    n = get𝑛𝒑₁(ap)
+    data = getfield(ap.𝓖[1],:data)
+    fill!(data[s][2],0.)
+    return SymMat(n,data[s][2])
+end
+
+function cal𝗚!(ap::ReproducingKernel{𝑝,𝑠,𝜙,:Poi1}) where {𝑝,𝑠,𝜙}
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    𝗚 = get𝗚(ap,:∇̃)
+    x = 𝓒[1]
+    n = get𝑛𝒑₁(ap)
+    for ξ in 𝓖
+        Δx = x - ξ
+        𝒒 = get𝒑₁(ap,ξ)
+        w = get𝜙(ap,x,Δx)
+        for I in 1:n
+            for J in 1:I
+                𝗚[I,J] += w*𝒒[I]*𝒒[J]
+            end
+        end
+    end
+    cholesky!(𝗚)
+    inverse!(𝗚)
+    UUᵀ!(𝗚)
+    return 𝗚
+end
+
+function cal𝗚!(ap::ReproducingKernel{:Linear1D,𝑠,𝜙,:Seg2}) where {𝑠,𝜙}
+    𝗚⁻¹ = get𝗚(ap,:∇̃)
+    𝐿 = ap.𝓖[1].𝐿
+    𝗚⁻¹[1] =  1.0/𝐿
+    return 𝗚⁻¹
+end
+
+function cal𝗚!(ap::ReproducingKernel{:Quadratic1D,𝑠,𝜙,:Seg2}) where {𝑠,𝜙}
+    𝗚⁻¹ = get𝗚(ap,:∇̃)
+    𝐿 = ap.𝓖[1].𝐿
+    𝗚⁻¹[1] =  4.0/𝐿
+    𝗚⁻¹[2] = -6.0/𝐿
+    𝗚⁻¹[3] = 12.0/𝐿
+    return 𝗚⁻¹
+end
+
+function cal𝗚!(ap::ReproducingKernel{:Cubic1D,𝑠,𝜙,:Seg2}) where {𝑠,𝜙}
+    𝗚⁻¹ = get𝗚(ap,:∇̃)
+    𝐿 = ap.𝓖[1].𝐿
+    𝗚⁻¹[1] =    9.0/𝐿
+    𝗚⁻¹[2] =  -36.0/𝐿
+    𝗚⁻¹[3] =  192.0/𝐿
+    𝗚⁻¹[4] =   30.0/𝐿
+    𝗚⁻¹[5] = -180.0/𝐿
+    𝗚⁻¹[6] =  180.0/𝐿
+    return 𝗚⁻¹
+end
+
+function cal𝗚!(ap::ReproducingKernel{:Linear2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
+    𝗚⁻¹ = get𝗚(ap,:∇̃)
+    𝐴 = ap.𝓖[1].𝐴
+    𝗚⁻¹[1] = 1.0/𝐴
+    return 𝗚⁻¹
+end
+
+function cal𝗚!(ap::ReproducingKernel{:Quadratic2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
+    𝗚⁻¹ = get𝗚(ap,:∇̃)
+    𝐴 = ap.𝓖[1].𝐴
+    𝗚⁻¹[1] =   9.0/𝐴
+    𝗚⁻¹[2] = -12.0/𝐴
+    𝗚⁻¹[3] =  24.0/𝐴
+    𝗚⁻¹[4] = -12.0/𝐴
+    𝗚⁻¹[5] =  12.0/𝐴
+    𝗚⁻¹[6] =  24.0/𝐴
+    return 𝗚⁻¹
+end
+
+function cal𝗚!(ap::ReproducingKernel{:Cubic2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
+    𝗚⁻¹ = get𝗚(ap,:∇̃)
+    𝐴 = ap.𝓖[1].𝐴
+    𝗚⁻¹[1] =   36.0/𝐴
+    𝗚⁻¹[2] = -120.0/𝐴
+    𝗚⁻¹[3] =  600.0/𝐴
+    𝗚⁻¹[4] = -120.0/𝐴
+    𝗚⁻¹[5] =  300.0/𝐴
+    𝗚⁻¹[6] =  600.0/𝐴
+    𝗚⁻¹[7] =   90.0/𝐴
+    𝗚⁻¹[8] = -540.0/𝐴
+    𝗚⁻¹[9] = -180.0/𝐴
+    𝗚⁻¹[10] =  540.0/𝐴
+    𝗚⁻¹[11] =  180.0/𝐴
+    𝗚⁻¹[12] = -720.0/𝐴
+    𝗚⁻¹[13] = -720.0/𝐴
+    𝗚⁻¹[14] =  540.0/𝐴
+    𝗚⁻¹[15] = 1440.0/𝐴
+    𝗚⁻¹[16] =   90.0/𝐴
+    𝗚⁻¹[17] = -180.0/𝐴
+    𝗚⁻¹[18] = -540.0/𝐴
+    𝗚⁻¹[19] =   90.0/𝐴
+    𝗚⁻¹[20] =  540.0/𝐴
+    𝗚⁻¹[21] =  540.0/𝐴
+    return 𝗚⁻¹
+end
+
+function set∇̃𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Poi1}) where {𝒑,𝑠,𝜙}
     𝓖 = ap.𝓖
     ξᵢ = 𝓖[1]
     ∂𝝭∂x = ξᵢ[:∂𝝭∂x_]
@@ -77,6 +241,191 @@ function set∇̃𝝭!(gp::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3},ap::Reproduci
     end
 end
 
+struct RK2ndGradientSmoothing{𝑝,𝑠,𝜙,T}<:AbstractReproducingKernel{𝑠,𝜙,T}
+    𝓒::Tuple{Int,Int,Vector{Node{(:𝐼,),1}}}
+    𝓖::Tuple{Int,Int,Vector{Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}}}
+    𝓖ˢ::Tuple{Int,Int,Vector{Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}}}
+    𝓖ʷ::Tuple{Int,Int,Vector{Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}}}
+    𝓖ᶿ::Tuple{Int,Int,Vector{Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}}}
+    𝓖ᶜ::Tuple{Int,Int,Vector{Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}}}
+end
+
+get𝑛𝒑₂(::ReproducingKernel{:Quadratic2D}) = 1
+get𝒑₂(::ReproducingKernel{:Quadratic2D},::Any) = (1.,)
+get∂𝒑₂∂ξ(::ReproducingKernel{:Quadratic2D},::Any) = (0.,)
+get∂𝒑₂∂η(::ReproducingKernel{:Quadratic2D},::Any) = (0.,)
+get∂²𝒑₂∂ξ²(::ReproducingKernel{:Quadratic2D},::Any) = (0.,)
+get∂²𝒑₂∂ξ∂η(::ReproducingKernel{:Quadratic2D},::Any) = (0.,)
+
+get𝑛𝒑₂(::ReproducingKernel{:Cubic2D}) = 3
+get𝒑₂(ap::ReproducingKernel{:Cubic2D},ξ::Node) = get𝒑₂(ap,ξ.ξ,ξ.η)
+get𝒑₂(ap::ReproducingKernel{:Cubic2D},ξ::NTuple{3,Float64}) = get𝒑₂(ap,ξ[1],ξ[2])
+get𝒑₂(::ReproducingKernel{:Cubic2D},ξ::Float64,η::Float64) = (1.,ξ,η)
+get∂𝒑₂∂ξ(ap::ReproducingKernel{:Cubic2D},ξ::Any) = (0.,1.,0.)
+get∂𝒑₂∂η(ap::ReproducingKernel{:Cubic2D},ξ::Any) = (0.,0.,1.)
+get∂²𝒑₂∂ξ²(ap::ReproducingKernel{:Cubic2D},ξ::Any) = (0.,0.,0.)
+get∂²𝒑₂∂ξ∂η(ap::ReproducingKernel{:Cubic2D},ξ::Any) = (0.,0.,0.)
+get∂²𝒑₂∂η²(ap::ReproducingKernel{:Cubic2D},ξ::Any) = (0.,0.,0.)
+
+get𝑛𝒑₂(::ReproducingKernel{:Quartic2D}) = 6
+get𝒑₂(ap::ReproducingKernel{:Quartic2D},ξ::Node) = get𝒑₂(ap,ξ.ξ,ξ.η)
+get𝒑₂(ap::ReproducingKernel{:Quartic2D},ξ::NTuple{3,Float64}) = get𝒑₂(ap,ξ[1],ξ[2])
+get𝒑₂(::ReproducingKernel{:Quartic2D},ξ::Float64,η::Float64) = (1.,ξ,η,ξ^2,ξ*η,η^2)
+get∂𝒑₂∂ξ(ap::ReproducingKernel{:Quartic2D},ξ::Node) = get∂𝒑₂∂ξ(ap,ξ.ξ,ξ.η)
+get∂𝒑₂∂ξ(ap::ReproducingKernel{:Quartic2D},ξ::Float64,η::Float64) = (0.,1.,0.,2.0*ξ,η,0.)
+get∂𝒑₂∂η(ap::ReproducingKernel{:Quartic2D},ξ::Node) = get∂𝒑₂∂η(ap,ξ.ξ,ξ.η)
+get∂𝒑₂∂η(ap::ReproducingKernel{:Quartic2D},ξ::Float64,η::Float64) = (0.,0.,1.,0.,ξ,2.0*η)
+get∂²𝒑₂∂ξ²(ap::ReproducingKernel{:Quartic2D},ξ::Any) = (0.,0.,0.,2.,0.,0.)
+get∂²𝒑₂∂ξ∂η(ap::ReproducingKernel{:Quartic2D},ξ::Any) = (0.,0.,0.,0.,1.,0.)
+get∂²𝒑₂∂η²(ap::ReproducingKernel{:Quartic2D},ξ::Any) = (0.,0.,0.,0.,0.,2.)
+function cal𝗚₂!(ap::ReproducingKernel{:Quadratic2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
+    𝗚⁻¹ = get𝗚(ap,:∇̃²)
+    𝐴 = ap.𝓖[1].𝐴
+    𝗚⁻¹[1] = 1.0/𝐴
+    return 𝗚⁻¹
+end
+
+function cal𝗚₂!(ap::ReproducingKernel{:Cubic2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
+    𝗚⁻¹ = get𝗚(ap,:∇̃²)
+    𝐴 = ap.𝓖[1].𝐴
+    𝗚⁻¹[1] =   9.0/𝐴
+    𝗚⁻¹[2] = -12.0/𝐴
+    𝗚⁻¹[3] =  24.0/𝐴
+    𝗚⁻¹[4] = -12.0/𝐴
+    𝗚⁻¹[5] =  12.0/𝐴
+    𝗚⁻¹[6] =  24.0/𝐴
+    return 𝗚⁻¹
+end
+
+function cal∇𝗚₂!(ap::ReproducingKernel{:Cubic2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
+    𝗚⁻¹ = get𝗚(ap,:∇̃²)
+    𝗚⁻¹∂ξ = get𝗚(ap,:∂∇̃²∂ξ)
+    𝗚⁻¹∂η = get𝗚(ap,:∂∇̃²∂η)
+    𝐴 = ap.𝓖[1].𝐴
+    𝗚⁻¹[1] =   9.0/𝐴
+    𝗚⁻¹[2] = -12.0/𝐴
+    𝗚⁻¹[3] =  24.0/𝐴
+    𝗚⁻¹[4] = -12.0/𝐴
+    𝗚⁻¹[5] =  12.0/𝐴
+    𝗚⁻¹[6] =  24.0/𝐴
+
+    𝗚⁻¹∂ξ[1] =   9.0/𝐴
+    𝗚⁻¹∂ξ[2] = -12.0/𝐴
+    𝗚⁻¹∂ξ[3] =  24.0/𝐴
+    𝗚⁻¹∂ξ[4] = -12.0/𝐴
+    𝗚⁻¹∂ξ[5] =  12.0/𝐴
+    𝗚⁻¹∂ξ[6] =  24.0/𝐴
+
+    𝗚⁻¹∂η[1] =   9.0/𝐴
+    𝗚⁻¹∂η[2] = -12.0/𝐴
+    𝗚⁻¹∂η[3] =  24.0/𝐴
+    𝗚⁻¹∂η[4] = -12.0/𝐴
+    𝗚⁻¹∂η[5] =  12.0/𝐴
+    𝗚⁻¹∂η[6] =  24.0/𝐴
+
+    return 𝗚⁻¹,𝗚⁻¹∂ξ,𝗚⁻¹∂η
+end
+
+function cal𝗚₂!(ap::ReproducingKernel{:Quartic2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
+    𝗚⁻¹ = get𝗚(ap,:∇̃²)
+    𝐴 = ap.𝓖[1].𝐴
+    𝗚⁻¹[1] =   36.0/𝐴
+    𝗚⁻¹[2] = -120.0/𝐴
+    𝗚⁻¹[3] =  600.0/𝐴
+    𝗚⁻¹[4] = -120.0/𝐴
+    𝗚⁻¹[5] =  300.0/𝐴
+    𝗚⁻¹[6] =  600.0/𝐴
+    𝗚⁻¹[7] =   90.0/𝐴
+    𝗚⁻¹[8] = -540.0/𝐴
+    𝗚⁻¹[9] = -180.0/𝐴
+    𝗚⁻¹[10] =  540.0/𝐴
+    𝗚⁻¹[11] =  180.0/𝐴
+    𝗚⁻¹[12] = -720.0/𝐴
+    𝗚⁻¹[13] = -720.0/𝐴
+    𝗚⁻¹[14] =  540.0/𝐴
+    𝗚⁻¹[15] = 1440.0/𝐴
+    𝗚⁻¹[16] =   90.0/𝐴
+    𝗚⁻¹[17] = -180.0/𝐴
+    𝗚⁻¹[18] = -540.0/𝐴
+    𝗚⁻¹[19] =   90.0/𝐴
+    𝗚⁻¹[20] =  540.0/𝐴
+    𝗚⁻¹[21] =  540.0/𝐴
+    return 𝗚⁻¹
+end
+
+function cal∇𝗚₂!(ap::ReproducingKernel{:Quartic2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
+    𝗚⁻¹ = get𝗚(ap,:∇̃²)
+    𝗚⁻¹∂ξ = get𝗚(ap,:∂∇̃²∂ξ)
+    𝗚⁻¹∂η = get𝗚(ap,:∂∇̃²∂η)
+    𝐴 = ap.𝓖[1].𝐴
+    𝗚⁻¹[1] =   36.0/𝐴
+    𝗚⁻¹[2] = -120.0/𝐴
+    𝗚⁻¹[3] =  600.0/𝐴
+    𝗚⁻¹[4] = -120.0/𝐴
+    𝗚⁻¹[5] =  300.0/𝐴
+    𝗚⁻¹[6] =  600.0/𝐴
+    𝗚⁻¹[7] =   90.0/𝐴
+    𝗚⁻¹[8] = -540.0/𝐴
+    𝗚⁻¹[9] = -180.0/𝐴
+    𝗚⁻¹[10] =  540.0/𝐴
+    𝗚⁻¹[11] =  180.0/𝐴
+    𝗚⁻¹[12] = -720.0/𝐴
+    𝗚⁻¹[13] = -720.0/𝐴
+    𝗚⁻¹[14] =  540.0/𝐴
+    𝗚⁻¹[15] = 1440.0/𝐴
+    𝗚⁻¹[16] =   90.0/𝐴
+    𝗚⁻¹[17] = -180.0/𝐴
+    𝗚⁻¹[18] = -540.0/𝐴
+    𝗚⁻¹[19] =   90.0/𝐴
+    𝗚⁻¹[20] =  540.0/𝐴
+    𝗚⁻¹[21] =  540.0/𝐴
+
+    𝗚⁻¹∂ξ[1] =   36.0/𝐴
+    𝗚⁻¹∂ξ[2] = -120.0/𝐴
+    𝗚⁻¹∂ξ[3] =  600.0/𝐴
+    𝗚⁻¹∂ξ[4] = -120.0/𝐴
+    𝗚⁻¹∂ξ[5] =  300.0/𝐴
+    𝗚⁻¹∂ξ[6] =  600.0/𝐴
+    𝗚⁻¹∂ξ[7] =   90.0/𝐴
+    𝗚⁻¹∂ξ[8] = -540.0/𝐴
+    𝗚⁻¹∂ξ[9] = -180.0/𝐴
+    𝗚⁻¹∂ξ[10] =  540.0/𝐴
+    𝗚⁻¹∂ξ[11] =  180.0/𝐴
+    𝗚⁻¹∂ξ[12] = -720.0/𝐴
+    𝗚⁻¹∂ξ[13] = -720.0/𝐴
+    𝗚⁻¹∂ξ[14] =  540.0/𝐴
+    𝗚⁻¹∂ξ[15] = 1440.0/𝐴
+    𝗚⁻¹∂ξ[16] =   90.0/𝐴
+    𝗚⁻¹∂ξ[17] = -180.0/𝐴
+    𝗚⁻¹∂ξ[18] = -540.0/𝐴
+    𝗚⁻¹∂ξ[19] =   90.0/𝐴
+    𝗚⁻¹∂ξ[20] =  540.0/𝐴
+    𝗚⁻¹∂ξ[21] =  540.0/𝐴
+
+    𝗚⁻¹∂η[1] =   36.0/𝐴
+    𝗚⁻¹∂η[2] = -120.0/𝐴
+    𝗚⁻¹∂η[3] =  600.0/𝐴
+    𝗚⁻¹∂η[4] = -120.0/𝐴
+    𝗚⁻¹∂η[5] =  300.0/𝐴
+    𝗚⁻¹∂η[6] =  600.0/𝐴
+    𝗚⁻¹∂η[7] =   90.0/𝐴
+    𝗚⁻¹∂η[8] = -540.0/𝐴
+    𝗚⁻¹∂η[9] = -180.0/𝐴
+    𝗚⁻¹∂η[10] =  540.0/𝐴
+    𝗚⁻¹∂η[11] =  180.0/𝐴
+    𝗚⁻¹∂η[12] = -720.0/𝐴
+    𝗚⁻¹∂η[13] = -720.0/𝐴
+    𝗚⁻¹∂η[14] =  540.0/𝐴
+    𝗚⁻¹∂η[15] = 1440.0/𝐴
+    𝗚⁻¹∂η[16] =   90.0/𝐴
+    𝗚⁻¹∂η[17] = -180.0/𝐴
+    𝗚⁻¹∂η[18] = -540.0/𝐴
+    𝗚⁻¹∂η[19] =   90.0/𝐴
+    𝗚⁻¹∂η[20] =  540.0/𝐴
+    𝗚⁻¹∂η[21] =  540.0/𝐴
+
+    return 𝗚⁻¹,𝗚⁻¹∂ξ,𝗚⁻¹∂η
+end
 function set∇̃²𝝭!(gp::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3},ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3}) where {𝒑,𝑠,𝜙}
     𝓒 = gp.𝓒
     𝓖 = gp.𝓖

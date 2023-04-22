@@ -22,7 +22,9 @@ include("operation/potential.jl")
 include("operation/elasticity.jl")
 include("preprocession/importmsh.jl")
 include("operation/Kirchhoff-Love_plate.jl")
+export prescribe!
 export Operator
+export Node, Element
 export set𝝭!, set∇𝝭!
 
 end
