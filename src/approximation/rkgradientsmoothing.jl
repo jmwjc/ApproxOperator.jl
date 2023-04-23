@@ -5,6 +5,17 @@ struct RKGradientSmoothing{𝑝,𝑠,𝜙,T}<:AbstractReproducingKernel{𝑠,�
     𝓖ˢ::Tuple{Int,Int,Vector{Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}}}
 end
 
+function Base.getproperty(a::RKGradientSmoothing,s::Symbol)
+    if s∈(:𝓒,:𝓖,:𝓖ˢ)
+        𝓐 =  getfield(a,s)
+        return (𝓐[3][𝓐[1]+i] for i in 1:𝓐[2])
+    else
+        𝓖 = getfield(a,:𝓖)
+        ξ = 𝓖[3][𝓖[1]+1]
+        return getproperty(ξ,s)
+    end
+end
+
 get𝑛𝒑(    ::RKGradientSmoothing{:Linear1D}) = 1
 get𝒑(     ::RKGradientSmoothing{:Linear1D},::Any) = (1.0,)
 get∂𝒑∂ξ(  ::RKGradientSmoothing{:Linear1D},::Any) = (0.0,)
@@ -48,66 +59,41 @@ get𝒑(   ::RKGradientSmoothing{:Quartic2D},ξ::Float64,η::Float64) = (1.,ξ,�
 get∂𝒑∂ξ(::RKGradientSmoothing{:Quartic2D},ξ::Float64,η::Float64) = (0.,1.,0.,2.0*ξ,η,0.,3.0*ξ^2,2.0*ξ*η,η^2,0.)
 get∂𝒑∂η(::RKGradientSmoothing{:Quartic2D},ξ::Float64,η::Float64) = (0.,0.,1.,0.,ξ,2.0*η,0.,ξ^2,2.0*ξ*η,3.0*η^2)
 
-for 𝒑 in (:Linear1D,Quadratic1D,Cubic1D,Quartic1D)
-    get𝒑(  ap::RKGradientSmoothing{𝒑},ξ::Node) = get𝒑(ap,ξ.ξ)
-    get∇𝒑( ap::RKGradientSmoothing{𝒑},ξ::Node) = get𝒑(ap,ξ.ξ),get∂𝒑∂ξ(ap,ξ.ξ)
-    get∇²𝒑(ap::RKGradientSmoothing{𝒑},ξ::Node) = get𝒑(ap,ξ.ξ),get∂𝒑∂ξ(ap,ξ.ξ),get∂²𝒑∂ξ²(ap,ξ.ξ)
-end
-
-for 𝒑 in (:Linear2D,Quadratic2D,Cubic2D,Quartic2D)
-    get𝒑(  ap::RKGradientSmoothing{𝒑},ξ::Node) = get𝒑(ap,ξ.ξ,ξ.η)
-    get∇𝒑( ap::RKGradientSmoothing{𝒑},ξ::Node) = get𝒑(ap,ξ.ξ,ξ.η),get∂𝒑∂ξ(ap,ξ.ξ,ξ.η)
-    get∇²𝒑(ap::RKGradientSmoothing{𝒑},ξ::Node) = get𝒑(ap,ξ.ξ,ξ.η),get∂𝒑∂ξ(ap,ξ.ξ,ξ.η),get∂²𝒑∂ξ²(ap,ξ.ξ,ξ.η)
-end
-
-function get𝗚(ap::ReproducingKernel,s::Symbol)
-    n = get𝑛𝒑₁(ap)
-    data = getfield(ap.𝓖[1],:data)
-    fill!(data[s][2],0.)
-    return SymMat(n,data[s][2])
-end
-
-function cal𝗚!(ap::ReproducingKernel{𝑝,𝑠,𝜙,:Poi1}) where {𝑝,𝑠,𝜙}
-    𝓒 = ap.𝓒
-    𝓖 = ap.𝓖
-    𝗚 = get𝗚(ap,:∇̃)
-    x = 𝓒[1]
-    n = get𝑛𝒑₁(ap)
-    for ξ in 𝓖
-        Δx = x - ξ
-        𝒒 = get𝒑₁(ap,ξ)
-        w = get𝜙(ap,x,Δx)
-        for I in 1:n
-            for J in 1:I
-                𝗚[I,J] += w*𝒒[I]*𝒒[J]
-            end
-        end
+for 𝒑 in (:(:Linear1D),:(:Quadratic1D),:(:Cubic1D),:(:Quartic1D))
+    @eval begin
+        get𝒑(  ap::RKGradientSmoothing{$𝒑},x::Node) = get𝒑(ap,x.ξ)
+        get∇𝒑( ap::RKGradientSmoothing{$𝒑},x::Node) = get𝒑(ap,x.ξ),get∂𝒑∂ξ(ap,x.ξ)
+        get∇²𝒑(ap::RKGradientSmoothing{$𝒑},x::Node) = get𝒑(ap,x.ξ),get∂𝒑∂ξ(ap,x.ξ),get∂²𝒑∂ξ²(ap,x.ξ)
     end
-    cholesky!(𝗚)
-    inverse!(𝗚)
-    UUᵀ!(𝗚)
-    return 𝗚
 end
 
-function cal𝗚!(ap::ReproducingKernel{:Linear1D,𝑠,𝜙,:Seg2}) where {𝑠,𝜙}
-    𝗚⁻¹ = get𝗚(ap,:∇̃)
-    𝐿 = ap.𝓖[1].𝐿
+for 𝒑 in (:(:Linear2D),:(:Quadratic2D),:(:Cubic2D),:(:Quartic2D))
+    @eval begin
+        get𝒑(  ap::RKGradientSmoothing{$𝒑},x::Node) = get𝒑(ap,x.ξ,x.η)
+        get∇𝒑( ap::RKGradientSmoothing{$𝒑},x::Node) = get𝒑(ap,x.ξ,x.η),get∂𝒑∂ξ(ap,x.ξ,x.η),get∂𝒑∂η(ap,x.ξ,x.η)
+        get∇²𝒑(ap::RKGradientSmoothing{$𝒑},x::Node) = get𝒑(ap,x.ξ,x.η),get∂𝒑∂ξ(ap,x.ξ,x.η),get∂𝒑∂η(ap,x.ξ,x.η),get∂²𝒑∂ξ²(ap,x.ξ,x.η),get∂²𝒑∂ξ∂η(ap,x.ξ,x.η),get∂²𝒑∂η²(ap,x.ξ,x.η)
+    end
+end
+
+function cal𝗠!(ap::RKGradientSmoothing{:Linear1D,𝑠,𝜙,:Seg2}) where {𝑠,𝜙}
+    𝗚⁻¹ = get𝗠(ap,:∇̃)
+    𝐿 = ap.𝐿
     𝗚⁻¹[1] =  1.0/𝐿
     return 𝗚⁻¹
 end
 
-function cal𝗚!(ap::ReproducingKernel{:Quadratic1D,𝑠,𝜙,:Seg2}) where {𝑠,𝜙}
-    𝗚⁻¹ = get𝗚(ap,:∇̃)
-    𝐿 = ap.𝓖[1].𝐿
+function cal𝗠!(ap::RKGradientSmoothing{:Quadratic1D,𝑠,𝜙,:Seg2}) where {𝑠,𝜙}
+    𝗚⁻¹ = get𝗠(ap,:∇̃)
+    𝐿 = ap.𝐿
     𝗚⁻¹[1] =  4.0/𝐿
     𝗚⁻¹[2] = -6.0/𝐿
     𝗚⁻¹[3] = 12.0/𝐿
     return 𝗚⁻¹
 end
 
-function cal𝗚!(ap::ReproducingKernel{:Cubic1D,𝑠,𝜙,:Seg2}) where {𝑠,𝜙}
-    𝗚⁻¹ = get𝗚(ap,:∇̃)
-    𝐿 = ap.𝓖[1].𝐿
+function cal𝗠!(ap::RKGradientSmoothing{:Cubic1D,𝑠,𝜙,:Seg2}) where {𝑠,𝜙}
+    𝗚⁻¹ = get𝗠(ap,:∇̃)
+    𝐿 = ap.𝐿
     𝗚⁻¹[1] =    9.0/𝐿
     𝗚⁻¹[2] =  -36.0/𝐿
     𝗚⁻¹[3] =  192.0/𝐿
@@ -117,16 +103,16 @@ function cal𝗚!(ap::ReproducingKernel{:Cubic1D,𝑠,𝜙,:Seg2}) where {𝑠,�
     return 𝗚⁻¹
 end
 
-function cal𝗚!(ap::ReproducingKernel{:Linear2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
-    𝗚⁻¹ = get𝗚(ap,:∇̃)
-    𝐴 = ap.𝓖[1].𝐴
+function cal𝗠!(ap::RKGradientSmoothing{:Linear2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
+    𝗚⁻¹ = get𝗠(ap,:∇̃)
+    𝐴 = ap.𝐴
     𝗚⁻¹[1] = 1.0/𝐴
     return 𝗚⁻¹
 end
 
-function cal𝗚!(ap::ReproducingKernel{:Quadratic2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
-    𝗚⁻¹ = get𝗚(ap,:∇̃)
-    𝐴 = ap.𝓖[1].𝐴
+function cal𝗠!(ap::RKGradientSmoothing{:Quadratic2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
+    𝗚⁻¹ = get𝗠(ap,:∇̃)
+    𝐴 = ap.𝐴
     𝗚⁻¹[1] =   9.0/𝐴
     𝗚⁻¹[2] = -12.0/𝐴
     𝗚⁻¹[3] =  24.0/𝐴
@@ -136,9 +122,9 @@ function cal𝗚!(ap::ReproducingKernel{:Quadratic2D,𝑠,𝜙,:Tri3}) where {�
     return 𝗚⁻¹
 end
 
-function cal𝗚!(ap::ReproducingKernel{:Cubic2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
-    𝗚⁻¹ = get𝗚(ap,:∇̃)
-    𝐴 = ap.𝓖[1].𝐴
+function cal𝗠!(ap::RKGradientSmoothing{:Cubic2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
+    𝗚⁻¹ = get𝗠(ap,:∇̃)
+    𝐴 = ap.𝐴
     𝗚⁻¹[1] =   36.0/𝐴
     𝗚⁻¹[2] = -120.0/𝐴
     𝗚⁻¹[3] =  600.0/𝐴
@@ -163,37 +149,24 @@ function cal𝗚!(ap::ReproducingKernel{:Cubic2D,𝑠,𝜙,:Tri3}) where {𝑠,�
     return 𝗚⁻¹
 end
 
-function set∇̃𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Poi1}) where {𝒑,𝑠,𝜙}
+function set∇𝝭!(ap::RKGradientSmoothing{𝒑,𝑠,𝜙,:Seg2}) where {𝒑,𝑠,𝜙}
+    𝓒 = ap.𝓒
     𝓖 = ap.𝓖
-    ξᵢ = 𝓖[1]
-    ∂𝝭∂x = ξᵢ[:∂𝝭∂x_]
-    𝑤 = ξᵢ.𝑤
-    for ξ in 𝓖
-        n₁ = ξ.n₁
-        for (i,x) in enumerate(𝓖)
-            n₁ = x.n₁
-            ∂𝝭∂x[i] = n₁/𝑤
-        end
-    end
-end
-
-function set∇̃𝝭!(gp::ReproducingKernel{𝒑,𝑠,𝜙,:Seg2},ap::ReproducingKernel{𝒑,𝑠,𝜙,:Seg2}) where {𝒑,𝑠,𝜙}
-    𝓒 = gp.𝓒
-    𝓖 = gp.𝓖
+    𝓖ˢ = ap.𝓖ˢ
     for ξ̂ in 𝓖
-        𝒒̂ = get𝒑₁(gp,ξ̂)
-        𝗚⁻¹ = cal𝗚!(gp)
+        𝒒̂ = get𝒑(ap,ξ̂)
+        𝗚⁻¹ = cal𝗠!(ap)
         𝒒̂ᵀ𝗚⁻¹ = 𝒒̂*𝗚⁻¹
         ∂𝝭∂x = ξ̂[:∂𝝭∂x]
         for i in 1:length(𝓒)
             ∂𝝭∂x[i] = 0.0
         end
-        for ξ in ap.𝓖
+        for ξ in 𝓖ˢ
             w = ξ.w/2
             wᵇ = ξ.wᵇ
             D₁ = ξ.D₁
             𝝭 = ξ[:𝝭]
-            𝒒, ∂𝒒∂ξ = get∇𝒑₁(gp,ξ)
+            𝒒, ∂𝒒∂ξ = get∇𝒑(ap,ξ)
             W₁ = 𝒒̂ᵀ𝗚⁻¹*𝒒*D₁*wᵇ + 𝒒̂ᵀ𝗚⁻¹*∂𝒒∂ξ*n₁*w
             for i in 1:length(𝓒)
                 ∂𝝭∂x[i] += 𝝭[i]*W₁
@@ -202,12 +175,17 @@ function set∇̃𝝭!(gp::ReproducingKernel{𝒑,𝑠,𝜙,:Seg2},ap::Reproduci
     end
 end
 
-function set∇̃𝝭!(gp::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3},ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3}) where {𝒑,𝑠,𝜙}
-    𝓒 = gp.𝓒
-    𝓖 = gp.𝓖
+function set∇𝝭!(ap::RKGradientSmoothing{𝒑,𝑠,𝜙,:Tri3}) where {𝒑,𝑠,𝜙}
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    𝓖ˢ = ap.𝓖ˢ
+    D₁₁ = ap.D₁₁
+    D₂₁ = ap.D₂₁
+    D₁₂ = ap.D₁₂
+    D₂₂ = ap.D₂₂
     for ξ̂ in 𝓖
-        𝒒̂ = get𝒑₁(gp,ξ̂)
-        𝗚⁻¹ = cal𝗚!(gp)
+        𝒒̂ = get𝒑(ap,ξ̂)
+        𝗚⁻¹ = cal𝗠!(ap)
         𝒒̂ᵀ𝗚⁻¹ = 𝒒̂*𝗚⁻¹
         ∂𝝭∂x = ξ̂[:∂𝝭∂x]
         ∂𝝭∂y = ξ̂[:∂𝝭∂y]
@@ -215,20 +193,16 @@ function set∇̃𝝭!(gp::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3},ap::Reproduci
             ∂𝝭∂x[i] = 0.0
             ∂𝝭∂y[i] = 0.0
         end
-        for ξ in ap.𝓖
+        for ξ in 𝓖ˢ
             w = ξ.w
             wᵇ = ξ.wᵇ
             𝝭 = ξ[:𝝭]
-            𝒒, ∂𝒒∂ξ, ∂𝒒∂η = get∇𝒑₁(ap,ξ)
+            𝒒, ∂𝒒∂ξ, ∂𝒒∂η = get∇𝒑(ap,ξ)
             𝒒̂ᵀ𝗚⁻¹𝒒 =  𝒒̂ᵀ𝗚⁻¹*𝒒
             𝒒̂ᵀ𝗚⁻¹∂𝒒∂ξ = 𝒒̂ᵀ𝗚⁻¹*∂𝒒∂ξ
             𝒒̂ᵀ𝗚⁻¹∂𝒒∂η = 𝒒̂ᵀ𝗚⁻¹*∂𝒒∂η
             D₁ = ξ.D₁
             D₂ = ξ.D₂
-            D₁₁ = ξ.D₁₁
-            D₂₁ = ξ.D₂₁
-            D₁₂ = ξ.D₁₂
-            D₂₂ = ξ.D₂₂
             b₁ = 𝒒̂ᵀ𝗚⁻¹∂𝒒∂ξ*D₁₁ + 𝒒̂ᵀ𝗚⁻¹∂𝒒∂η*D₂₁
             b₂ = 𝒒̂ᵀ𝗚⁻¹∂𝒒∂ξ*D₁₂ + 𝒒̂ᵀ𝗚⁻¹∂𝒒∂η*D₂₂
             W₁ = 𝒒̂ᵀ𝗚⁻¹𝒒*D₁*wᵇ + b₁*w/2

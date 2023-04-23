@@ -10,7 +10,7 @@ const list∇³𝝭 = (:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂²𝝭∂x²,:∂²�
 const list∇∇²𝝭 = (:𝝭,:∂∂²𝝭∂x²∂x,:∂∂²𝝭∂x²∂y,:∂∂²𝝭∂x∂y∂x,:∂∂²𝝭∂x∂y∂y,:∂∂²𝝭∂y²∂x,:∂∂²𝝭∂y²∂y)
 for (𝝭,𝒑,list) in ((:check∇𝝭,:get∇𝒑,:list∇𝝭),
                    (:check∇₁𝝭,:get∇₁𝒑,:list∇₁𝝭),
-                   (:check∇₂𝝭,:get∇₂𝒑,:list∇₂𝝭),
+                   (:check∇₂𝝭,:get∇𝒑,:list∇₂𝝭),
                    (:check∇²𝝭,:get∇²𝒑,:list∇²𝝭),
                    (:check∇∇²𝝭,:get∇∇²𝒑,:list∇∇²𝝭),
                    (:check∇²₂𝝭,:get∇²₂𝒑,:list∇²₂𝝭),
@@ -40,7 +40,7 @@ for (𝝭,𝒑,list) in ((:check∇𝝭,:get∇𝒑,:list∇𝝭),
             end
         end
 
-        function $𝝭(as::Vector{T}) where T<:ReproducingKernel
+        function $𝝭(as::Vector{T}) where T<:AbstractElement
             nᵖ = get𝑛𝒑(as[1])
             n = length($list)
             f = zeros(nᵖ,n)

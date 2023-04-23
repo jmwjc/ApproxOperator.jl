@@ -9,7 +9,7 @@ abstract type SpatialPartition end
 
 include("node.jl")
 include("element.jl")
-# include("meshfree.jl")
+include("meshfree.jl")
 include("operation.jl")
 
 include("preprocession/integration.jl")
@@ -18,13 +18,20 @@ include("preprocession/importcomsol.jl")
 include("approximation/tri3.jl")
 include("approximation/seg2.jl")
 include("approximation/poi1.jl")
+include("approximation/reproducingkernel.jl")
+include("approximation/kernelfunction.jl")
+include("approximation/rkgradientsmoothing.jl")
 include("operation/potential.jl")
 include("operation/elasticity.jl")
 include("preprocession/importmsh.jl")
-include("operation/Kirchhoff-Love_plate.jl")
+include("operation/Kirchhoff_Love_plate.jl")
+
+include("littletools.jl")
+
 export prescribe!
 export Operator
 export Node, Element
+export ReproducingKernel, RKGradientSmoothing
 export set𝝭!, set∇𝝭!
 
 end

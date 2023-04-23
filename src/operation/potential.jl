@@ -1,5 +1,5 @@
 
-function (op::Operator{:∫vudΩ})(ap::T,m::AbstractMatrix{Float64}) where T<:AbstractElement
+function (op::Operator{:∫vudΩ})(ap::T;m::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         N = ξ[:𝝭]
@@ -14,7 +14,7 @@ function (op::Operator{:∫vudΩ})(ap::T,m::AbstractMatrix{Float64}) where T<:Ab
     end
 end
 
-function (op::Operator{:∫∇v∇uvbdΩ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+function (op::Operator{:∫∇v∇uvbdΩ})(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     kᶜ = op.k
     for ξ in 𝓖
@@ -35,7 +35,7 @@ function (op::Operator{:∫∇v∇uvbdΩ})(ap::T,k::AbstractMatrix{Float64},f::A
     end
 end
 
-function (op::Operator{:∫vₓuₓdx})(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+function (op::Operator{:∫vₓuₓdx})(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     EA = op.EA
     for ξ in 𝓖
@@ -51,7 +51,7 @@ function (op::Operator{:∫vₓuₓdx})(ap::T,k::AbstractMatrix{Float64}) where 
     end
 end
 
-function (op::Operator{:∫∇v∇udΩ})(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+function (op::Operator{:∫∇v∇udΩ})(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     kᶜ = op.k
     for ξ in 𝓖
@@ -86,7 +86,7 @@ function (op::Operator{:∫∫∇v∇udxdy})(ap::T;k::AbstractMatrix{Float64}) w
     end
 end
 
-function (op::Operator{:∫vbdΩ})(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
+function (op::Operator{:∫vbdΩ})(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         𝑤 = ξ.𝑤
@@ -99,7 +99,7 @@ function (op::Operator{:∫vbdΩ})(ap::T,f::AbstractVector{Float64}) where T<:Ab
     end
 end
 
-function (op::Operator{:∫vtdΓ})(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
+function (op::Operator{:∫vtdΓ})(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         𝑤 = ξ.𝑤
@@ -169,7 +169,7 @@ function (op::Operator{:∫λₙgdΓ})(ap1::T,ap2::S,g::AbstractMatrix{Float64},
     end
 end
 
-function (op::Operator{:∫∇𝑛vgdΓ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+function (op::Operator{:∫∇𝑛vgdΓ})(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     kᶜ = op.k
     α = op.α
@@ -194,7 +194,7 @@ function (op::Operator{:∫∇𝑛vgdΓ})(ap::T,k::AbstractMatrix{Float64},f::Ab
     end
 end
 
-function (op::Operator{:∫∇𝑛vgds})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+function (op::Operator{:∫∇𝑛vgds})(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒;𝓖 = ap.𝓖
     kᶜ = op.k
     α = op.α
@@ -217,7 +217,7 @@ function (op::Operator{:∫∇𝑛vgds})(ap::T,k::AbstractMatrix{Float64},f::Abs
     end
 end
 
-function (op::Operator{:∫∇̄𝑛vgdΓ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+function (op::Operator{:∫∇̄𝑛vgdΓ})(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     kᶜ = op.k
     for ξ in 𝓖
@@ -241,7 +241,7 @@ function (op::Operator{:∫∇̄𝑛vgdΓ})(ap::T,k::AbstractMatrix{Float64},f::
     end
 end
 
-function (op::Operator{:g})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64};dof::Symbol=:d) where T<:AbstractElement{:Poi1}
+function (op::Operator{:g})(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64},dof::Symbol=:d) where T<:AbstractElement{:Poi1}
     x = ap.𝓒[1]
     j = x.𝐼
     g = getproperty(x,dof)

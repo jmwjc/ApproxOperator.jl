@@ -6,15 +6,6 @@ struct Element{T}<:AbstractElement{T}
     𝓖::Tuple{Int,Int,Vector{Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}}}
 end
 
-# function get𝓒(a::T) where T<:AbstractElement
-#     𝓒 = getfield(a,:𝓒)
-#     return (𝓒[3][a.𝓒[1]+i] for i in 1:𝓒[2])
-# end
-# function get𝓖(a::T) where T<:AbstractElement
-#     𝓖 = getfield(a,:𝓖)
-#     return (𝓖[3][𝓖[1]+i] for i in 1:𝓖[2])
-# end
-
 function Base.getproperty(a::T,s::Symbol) where T<:AbstractElement
     if s∈(:𝓒,:𝓖)
         𝓐 =  getfield(a,s)
@@ -26,13 +17,13 @@ function Base.getproperty(a::T,s::Symbol) where T<:AbstractElement
     end
 end
 
-function Base.setproperty!(ap::T,s::Symbol) where T<:AbstractElement
+function Base.setproperty!(ap::T,s::Symbol,v::Float64) where T<:AbstractElement
     𝓖 = getfield(ap,:𝓖)
     ξ = 𝓖[3][𝓖[1]+1]
-    setproperty!(ξ,s)
+    setproperty!(ξ,s,v)
 end
 
-for set𝝭 in (:set𝝭!,:set∇𝝭!)
+for set𝝭 in (:set𝝭!,:set∇𝝭!,:set∇²𝝭!)
     @eval begin
         function $set𝝭(a::T) where T<:AbstractElement
             𝓖 = a.𝓖
