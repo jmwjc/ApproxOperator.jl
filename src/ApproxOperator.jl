@@ -21,6 +21,7 @@ include("approximation/poi1.jl")
 include("approximation/reproducingkernel.jl")
 include("approximation/kernelfunction.jl")
 include("approximation/rkgradientsmoothing.jl")
+include("approximation/grkgsi.jl")
 include("operation/potential.jl")
 include("operation/elasticity.jl")
 include("preprocession/importmsh.jl")
@@ -31,7 +32,7 @@ include("littletools.jl")
 export prescribe!
 export Operator
 export Node, Element
-export ReproducingKernel, RKGradientSmoothing
+export ReproducingKernel, RKGradientSmoothing, GRKGradientSmoothing
 export set𝝭!, set∇𝝭!
 
 end
