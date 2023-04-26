@@ -31,5 +31,6 @@ for set𝝭 in (:set𝝭!,:set∇𝝭!,:set∇²𝝭!)
                 $set𝝭(a,x)
             end
         end
+        $set𝝭(as::Vector{T}) where T<:AbstractElement = $set𝝭.(as)
     end
 end

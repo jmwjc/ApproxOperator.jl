@@ -24,6 +24,7 @@ include("approximation/rkgradientsmoothing.jl")
 include("approximation/grkgsi.jl")
 include("operation/potential.jl")
 include("operation/elasticity.jl")
+include("operation/error_estimator.jl")
 include("preprocession/importmsh.jl")
 include("operation/Kirchhoff_Love_plate.jl")
 

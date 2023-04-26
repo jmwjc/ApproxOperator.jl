@@ -13,7 +13,7 @@ getproperty(op::Operator,f::Symbol) = getfield(op,:data)[f]
 (op::Operator)(aps::Vector{T},k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement = op.(aps,k=k,f=f)
 (op::Operator)(aps::Vector{T},k::AbstractMatrix{Float64}) where T<:AbstractElement = op.(aps,k=k)
 (op::Operator)(aps::Vector{T},f::AbstractVector{Float64}) where T<:AbstractElement = op.(aps,f=f)
-(op::Operator)(aps::Vector{T}) where T<:AbstractElement = op.(ap)
+(op::Operator)(aps::Vector{T}) where T<:AbstractElement = op.(aps)
 
 function prescribe!(ap::T,sf::Pair{Symbol,F}) where {T<:AbstractElement,F<:Function}
     𝓖 = ap.𝓖
