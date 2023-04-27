@@ -45,6 +45,16 @@ struct Quad4<:AbstracQuadrilateralt
     edges::NTuple{4,Seg2}
 end
 
+function Quad4(vertices::NTuple{4,Point})
+    v₁,v₂,v₃,v₄ = vertices 
+    e₁ = Seg2((v₁,v₂))
+    e₂ = Seg2((v₂,v₃))
+    e₃ = Seg2((v₃,v₄))
+    e₄ = Seg2((v₄,v₁))
+    edges = (e₁,e₂,e₃,e₄)
+    return Quad4(vertices,edges)
+end
+
 struct Quad9<:AbstracQuadrilateralt
     vertices::NTuple{9,Point}
     edges::NTuple{4,Seg3}
@@ -181,6 +191,22 @@ function (a::Tri6)(ξ::Float64,η::Float64)
            z₁*N₁+z₂*N₂+z₃*N₃+z₄*N₄+z₅*N₅+z₆*N₆
 end
 
+function (a::Quad4)(ξ::Float64,η::Float64)
+    x₁ = a.vertices[1].x
+    y₁ = a.vertices[1].y
+    z₁ = a.vertices[1].z
+    x₂ = a.vertices[2].x
+    y₂ = a.vertices[2].y
+    z₂ = a.vertices[2].z
+    x₃ = a.vertices[3].x
+    y₃ = a.vertices[3].y
+    z₃ = a.vertices[3].z
+    x₄ = a.vertices[4].x
+    y₄ = a.vertices[4].y
+    z₄ = a.vertices[4].z
+    N₁,N₂,N₃,N₄ = get𝝭(a,ξ,η)
+    return (x₁*N₁+x₂*N₂+x₃*N₃+x₄*N₄,y₁*N₁+y₂*N₂+y₃*N₃+y₄*N₄,z₁*N₁+z₂*N₂+z₃*N₃+z₄*N₄)
+end
 function get𝐴(a::Tri3)
     x₁ = a.vertices[1].x
     x₂ = a.vertices[2].x
@@ -200,8 +226,53 @@ function get𝐿(a::Seg2)
     x₂ = a.vertices[2].x
     y₁ = a.vertices[1].y
     y₂ = a.vertices[2].y
-    z₁ = a.vertices[1].z
-    z₂ = a.vertices[2].z
 
     return ((x₂-x₁)^2+(y₂-y₁)^2)^0.5
+end
+
+
+function get𝑱(a::Quad4,ξ::Float64,η::Float64)
+    x₁ = a.vertices[1].x
+    y₁ = a.vertices[1].y
+    x₂ = a.vertices[2].x
+    y₂ = a.vertices[2].y
+    x₃ = a.vertices[3].x
+    y₃ = a.vertices[3].y
+    x₄ = a.vertices[4].x
+    y₄ = a.vertices[4].y
+    ∂N₁∂ξ,∂N₂∂ξ,∂N₃∂ξ,∂N₄∂ξ = get∂𝝭∂ξ(a,ξ)
+    ∂N₁∂η,∂N₂∂η,∂N₃∂η,∂N₄∂η = get∂𝝭∂η(a,η)
+    J₁₁ = ∂N₁∂ξ*x₁ + ∂N₂∂ξ*x₂ + ∂N₃∂ξ*x₃ + ∂N₄∂ξ*x₄
+    J₁₂ = ∂N₁∂η*x₁ + ∂N₂∂η*x₂ + ∂N₃∂η*x₃ + ∂N₄∂η*x₄
+    J₂₁ = ∂N₁∂ξ*y₁ + ∂N₂∂ξ*y₂ + ∂N₃∂ξ*y₃ + ∂N₄∂ξ*y₄
+    J₂₂ = ∂N₁∂η*y₁ + ∂N₂∂η*y₂ + ∂N₃∂η*y₃ + ∂N₄∂η*y₄
+    return J₁₁,J₂₁,J₁₂,J₂₂
+end
+
+function get𝐽(a::Quad4,ξ::Float64,η::Float64)
+    J₁₁,J₂₁,J₁₂,J₂₂ = get𝑱(a,ξ,η)
+    return J₁₁*J₂₂-J₂₁*J₁₂
+end
+
+function get∂𝝭∂ξ(::Quad4,η::Float64)
+    ∂N₁∂ξ = - 0.25*(1-η)
+    ∂N₂∂ξ =   0.25*(1-η)
+    ∂N₃∂ξ =   0.25*(1+η)
+    ∂N₄∂ξ = - 0.25*(1+η)
+    return (∂N₁∂ξ,∂N₂∂ξ,∂N₃∂ξ,∂N₄∂ξ)
+end
+function get∂𝝭∂η(::Quad4,ξ::Float64)
+    ∂N₁∂η = - 0.25*(1-ξ)
+    ∂N₂∂η = - 0.25*(1+ξ)
+    ∂N₃∂η =   0.25*(1+ξ)
+    ∂N₄∂η =   0.25*(1-ξ)
+    return (∂N₁∂η,∂N₂∂η,∂N₃∂η,∂N₄∂η)
+end
+
+function get𝝭(::Quad4,ξ::Float64,η::Float64)
+    N₁ = 0.25*(1.0-ξ)*(1.0-η)
+    N₂ = 0.25*(1.0+ξ)*(1.0-η)
+    N₃ = 0.25*(1.0+ξ)*(1.0+η)
+    N₄ = 0.25*(1.0-ξ)*(1.0+η)
+    return N₁,N₂,N₃,N₄
 end

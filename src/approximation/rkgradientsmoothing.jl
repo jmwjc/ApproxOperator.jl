@@ -215,6 +215,30 @@ function set∇𝝭!(ap::RKGradientSmoothing{𝒑,𝑠,𝜙,:Tri3}) where {𝒑,
     end
 end
 
+function set𝝭!(ap::RKGradientSmoothing{𝒑,𝑠,𝜙,:Tri3}) where {𝒑,𝑠,𝜙}
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    𝓖ˢ = ap.𝓖ˢ
+    for ξ̂ in 𝓖
+        𝒒̂ = get𝒑(ap,ξ̂)
+        𝗚⁻¹ = cal𝗠!(ap)
+        𝒒̂ᵀ𝗚⁻¹ = 𝒒̂*𝗚⁻¹
+        𝝭 = ξ̂[:𝝭]
+        for i in 1:length(𝓒)
+            𝝭[i] = 0.0
+        end
+        for ξ in 𝓖ˢ
+            w = ξ.w
+            N = ξ[:𝝭]
+            𝒒 = get𝒑(ap,ξ)
+            W = 𝒒̂ᵀ𝗚⁻¹*𝒒*w
+            for i in 1:length(𝓒)
+                𝝭[i] += N[i]*W
+            end
+        end
+    end
+end
+
 struct RK2ndGradientSmoothing{𝑝,𝑠,𝜙,T}<:AbstractReproducingKernel{𝑠,𝜙,T}
     𝓒::Tuple{Int,Int,Vector{Node{(:𝐼,),1}}}
     𝓖::Tuple{Int,Int,Vector{Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}}}
