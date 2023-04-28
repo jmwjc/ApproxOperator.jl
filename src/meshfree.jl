@@ -10,29 +10,29 @@ struct SymMat
 end
 SymMat(n::Int) = SymMat(n,zeros(Int(n*(n+1)/2)))
 
-@inline function getindex(A::SymMat,i::Int,j::Int)
+function getindex(A::SymMat,i::Int,j::Int)
     i > j ? A.m[Int(j+i*(i-1)/2)] : A.m[Int(i+j*(j-1)/2)]
 end
 
-@inline function setindex!(A::SymMat,val::Float64,i::Int,j::Int)
+function setindex!(A::SymMat,val::Float64,i::Int,j::Int)
     i > j ? A.m[Int(j+i*(i-1)/2)] = val : A.m[Int(i+j*(j-1)/2)] = val
 end
-@inline function setindex!(A::SymMat,val::Float64,i::Int)
+function setindex!(A::SymMat,val::Float64,i::Int)
     A.m[i] = val
 end
 
-@inline *(A::SymMat,v::NTuple{N,Float64}) where N = sum(A[1,i]*v[i] for i in 1:N)
-@inline function *(v::NTuple{N,Float64},A::SymMat) where N
+*(A::SymMat,v::NTuple{N,Float64}) where N = sum(A[1,i]*v[i] for i in 1:N)
+function *(v::NTuple{N,Float64},A::SymMat) where N
     for j in 1:N
         A[1,j] = sum(v[i]*A[i,j] for i in 1:N)
     end
     return A
 end
-@inline function -(A::SymMat)
+function -(A::SymMat)
     A.m .= .-A.m
     return A
 end
-@inline fill!(A::SymMat,val::Float64) = fill!(A.m,val)
+fill!(A::SymMat,val::Float64) = fill!(A.m,val)
 function inverse!(A::SymMat)
     n = A.n
     for i in 1:n

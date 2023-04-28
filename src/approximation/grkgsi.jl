@@ -1,6 +1,7 @@
 
 struct GRKGradientSmoothing{𝑝,𝑠,𝜙,T}<:AbstractReproducingKernel{𝑠,𝜙,T}
     𝓒::Tuple{Int,Int,Vector{Node{(:𝐼,),1}}}
+    𝓒ᵘ::Tuple{Int,Int,Vector{Node{(:𝐼,),1}}}
     𝓒ᵖ::Tuple{Int,Int,Vector{Node{(:𝐼,),1}}}
     𝓖::Tuple{Int,Int,Vector{Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}}}
     𝓖ᵖ::Tuple{Int,Int,Vector{Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}}}
@@ -12,7 +13,7 @@ struct GRKGradientSmoothing{𝑝,𝑠,𝜙,T}<:AbstractReproducingKernel{𝑠,�
 end
 
 function Base.getproperty(a::GRKGradientSmoothing,s::Symbol)
-    if s∈(:𝓒,:𝓒ᵖ,:𝓖,:𝓖ᵖ,:𝓖ˢ,:𝓖ˢᵖ)
+    if s∈(:𝓒,:𝓒ᵘ,:𝓒ᵖ,:𝓒ᵖᵗ,:𝓖,:𝓖ᵖ,:𝓖ˢ,:𝓖ˢᵖ)
         𝓐 =  getfield(a,s)
         return (𝓐[3][𝓐[1]+i] for i in 1:𝓐[2])
     elseif s∈(:𝗚,:𝗴₁,:𝗴₂)
@@ -25,10 +26,13 @@ function Base.getproperty(a::GRKGradientSmoothing,s::Symbol)
 end
 
 function cal𝗠!(aps::Vector{T}) where T<:GRKGradientSmoothing
-    cal𝗠!.(aps)
     𝗚 = aps[1].𝗚
     𝗴₁ = aps[1].𝗴₁
     𝗴₂ = aps[1].𝗴₂
+    fill!(𝗚,0.0)
+    fill!(𝗴₁,0.0)
+    fill!(𝗴₂,0.0)
+    cal𝗠!.(aps)
     𝗴₁ .= 𝗚\𝗴₁
     𝗴₂ .= 𝗚\𝗴₂
 end
@@ -37,7 +41,7 @@ function cal𝗠!(ap::GRKGradientSmoothing)
     𝗚 = ap.𝗚
     𝗴₁ = ap.𝗴₁
     𝗴₂ = ap.𝗴₂
-    𝓒 = ap.𝓒
+    𝓒ᵘ = ap.𝓒ᵘ
     𝓒ᵖ = ap.𝓒ᵖ
     𝓖ˢ = ap.𝓖ˢ
     𝓖ᵖ = ap.𝓖ᵖ
@@ -63,9 +67,10 @@ function cal𝗠!(ap::GRKGradientSmoothing)
         B₁ᵖ = ξᵖ[:∂𝝭∂x]
         B₂ᵖ = ξᵖ[:∂𝝭∂y]
         N = ξ[:𝝭]
+
         for (i,xᵢ) in enumerate(𝓒ᵖ)
             I = xᵢ.𝐼
-            for (k,xₖ) in enumerate(𝓒)
+            for (k,xₖ) in enumerate(𝓒ᵘ)
                 K = xₖ.𝐼
                 𝗴₁[I,K] += Nᵖ[i]*N[k]*D₁*wᵇ - B₁ᵖ[i]*N[k]*𝑤
                 𝗴₂[I,K] += Nᵖ[i]*N[k]*D₂*wᵇ - B₂ᵖ[i]*N[k]*𝑤
@@ -86,6 +91,11 @@ function set∇𝝭!(ap::GRKGradientSmoothing{𝒑,𝑠,𝜙,:Tri3}) where {𝒑
         N = ξᵖ[:𝝭]
         ∂𝝭∂x = ξ[:∂𝝭∂x]
         ∂𝝭∂y = ξ[:∂𝝭∂y]
+        for i in 1:length(𝓒)
+            ∂𝝭∂x[i] = 0.0
+            ∂𝝭∂y[i] = 0.0
+        end
+
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒ᵖ)
