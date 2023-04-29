@@ -1,7 +1,6 @@
 
 struct GRKGradientSmoothing{𝑝,𝑠,𝜙,T}<:AbstractReproducingKernel{𝑠,𝜙,T}
     𝓒::Tuple{Int,Int,Vector{Node{(:𝐼,),1}}}
-    𝓒ᵘ::Tuple{Int,Int,Vector{Node{(:𝐼,),1}}}
     𝓒ᵖ::Tuple{Int,Int,Vector{Node{(:𝐼,),1}}}
     𝓖::Tuple{Int,Int,Vector{Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}}}
     𝓖ᵖ::Tuple{Int,Int,Vector{Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}}}
@@ -13,7 +12,7 @@ struct GRKGradientSmoothing{𝑝,𝑠,𝜙,T}<:AbstractReproducingKernel{𝑠,�
 end
 
 function Base.getproperty(a::GRKGradientSmoothing,s::Symbol)
-    if s∈(:𝓒,:𝓒ᵘ,:𝓒ᵖ,:𝓒ᵖᵗ,:𝓖,:𝓖ᵖ,:𝓖ˢ,:𝓖ˢᵖ)
+    if s∈(:𝓒,:𝓒ᵘ,:𝓒ᵖ,:𝓖,:𝓖ᵖ,:𝓖ˢ,:𝓖ˢᵖ)
         𝓐 =  getfield(a,s)
         return (𝓐[3][𝓐[1]+i] for i in 1:𝓐[2])
     elseif s∈(:𝗚,:𝗴₁,:𝗴₂)
@@ -41,7 +40,7 @@ function cal𝗠!(ap::GRKGradientSmoothing)
     𝗚 = ap.𝗚
     𝗴₁ = ap.𝗴₁
     𝗴₂ = ap.𝗴₂
-    𝓒ᵘ = ap.𝓒ᵘ
+    𝓒 = ap.𝓒
     𝓒ᵖ = ap.𝓒ᵖ
     𝓖ˢ = ap.𝓖ˢ
     𝓖ᵖ = ap.𝓖ᵖ
@@ -70,7 +69,7 @@ function cal𝗠!(ap::GRKGradientSmoothing)
 
         for (i,xᵢ) in enumerate(𝓒ᵖ)
             I = xᵢ.𝐼
-            for (k,xₖ) in enumerate(𝓒ᵘ)
+            for (k,xₖ) in enumerate(𝓒)
                 K = xₖ.𝐼
                 𝗴₁[I,K] += Nᵖ[i]*N[k]*D₁*wᵇ - B₁ᵖ[i]*N[k]*𝑤
                 𝗴₂[I,K] += Nᵖ[i]*N[k]*D₂*wᵇ - B₂ᵖ[i]*N[k]*𝑤
