@@ -430,7 +430,7 @@ function quadraturerule(s::Symbol)
         ])
     elseif s == :QuadGI1
         return Dict([
-            :w=>[2.0],:ξ=>[0.0],:η=>[0.0]
+            :w=>[4.0],:ξ=>[0.0],:η=>[0.0]
         ])
     elseif s == :QuadGI4
         return Dict([

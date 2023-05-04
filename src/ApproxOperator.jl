@@ -35,7 +35,7 @@ include("littletools.jl")
 export prescribe!
 export Operator
 export Node, Element
-export ReproducingKernel, RKGradientSmoothing, GRKGradientSmoothing
+export ReproducingKernel, RKGradientSmoothing, FRKGradientSmoothing
 export set𝝭!, set∇𝝭!
 
 end
