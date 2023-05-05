@@ -1,6 +1,7 @@
 
 struct GRKGradientSmoothing{𝑝,𝑠,𝜙,T}<:AbstractReproducingKernel{𝑠,𝜙,T}
     𝓒::Tuple{Int,Int,Vector{Node{(:𝐼,),1}}}
+    𝓒ᵘ::Tuple{Int,Int,Vector{Node{(:𝐼,),1}}}
     𝓒ᵖ::Tuple{Int,Int,Vector{Node{(:𝐼,),1}}}
     𝓖::Tuple{Int,Int,Vector{Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}}}
     𝓖ᵖ::Tuple{Int,Int,Vector{Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}}}
@@ -40,7 +41,7 @@ function cal𝗠!(ap::GRKGradientSmoothing)
     𝗚 = ap.𝗚
     𝗴₁ = ap.𝗴₁
     𝗴₂ = ap.𝗴₂
-    𝓒 = ap.𝓒
+    𝓒ᵘ= ap.𝓒ᵘ
     𝓒ᵖ = ap.𝓒ᵖ
     𝓖ˢ = ap.𝓖ˢ
     𝓖ᵖ = ap.𝓖ᵖ
@@ -69,7 +70,7 @@ function cal𝗠!(ap::GRKGradientSmoothing)
 
         for (i,xᵢ) in enumerate(𝓒ᵖ)
             I = xᵢ.𝐼
-            for (k,xₖ) in enumerate(𝓒)
+            for (k,xₖ) in enumerate(𝓒ᵘ)
                 K = xₖ.𝐼
                 𝗴₁[I,K] += Nᵖ[i]*N[k]*D₁*wᵇ - B₁ᵖ[i]*N[k]*𝑤
                 𝗴₂[I,K] += Nᵖ[i]*N[k]*D₂*wᵇ - B₂ᵖ[i]*N[k]*𝑤
@@ -154,6 +155,14 @@ function cal𝗠!(ap::FRKGradientSmoothing)
     𝗴₂ = ap.𝗴₂
     𝓒ᵐ = ap.𝓒ᵐ
     𝓒ᶠ = ap.𝓒ᶠ
+    (v₁,v₂,v₃) = 𝓒ᶠ
+    D₁₁ = v₃.y-v₂.y
+    D₁₂ = v₂.x-v₃.x
+    D₂₁ = v₁.y-v₃.y
+    D₂₂ = v₃.x-v₁.x
+    D₃₁ = v₂.y-v₁.y
+    D₃₂ = v₁.x-v₂.x
+    𝐴 = ap.𝐴
     𝓖 = ap.𝓖
     𝓖ˢ = ap.𝓖ˢ
     𝓖ᶠ = ap.𝓖ᶠ
@@ -180,6 +189,9 @@ function cal𝗠!(ap::FRKGradientSmoothing)
         Nᶠ = ξᶠ[:𝝭]
         B₁ᶠ = ξᶠ[:∂𝝭∂x]
         B₂ᶠ = ξᶠ[:∂𝝭∂y]
+        # Nᶠ = (ξ.ξ,ξ.η,1-ξ.ξ-ξ.η)
+        # B₁ᶠ = (-D₁₁/2/𝐴,-D₂₁/2/𝐴,-D₃₁/2/𝐴)
+        # B₂ᶠ = (-D₁₂/2/𝐴,-D₂₂/2/𝐴,-D₃₂/2/𝐴)
         N = ξ[:𝝭]
 
         for (i,xᵢ) in enumerate(𝓒ᶠ)
