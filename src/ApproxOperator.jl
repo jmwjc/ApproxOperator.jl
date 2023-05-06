@@ -9,33 +9,17 @@ abstract type SpatialPartition end
 
 include("node.jl")
 include("element.jl")
-include("meshfree.jl")
 include("operation.jl")
 
-include("preprocession/integration.jl")
-include("preprocession/geometry.jl")
-include("preprocession/importcomsol.jl")
-include("approximation/quad.jl")
-include("approximation/tri3.jl")
-include("approximation/seg2.jl")
-include("approximation/poi1.jl")
-include("approximation/reproducingkernel.jl")
-include("approximation/kernelfunction.jl")
-include("approximation/rkgradientsmoothing.jl")
-include("approximation/grkgsi.jl")
-include("operation/potential.jl")
-include("operation/elasticity.jl")
-include("operation/hyperelasticity.jl")
-include("operation/error_estimates.jl")
-include("preprocession/importmsh.jl")
-include("operation/Kirchhoff_Love_plate.jl")
+include.(filter(contains(r".jl$"), readdir("preprocession"; join=true)))
+include.(filter(contains(r".jl$"), readdir("approximation"; join=true)))
+include.(filter(contains(r".jl$"), readdir("operation"; join=true)))
 
 include("littletools.jl")
 
 export prescribe!
 export Operator
 export Node, Element
-export ReproducingKernel, RKGradientSmoothing, FRKGradientSmoothing, GRKGradientSmoothing
-export set𝝭!, set∇𝝭!
+export set𝝭!, set∇𝝭!, set∇²𝝭!
 
 end
