@@ -26,7 +26,7 @@ include("approximation/grkgsi.jl")
 include("operation/potential.jl")
 include("operation/elasticity.jl")
 include("operation/hyperelasticity.jl")
-include("operation/error_estimator.jl")
+include("operation/error_estimates.jl")
 include("preprocession/importmsh.jl")
 include("operation/Kirchhoff_Love_plate.jl")
 
