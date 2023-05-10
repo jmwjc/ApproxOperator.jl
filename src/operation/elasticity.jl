@@ -126,7 +126,7 @@ function (op::Operator{:∫∫vᵢbᵢdxdy})(ap::T;f::AbstractVector{Float64}) w
     end
 end
 
-function (op::Operator{:∫vᵢtᵢds})(ap::T;f::Vector{Float64}) where T<:AbstractElement
+function (op::Operator{:∫vᵢtᵢds})(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         N = ξ[:𝝭]
@@ -208,6 +208,38 @@ function (op::Operator{:∫σᵢⱼnⱼgᵢds})(ap::T;k::AbstractMatrix{Float64}
         end
     end
 end
+
+# function (op::Operator{:∫σᵛᵢⱼnⱼgᵢds})(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+#     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+#     E = op.E
+#     ν = op.ν
+#     Cᵛ = E/(1-2*ν)
+#     for ξ in 𝓖
+#         𝑤 = ξ.𝑤
+#         N = ξ[:𝝭]
+#         B₁ = ξ[:∂𝝭∂x]
+#         B₂ = ξ[:∂𝝭∂y]
+#         n₁₁ = ξ.n₁₁
+#         n₁₂ = ξ.n₁₂
+#         n₂₂ = ξ.n₂₂
+#         g₁ = ξ.g₁
+#         g₂ = ξ.g₂
+#         n₁ = ξ.n₁
+#         n₂ = ξ.n₂
+#         for (i,xᵢ) in enumerate(𝓒)
+#             I = xᵢ.𝐼
+#             for (j,xⱼ) in enumerate(𝓒)
+#                 J = xⱼ.𝐼
+#                 k[2*I-1,2*J-1] -= (C₁₁₁*(N[i]*B₁[j]+B₁[i]*N[j]) + C₁₂₁*(N[i]*B₂[j]+B₂[i]*N[j]))*𝑤
+#                 k[2*I-1,2*J]   -= (C₁₂₁*N[i]*B₁[j] + C₁₁₂*B₁[i]*N[j] + C₂₂₁*N[i]*B₂[j] + C₁₂₂*B₂[i]*N[j])*𝑤
+#                 k[2*I,2*J-1]   -= (C₁₁₂*N[i]*B₁[j] + C₁₂₁*B₁[i]*N[j] + C₁₂₂*N[i]*B₂[j] + C₂₂₁*B₂[i]*N[j])*𝑤
+#                 k[2*I,2*J]     -= (C₁₂₂*(N[i]*B₁[j]+B₁[i]*N[j]) + C₂₂₂*(N[i]*B₂[j]+B₂[i]*N[j]))*𝑤
+#             end
+#             f[2*I-1] -= ((C₁₁₁*B₁[i]+C₁₂₁*B₂[i])*g₁ + (C₁₁₂*B₁[i]+C₁₂₂*B₂[i])*g₂)*𝑤
+#             f[2*I]   -= ((C₁₂₁*B₁[i]+C₂₂₁*B₂[i])*g₁ + (C₁₂₂*B₁[i]+C₂₂₂*B₂[i])*g₂)*𝑤
+#         end
+#     end
+# end
 
 function (op::Operator{:∫σᵢⱼnⱼgᵢvᵢgᵢds})(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
