@@ -20,6 +20,7 @@ include("approximation/tri3.jl")
 include("approximation/seg2.jl")
 include("approximation/poi1.jl")
 include("approximation/reproducingkernel.jl")
+include("approximation/rkwave.jl")
 include("approximation/kernelfunction.jl")
 include("approximation/rkgradientsmoothing.jl")
 include("approximation/grkgsi.jl")
@@ -35,7 +36,7 @@ include("littletools.jl")
 export prescribe!
 export Operator
 export Node, Element
-export ReproducingKernel, RKGradientSmoothing, GRKGradientSmoothing
+export ReproducingKernel, RKGradientSmoothing, GRKGradientSmoothing, rkwave
 export set𝝭!, set∇𝝭!, set∇²𝝭!
 
 end
