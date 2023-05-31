@@ -206,7 +206,7 @@ for 𝒑 in (:(:Linear1D),:(:Quadratic1D),:(:Cubic1D),:(:Quartic1D))
     end
 end
 
-for 𝒑 in (:(:Linear2D),:(:Quadratic2D),:(:Cubic2D),:(:Wave2D))
+for 𝒑 in (:(:Linear2D),:(:Quadratic2D),:(:Cubic2D))
     @eval begin
         get∇𝒑( ap::ReproducingKernel{$𝒑},x::Any) = get𝒑(ap,x),get∂𝒑∂x(ap,x),get∂𝒑∂y(ap,x)
         get∇²𝒑(ap::ReproducingKernel{$𝒑},x::Any) = get𝒑(ap,x),get∂𝒑∂x(ap,x),get∂𝒑∂y(ap,x),get∂²𝒑∂x²(ap,x),get∂²𝒑∂x∂y(ap,x),get∂²𝒑∂y²(ap,x)
