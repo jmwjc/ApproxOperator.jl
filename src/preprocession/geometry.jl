@@ -69,15 +69,12 @@ struct Tet4<:AbstractTetrahedron
     surfaces::NTuple{4,Tri3}
 end
 
-function (a::[Poi1])(ξ::Float64)
+function (a::Poi1)(::Any)
     v₁ = a.vertices[1]
-    x₁ = v₁.x
-    y₁ = v₁.y
-    z₁ = v₁.z
-    N₁ = ξ
-    return N₁*x₁,
-           N₁*y₁,
-           N₁*z₁
+    x = v₁.x
+    y = v₁.y
+    z = v₁.z
+    return x,y,z
 end
 
 function (a::Seg2)(ξ::Float64)
