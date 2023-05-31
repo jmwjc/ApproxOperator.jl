@@ -13,6 +13,9 @@ struct Point
     y::Float64
     z::Float64
 end
+struct Poi1<:AbstractGeometry
+    vertices::NTuple{1,Point}
+end
 struct Seg2<:AbstractSegment
     vertices::NTuple{2,Point}
 end
@@ -66,21 +69,17 @@ struct Tet4<:AbstractTetrahedron
     surfaces::NTuple{4,Tri3}
 end
 
-function (a::[Point])(ξ::Float64)
-v₁ = a.vertices[1]
-v₂ = a.vertices[2]
-x₁ = v₁.x
-y₁ = v₁.y
-z₁ = v₁.z
-x₂ = v₂.x
-y₂ = v₂.y
-z₂ = v₂.z
-N₁ = 0.5*(1.0-ξ)
-N₂ = 0.5*(1.0+ξ)
-return N₁*x₁+N₂*x₂,
-       N₁*y₁+N₂*y₂,
-       N₁*z₁+N₂*z₂
+function (a::[Poi1])(ξ::Float64)
+    v₁ = a.vertices[1]
+    x₁ = v₁.x
+    y₁ = v₁.y
+    z₁ = v₁.z
+    N₁ = ξ
+    return N₁*x₁,
+           N₁*y₁,
+           N₁*z₁
 end
+
 function (a::Seg2)(ξ::Float64)
     v₁ = a.vertices[1]
     v₂ = a.vertices[2]
