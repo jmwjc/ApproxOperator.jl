@@ -17,9 +17,9 @@ Cᵢⱼᵢⱼ = E/2/(1+ν)
 
 prescribe!(elements["Γ"],:g₁=>(x,y,z)->0.0)
 prescribe!(elements["Γ"],:g₂=>(x,y,z)->0.0)
-prescribe!(elements["Γ"],:n₁₁=>(x,y,z,n₁,n₂)->n₁*n₁)
-prescribe!(elements["Γ"],:n₁₂=>(x,y,z,n₁,n₂)->n₁*n₂)
-prescribe!(elements["Γ"],:n₂₂=>(x,y,z,n₁,n₂)->n₂*n₂)
+prescribe!(elements["Γ"],:n₁₁=>(x,y,z,n₁,n₂)->1.0)
+prescribe!(elements["Γ"],:n₁₂=>(x,y,z,n₁,n₂)->0.0)
+prescribe!(elements["Γ"],:n₂₂=>(x,y,z,n₁,n₂)->1.0)
 prescribe!(elements["Γᵗ"],:t₁=>(x,y,z)->5.0)                 
 prescribe!(elements["Γᵗ"],:t₂=>(x,y,z)->0.0)    
 
@@ -34,13 +34,16 @@ ops = [
 #k = spzeros(2*nₚ,2*nₚ)
 k = zeros(2*nₚ,2*nₚ)
 f = zeros(2*nₚ)
-
+d₁ = zeros(nₚ)
+d₂ = zeros(nₚ)
+push!(nodes,:d₁=>d₁,:d₂=>d₂)
 
 ops[1](elements["Ω"],k)
 ops[2](elements["Γ"],k,f)
 ops[3](elements["Γᵗ"],f) 
 
 d=k\f
+
 d₁ = d[1:2:2*nₚ]
 d₂ = d[2:2:2*nₚ] 
 println("d₁ = ", d₁)
@@ -63,13 +66,15 @@ for ap in elements["Ω"]
             σ₁₁ = Cᵢᵢᵢᵢ*ε₁₁+Cᵢᵢⱼⱼ*ε₂₂
             σ₂₂ = Cᵢᵢⱼⱼ*ε₁₁+Cᵢᵢᵢᵢ*ε₂₂
             σ₁₂ = Cᵢⱼᵢⱼ*ε₁₂
-            println("d₁ = ", d₁)
-            println("d₂ = ", d₂)
+            println("σ₁₁ = ", σ₁₁)
+            println("σ₂₂ = ", σ₂₂)
+            println("ε₂₂ = ", ε₂₂)
+            println("ε₁₁ = ", ε₁₁)
+
             break
         end
     end
 end
  
-
 
   
