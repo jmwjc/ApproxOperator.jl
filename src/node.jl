@@ -51,17 +51,27 @@ function push!(p::Node,svs::Pair{Symbol,Vector{Float64}}...)
     end
 end
 
-# function printinfo(p::Node{T,N},s::Symbol) where {T,N}
-#     if s∈T
-#         index = getfield(p,:index)
-#         i = findfirst(x->x==s,T)
-#         @printf "Node "*string(s)*" = %i \n" index[i]
-#         for (key,(j,value)) in getfield(p,:data)
-#             if i == j
-#                 @printf string(key)*" = %e  " value[index[i]]
-#             end
-#         end
-#     else
-#         error("No index of $s.")
-#     end
-# end
+function printinfo(p::Node{S,N}) where {S,N}
+    index = getfield(p,:index)
+    data = getfield(p,:data)
+    print("Node( ")
+    for (n,s) in enumerate(S)
+        i = index[n]
+        print(string(s)*" = $i ")
+    end
+    shapes = Symbol[]
+    println("):")
+    for (name,(n,vs)) in data
+        s = S[n]
+        if s ≠ :𝑠
+            i = index[n]
+            v = vs[i]
+            @printf "  %s( %s = %i ): %e\n" string(name) string(s) i v
+        else
+            push!(shapes,name)
+        end
+    end
+    return shapes
+end
+
+Base.show(io::IO,::MIME"text/plain",p::Node) = printinfo(p)

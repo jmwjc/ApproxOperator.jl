@@ -217,15 +217,55 @@ function (op::Operator{:∫∇𝑛vgds})(ap::T;k::AbstractMatrix{Float64},f::Abs
     end
 end
 
+function (op::Operator{:∫∇̃𝑛vgdx})(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒;𝓖 = ap.𝓖
+    kᶜ = op.k
+    for ξ in 𝓖
+        N = ξ[:𝝭]
+        B = ξ[:∂𝝭∂x]
+        𝑤 = ξ.𝑤
+        n₁ = ξ.n₁
+        g = ξ.g
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I,J] -= kᶜ*(B[i]*n₁*N[j]+N[i]*B[j]*n₁)*𝑤
+            end
+            f[I] -= kᶜ*B[i]*n₁*g*𝑤
+        end
+    end
+end
+
+function (op::Operator{:∫∇̄𝑛vgdx})(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒;𝓖 = ap.𝓖
+    kᶜ = op.k
+    for ξ in 𝓖
+        N = ξ[:𝝭]
+        B = ξ[:∂𝝭∂x]
+        𝑤 = ξ.𝑤
+        n₁ = ξ.n₁
+        g = ξ.g
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I,J] += kᶜ*B[i]*n₁*N[j]*𝑤
+            end
+            f[I] += kᶜ*B[i]*n₁*g*𝑤
+        end
+    end
+end
+
 function (op::Operator{:∫∇̄𝑛vgdΓ})(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     kᶜ = op.k
     for ξ in 𝓖
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
-        B₁ = ξ[:∂𝝭∂x_]
-        B₂ = ξ[:∂𝝭∂y_]
-        B₃ = ξ[:∂𝝭∂z_]
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        B₃ = ξ[:∂𝝭∂z]
         n₁ = ξ.n₁
         n₂ = ξ.n₂
         n₃ = ξ.n₃

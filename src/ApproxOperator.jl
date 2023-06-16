@@ -1,8 +1,8 @@
 module ApproxOperator
 
-import Base: +, -, *, /, getindex, setindex!, getproperty, setproperty!, length, push!, fill!, issubset, intersect
+import Base: +, -, *, /, getindex, setindex!, getproperty, setproperty!, length, push!, fill!, issubset, intersect, show
 import InteractiveUtils: subtypes
-# import Printf: @printf
+import Printf: @printf
 
 abstract type AbstractElement{T} end
 abstract type SpatialPartition end
