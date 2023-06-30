@@ -62,13 +62,15 @@ function printinfo(p::Node{S,N}) where {S,N}
     shapes = Symbol[]
     println("):")
     for (name,(n,vs)) in data
-        s = S[n]
-        if s ≠ :𝑠
-            i = index[n]
-            v = vs[i]
-            @printf "  %s( %s = %i ): %e\n" string(name) string(s) i v
-        else
-            push!(shapes,name)
+        if n ≠ 0
+            s = S[n]
+            if s ≠ :𝑠
+                i = index[n]
+                v = vs[i]
+                @printf "  %s(%s = %i): %e\n" string(name) string(s) i v
+            else
+                push!(shapes,name)
+            end
         end
     end
     return shapes
