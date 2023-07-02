@@ -1,9 +1,9 @@
 """
 Element{T}<:AbstractElement{T}
 """
-struct Element{T}<:AbstractElement{T}
+struct Element{T} <: AbstractElement{T}
     𝓒::Tuple{Int,Int,Vector{Node{(:𝐼,),1}}}
-    𝓖::Tuple{Int,Int,Vector{Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}}}
+    𝓖::Tuple{Int,Int,Vector{Node{(:𝑔, :𝐺, :𝐶, :𝑠),4}}}
 end
 
 function Base.getproperty(a::T,s::Symbol) where T<:AbstractElement
@@ -55,10 +55,6 @@ function Base.show(io::IO,::MIME"text/plain",a::T) where T<:AbstractElement
         @printf "\n"
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
-            # S = join([string(p[shape][i]) for shape in shapes]," ")
-            # println("  (𝐼 = $I) "*S)
-            # S = "  ( 𝐼 = %i ) "*join(["%e" for i in 1:length(shape)]," ")
-            # @printf S I (p[shape][i] for shape in shapes)...
             @printf "  (𝐼 = %i)" I
             for shape in shapes
                 @printf " %e" p[shape][i]

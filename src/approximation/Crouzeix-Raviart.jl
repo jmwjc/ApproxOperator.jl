@@ -1,4 +1,9 @@
 
+struct TRElement{T} <: AbstractElement{T}
+    𝓒::Tuple{Int,Int,Vector{Node{(:𝐼,:𝐽),2}}}
+    𝓖::Tuple{Int,Int,Vector{Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}}}
+end
+
 function set𝝭!(ap::TRElement{:Tri3},x::Node)
     ξ₁ = x.ξ
     ξ₂ = x.η
@@ -13,13 +18,14 @@ function set𝝭!(ap::TRElement{:Tri3},x::Node)
 end
 
 function set∇𝝭!(ap::TRElement{:Tri3},x::Node)
-    x₁ = ap.𝓒[1].x
-    x₂ = ap.𝓒[2].x
-    x₃ = ap.𝓒[3].x
-    y₁ = ap.𝓒[1].y
-    y₂ = ap.𝓒[2].y
-    y₃ = ap.𝓒[3].y
-    𝐴 = get𝐴(ap)
+    v₁,v₂,v₃ = ap.𝓒
+    x₁ = v₁.x
+    x₂ = v₂.x
+    x₃ = v₃.x
+    y₁ = v₁.y
+    y₂ = v₂.y
+    y₃ = v₃.y
+    𝐴 = ap.𝐴
     ∂𝝭∂x = x[:∂𝝭∂x]
     ∂𝝭∂y = x[:∂𝝭∂y]
     ∂𝝭∂x[1] = (y₃-y₂)/𝐴
