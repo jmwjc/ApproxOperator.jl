@@ -45,7 +45,7 @@ end
 """
 morh-coulbom
 """
-function (op::Operator{:∫vᵢσdΩ_mohr_coulomb})(ap::T,k::AbstractMatrix{Float64},fint::AbstractVector) where T<:AbstractElement
+function (op::Operator{:∫vᵢσdΩ_mohr_coulomb})(ap::T;k::AbstractMatrix{Float64},fint::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     λ = op.λ
     μ = op.μ
@@ -54,6 +54,7 @@ function (op::Operator{:∫vᵢσdΩ_mohr_coulomb})(ap::T,k::AbstractMatrix{Floa
     tol = op.tol 
     Cᵢᵢᵢᵢ = λ + 2.0*μ
     Cᵢᵢⱼⱼ = λ
+    C₁₂₁₂ =  μ
     Cᵗ₁₂₁₂ =  μ
     C₁₁₁₁ = Cᵢᵢᵢᵢ
     C₂₂₂₂ = Cᵢᵢᵢᵢ
@@ -61,7 +62,7 @@ function (op::Operator{:∫vᵢσdΩ_mohr_coulomb})(ap::T,k::AbstractMatrix{Floa
     C₁₁₂₂ = Cᵢᵢⱼⱼ
     C₁₁₃₃ = Cᵢᵢⱼⱼ
     C₂₂₃₃ = Cᵢᵢⱼⱼ
-    C₁₂₁₂ = Cᵢⱼᵢⱼ
+    
     for ξ in 𝓖
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
@@ -72,7 +73,6 @@ function (op::Operator{:∫vᵢσdΩ_mohr_coulomb})(ap::T,k::AbstractMatrix{Floa
         εᵖ₁₁ = ξ.εᵖ₁₁
         εᵖ₂₂ = ξ.εᵖ₂₂
         εᵖ₁₂ = ξ.εᵖ₁₂
-        sₙ = ξ.sₙ
         𝑤 = ξ.𝑤
         Δε₁₁ = 0.0
         Δε₂₂ = 0.0
@@ -82,7 +82,6 @@ function (op::Operator{:∫vᵢσdΩ_mohr_coulomb})(ap::T,k::AbstractMatrix{Floa
             Δε₂₂ += B₂[i]*xᵢ.Δd₂
             Δε₁₂ += 0.5*(B₁[i]*xᵢ.Δd₂ + B₂[i]*xᵢ.Δd₁)
         end 
-
         # predict phase
         σ₁₁ᵗʳ =σ₁₁+C₁₁₁₁*Δε₁₁+C₁₂₁₂*Δε₂₂
         σ₂₂ᵗʳ =σ₂₂+C₂₂₂₂*Δε₂₂+C₁₂₁₂*Δε₁₁
@@ -114,8 +113,9 @@ function (op::Operator{:∫vᵢσdΩ_mohr_coulomb})(ap::T,k::AbstractMatrix{Floa
             Cᵗ₁₁₁₁ = C₁₁₁₁
             Cᵗ₂₂₂₂ = C₂₂₂₂
             Cᵗ₁₁₂₂ = C₁₁₂₂
-           
+          
         end
+
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
@@ -124,9 +124,11 @@ function (op::Operator{:∫vᵢσdΩ_mohr_coulomb})(ap::T,k::AbstractMatrix{Floa
                 k[2*I-1,2*J]   += (Cᵗ₁₁₂₂*B₁[i]*B₂[j] + Cᵗ₁₂₁₂*B₂[i]*B₁[j])*𝑤
                 k[2*I,2*J-1]   += (Cᵗ₁₁₂₂*B₂[i]*B₁[j] + Cᵗ₁₂₁₂*B₁[i]*B₂[j])*𝑤
                 k[2*I,2*J]     += (Cᵗ₂₂₂₂*B₂[i]*B₂[j] + Cᵗ₁₂₁₂*B₁[i]*B₁[j])*𝑤
+     
             end
             fint[2*I-1] += B₁[i]*ξ.σ₁₁*𝑤 + B₂[i]*ξ.σ₁₂*𝑤
             fint[2*I]   += B₁[i]*ξ.σ₁₂*𝑤 + B₂[i]*ξ.σ₂₂*𝑤
+    
         end
     end
 end    
