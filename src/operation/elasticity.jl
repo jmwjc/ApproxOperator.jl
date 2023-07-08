@@ -400,6 +400,25 @@ function (op::Operator{:∫vᵢgᵢds})(ap::T;k::AbstractMatrix{Float64},f::Abst
     end
 end
 
+function getσₙ(σ₁₁::Float64,σ₂₂::Float64,σ₁₂::Float64)
+    # trace
+    t = σ₁₁ + σ₂₂
+    # determinant
+    d = σ₁₁*σ₂₂ - σ₁₂^2
+
+    σ₁ = t/2 + (t^2/4-d)^0.5
+    σ₂ = t/2 - (t^2/4-d)^0.5
+    if σ₁₂ ≈ 0.0
+        (n₁,n₂) = σ₁₁ > σ₂₂ ? ((1.0,0.0),(0.0,1.0)) : ((0.0,1.0),(1.0,0.0))
+    else
+        l₁ = ((σ₁-σ₂₂)^2+σ₁₂^2)^0.5
+        l₂ = ((σ₂-σ₂₂)^2+σ₁₂^2)^0.5
+        n₁ = ((σ₁-σ₂₂)/l₁,σ₁₂/l₁)
+        n₂ = ((σ₂-σ₂₂)/l₁,σ₁₂/l₁)
+    end
+    return σ₁,σ₂,n₁,n₂
+end
+
 function getσₙ(σ₁₁::Float64,σ₂₂::Float64,σ₃₃::Float64,σ₁₂::Float64,σ₁₃::Float64,σ₂₃::Float64)
     p₁ = σ₁₂^2+σ₁₃^2+σ₂₃^2
     if p₁ == 0.0
