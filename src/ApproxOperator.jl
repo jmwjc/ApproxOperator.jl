@@ -31,6 +31,7 @@ include("operation/hyperelasticity.jl")
 include("operation/error_estimates.jl")
 include("preprocession/importmsh.jl")
 include("operation/Kirchhoff_Love_plate.jl")
+include("operation/plasticity.jl")
 
 include("littletools.jl")
 
