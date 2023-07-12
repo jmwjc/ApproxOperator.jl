@@ -1,9 +1,18 @@
 
+# get𝑛𝒑(  ::ReproducingKernel{:Wave2D}) = 5
+# get𝒑(   ::ReproducingKernel{:Wave2D},x::NTuple{3,Float64}) = (1.,sin(x[1]),cos(x[1]),sin(x[2]),cos(x[2]))
+# get∂𝒑∂x(::ReproducingKernel{:Wave2D},x::NTuple{3,Float64}) = (0.,cos(x[1]),-sin(x[1]),0.,0.)
+# get∂𝒑∂y(::ReproducingKernel{:Wave2D},x::NTuple{3,Float64}) = (0.,0.,0.,cos(x[2]),-sin(x[2]))
+
 get𝑛𝒑(  ::ReproducingKernel{:Wave2D}) = 5
-get𝒑(   ::ReproducingKernel{:Wave2D},x::NTuple{3,Float64}) = (1.,sin(x[1]),cos(x[1]),sin(x[2]),cos(x[2]))
-# get𝒑(   ::ReproducingKernel{:Wave2D},x::NTuple{3,Float64}) = (1.,x[1],x[2],x[1]^2,x[2]^2)
-get∂𝒑∂x(::ReproducingKernel{:Wave2D},x::NTuple{3,Float64}) = (0.,cos(x[1]),-sin(x[1]),0.,0.)
-get∂𝒑∂y(::ReproducingKernel{:Wave2D},x::NTuple{3,Float64}) = (0.,0.,0.,cos(x[2]),-sin(x[2]))
+get𝒑(   ::ReproducingKernel{:Wave2D},x::NTuple{3,Float64}) = (1.,sin(2π*x[1]/100),cos(2π*x[1]/100),sin(2π*x[2]/100),cos(2π*x[2]/100))
+get∂𝒑∂x(::ReproducingKernel{:Wave2D},x::NTuple{3,Float64}) = (0.,2π*cos(2π*x[1]/100)/100,-2π*sin(2π*x[1]/100)/100,0.,0.)
+get∂𝒑∂y(::ReproducingKernel{:Wave2D},x::NTuple{3,Float64}) = (0.,0.,0.,2π*cos(2π*x[2]/100)/100,-2π*sin(2π*x[2]/100)/100)
+
+get𝑛𝒑(  ::ReproducingKernel{:Wave2DY}) = 3
+get𝒑(   ::ReproducingKernel{:Wave2DY},x::NTuple{3,Float64}) = (1.,sin(x[2]),cos(x[2]))
+get∂𝒑∂x(::ReproducingKernel{:Wave2DY},x::NTuple{3,Float64}) = (0.,0.,0.)
+get∂𝒑∂y(::ReproducingKernel{:Wave2DY},x::NTuple{3,Float64}) = (0.,cos(x[2]),-sin(x[2]))
 
 function set𝝭!(ap::ReproducingKernel{:Wave2D},𝒙::Node)
     𝓒 = ap.𝓒
