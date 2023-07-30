@@ -200,3 +200,30 @@ function get∂³𝜙∂r³(::AbstractReproducingKernel{𝑠,:QuinticSpline},r::
         return -(3.0-3.0*r)^2*13.5
     end
 end
+
+function get𝜙ᵣ(::AbstractReproducingKernel{𝑠,:Gaussian},r::Float64) where 𝑠
+    β = 4
+    if r > 1.0
+        return 0.0
+    else 
+        return (exp(-r^2*β^2)-exp(-β^2))/(1-exp(-β^2))
+    end
+end
+
+function get∂𝜙∂r(::AbstractReproducingKernel{𝑠,:Gaussian},r::Float64) where 𝑠
+    β = 4
+    if r > 1.0
+        return 0.0
+    else
+        return -2*r*β^2*exp(-r^2*β^2)/(1-exp(-β^2))
+    end
+end
+
+function get∂²𝜙∂r²(::AbstractReproducingKernel{𝑠,:Gaussian},r::Float64) where 𝑠
+    β = 4
+    if r > 1.0
+        return 0.0
+    else
+        return (4*r^2*β^4-2*β^2)*exp(-r^2*β^2)/(1-exp(-β^2))
+    end
+end
