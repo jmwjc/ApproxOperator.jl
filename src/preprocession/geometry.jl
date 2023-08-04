@@ -1,5 +1,5 @@
-
 abstract type AbstractGeometry end
+abstract type AbstractPoint<:AbstractGeometry end
 abstract type AbstractSegment<:AbstractGeometry end
 abstract type AbstractSurface<:AbstractGeometry end
 abstract type AbstractVolume<:AbstractGeometry end
@@ -9,68 +9,60 @@ abstract type AbstractTetrahedron<:AbstractVolume end
 
 struct Point
     i::Int
-    x::Float64
-    y::Float64
-    z::Float64
+    x::Vector{Float64}
+    y::Vector{Float64}
+    z::Vector{Float64}
 end
-struct Poi1<:AbstractGeometry
-    vertices::NTuple{1,Point}
+
+struct Poi1<:AbstractPoint
+    i::Int
+    vertex::Point
 end
+
 struct Seg2<:AbstractSegment
-    vertices::NTuple{2,Point}
+    i::Int
+    vertex::NTuple{2,Point}
 end
 
 struct Seg3<:AbstractSegment
-    vertices::NTuple{3,Point}
+    i::Int
+    vertex::NTuple{3,Point}
 end
 
 struct Tri3<:AbstractTriangle
-    vertices::NTuple{3,Point}
-    edges::NTuple{3,Seg2}
-end
-
-function Tri3(vertices::NTuple{3,Point})
-    v₁,v₂,v₃ = vertices 
-    e₁ = Seg2((v₂,v₃))
-    e₂ = Seg2((v₃,v₁))
-    e₃ = Seg2((v₁,v₂))
-    edges = (e₁,e₂,e₃)
-    return Tri3(vertices,edges)
+    i::Int
+    vertex::NTuple{3,Point}
 end
 
 struct Tri6<:AbstractTriangle
-    vertices::NTuple{6,Point}
-    edges::NTuple{3,Seg3}
+    i::Int
+    vertex::NTuple{6,Point}
 end
 
 struct Quad4<:AbstracQuadrilateralt
-    vertices::NTuple{4,Point}
-    edges::NTuple{4,Seg2}
-end
-
-function Quad4(vertices::NTuple{4,Point})
-    v₁,v₂,v₃,v₄ = vertices 
-    e₁ = Seg2((v₁,v₂))
-    e₂ = Seg2((v₂,v₃))
-    e₃ = Seg2((v₃,v₄))
-    e₄ = Seg2((v₄,v₁))
-    edges = (e₁,e₂,e₃,e₄)
-    return Quad4(vertices,edges)
+    i::Int
+    vertex::NTuple{4,Point}
 end
 
 struct Quad9<:AbstracQuadrilateralt
-    vertices::NTuple{9,Point}
-    edges::NTuple{4,Seg3}
+    i::Int
+    vertex::NTuple{9,Point}
 end
 
 struct Tet4<:AbstractTetrahedron
-    vertices::NTuple{4,Point}
-    edges::NTuple{6,Seg2}
-    surfaces::NTuple{4,Tri3}
+    i::Int
+    vertex::NTuple{4,Point}
 end
 
+function Tri3(vertex::NTuple{3,Point})
+end
+
+function Quad4(vertex::NTuple{4,Point})
+end
+
+
 function (a::Poi1)(::Any)
-    v₁ = a.vertices[1]
+    v₁ = a.vertex[1]
     x = v₁.x
     y = v₁.y
     z = v₁.z
@@ -78,8 +70,8 @@ function (a::Poi1)(::Any)
 end
 
 function (a::Seg2)(ξ::Float64)
-    v₁ = a.vertices[1]
-    v₂ = a.vertices[2]
+    v₁ = a.vertex[1]
+    v₂ = a.vertex[2]
     x₁ = v₁.x
     y₁ = v₁.y
     z₁ = v₁.z
@@ -94,7 +86,7 @@ function (a::Seg2)(ξ::Float64)
 end
 
 function (a::Seg2)(v::Point)
-    i = findfirst(x->x==v,a.vertices)
+    i = findfirst(x->x==v,a.vertex)
     if i == 1
         return -1.0
     elseif i == 2
@@ -105,9 +97,9 @@ function (a::Seg2)(v::Point)
 end
 
 function (a::Seg3)(ξ::Float64)
-    v₁ = a.vertices[1]
-    v₂ = a.vertices[2]
-    v₃ = a.vertices[3]
+    v₁ = a.vertex[1]
+    v₂ = a.vertex[2]
+    v₃ = a.vertex[3]
     x₁ = v₁.x
     y₁ = v₁.y
     z₁ = v₁.z
@@ -126,7 +118,7 @@ function (a::Seg3)(ξ::Float64)
 end
 
 function (a::Seg3)(v::Point)
-    i = findfirst(x->x==v,a.vertices)
+    i = findfirst(x->x==v,a.vertex)
     if i == 1
         return -1.0
     elseif i == 3
@@ -137,9 +129,9 @@ function (a::Seg3)(v::Point)
 end
 
 function (a::Tri3)(ξ::Float64,η::Float64)
-    v₁ = a.vertices[1]
-    v₂ = a.vertices[2]
-    v₃ = a.vertices[3]
+    v₁ = a.vertex[1]
+    v₂ = a.vertex[2]
+    v₃ = a.vertex[3]
     x₁ = v₁.x
     y₁ = v₁.y
     z₁ = v₁.z
@@ -158,7 +150,7 @@ function (a::Tri3)(ξ::Float64,η::Float64)
 end
 
 function (a::Tri3)(v::Point)
-    i = findfirst(x->x==v,a.vertices)
+    i = findfirst(x->x==v,a.vertex)
     if i == 1
         return 1.0,0.0
     elseif i == 2
@@ -185,12 +177,12 @@ end
 
 function (a::Tri6)(ξ::Float64,η::Float64)
     γ = 1.0-ξ-η
-    x₁ = a.vertices[1].x;y₁ = a.vertices[1].y;z₁ = a.vertices[1].z
-    x₂ = a.vertices[2].x;y₂ = a.vertices[2].y;z₂ = a.vertices[2].z
-    x₃ = a.vertices[3].x;y₃ = a.vertices[3].y;z₃ = a.vertices[3].z
-    x₄ = a.vertices[4].x;y₄ = a.vertices[4].y;z₄ = a.vertices[4].z
-    x₅ = a.vertices[5].x;y₅ = a.vertices[5].y;z₅ = a.vertices[5].z
-    x₆ = a.vertices[6].x;y₆ = a.vertices[6].y;z₆ = a.vertices[6].z
+    x₁ = a.vertex[1].x;y₁ = a.vertex[1].y;z₁ = a.vertex[1].z
+    x₂ = a.vertex[2].x;y₂ = a.vertex[2].y;z₂ = a.vertex[2].z
+    x₃ = a.vertex[3].x;y₃ = a.vertex[3].y;z₃ = a.vertex[3].z
+    x₄ = a.vertex[4].x;y₄ = a.vertex[4].y;z₄ = a.vertex[4].z
+    x₅ = a.vertex[5].x;y₅ = a.vertex[5].y;z₅ = a.vertex[5].z
+    x₆ = a.vertex[6].x;y₆ = a.vertex[6].y;z₆ = a.vertex[6].z
     N₁ = ξ*(2*ξ-1)
     N₂ = η*(2*η-1)
     N₃ = γ*(2*γ-1)
@@ -203,54 +195,54 @@ function (a::Tri6)(ξ::Float64,η::Float64)
 end
 
 function (a::Quad4)(ξ::Float64,η::Float64)
-    x₁ = a.vertices[1].x
-    y₁ = a.vertices[1].y
-    z₁ = a.vertices[1].z
-    x₂ = a.vertices[2].x
-    y₂ = a.vertices[2].y
-    z₂ = a.vertices[2].z
-    x₃ = a.vertices[3].x
-    y₃ = a.vertices[3].y
-    z₃ = a.vertices[3].z
-    x₄ = a.vertices[4].x
-    y₄ = a.vertices[4].y
-    z₄ = a.vertices[4].z
+    x₁ = a.vertex[1].x
+    y₁ = a.vertex[1].y
+    z₁ = a.vertex[1].z
+    x₂ = a.vertex[2].x
+    y₂ = a.vertex[2].y
+    z₂ = a.vertex[2].z
+    x₃ = a.vertex[3].x
+    y₃ = a.vertex[3].y
+    z₃ = a.vertex[3].z
+    x₄ = a.vertex[4].x
+    y₄ = a.vertex[4].y
+    z₄ = a.vertex[4].z
     N₁,N₂,N₃,N₄ = get𝝭(a,ξ,η)
     return (x₁*N₁+x₂*N₂+x₃*N₃+x₄*N₄,y₁*N₁+y₂*N₂+y₃*N₃+y₄*N₄,z₁*N₁+z₂*N₂+z₃*N₃+z₄*N₄)
 end
 function get𝐴(a::Tri3)
-    x₁ = a.vertices[1].x
-    x₂ = a.vertices[2].x
-    x₃ = a.vertices[3].x
-    y₁ = a.vertices[1].y
-    y₂ = a.vertices[2].y
-    y₃ = a.vertices[3].y
-    z₁ = a.vertices[1].z
-    z₂ = a.vertices[2].z
-    z₃ = a.vertices[3].z
+    x₁ = a.vertex[1].x
+    x₂ = a.vertex[2].x
+    x₃ = a.vertex[3].x
+    y₁ = a.vertex[1].y
+    y₂ = a.vertex[2].y
+    y₃ = a.vertex[3].y
+    z₁ = a.vertex[1].z
+    z₂ = a.vertex[2].z
+    z₃ = a.vertex[3].z
 
     return 0.5*(x₁*y₂+x₂*y₃+x₃*y₁-x₂*y₁-x₃*y₂-x₁*y₃)
 end
 
 function get𝐿(a::Seg2)
-    x₁ = a.vertices[1].x
-    x₂ = a.vertices[2].x
-    y₁ = a.vertices[1].y
-    y₂ = a.vertices[2].y
+    x₁ = a.vertex[1].x
+    x₂ = a.vertex[2].x
+    y₁ = a.vertex[1].y
+    y₂ = a.vertex[2].y
 
     return ((x₂-x₁)^2+(y₂-y₁)^2)^0.5
 end
 
 
 function get𝑱(a::Quad4,ξ::Float64,η::Float64)
-    x₁ = a.vertices[1].x
-    y₁ = a.vertices[1].y
-    x₂ = a.vertices[2].x
-    y₂ = a.vertices[2].y
-    x₃ = a.vertices[3].x
-    y₃ = a.vertices[3].y
-    x₄ = a.vertices[4].x
-    y₄ = a.vertices[4].y
+    x₁ = a.vertex[1].x
+    y₁ = a.vertex[1].y
+    x₂ = a.vertex[2].x
+    y₂ = a.vertex[2].y
+    x₃ = a.vertex[3].x
+    y₃ = a.vertex[3].y
+    x₄ = a.vertex[4].x
+    y₄ = a.vertex[4].y
     ∂N₁∂ξ,∂N₂∂ξ,∂N₃∂ξ,∂N₄∂ξ = get∂𝝭∂ξ(a,ξ)
     ∂N₁∂η,∂N₂∂η,∂N₃∂η,∂N₄∂η = get∂𝝭∂η(a,η)
     J₁₁ = ∂N₁∂ξ*x₁ + ∂N₂∂ξ*x₂ + ∂N₃∂ξ*x₃ + ∂N₄∂ξ*x₄
@@ -287,3 +279,5 @@ function get𝝭(::Quad4,ξ::Float64,η::Float64)
     N₄ = 0.25*(1.0-ξ)*(1.0+η)
     return N₁,N₂,N₃,N₄
 end
+
+Base.issubset(a<:AbstractGeometry,b<:AbstractGeometry) = a.vertex ⊆ b.vertex

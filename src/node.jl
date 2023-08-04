@@ -40,6 +40,7 @@ function Base.getindex(p::Node,f::Symbol)
     j = getfield(p,:index)[i]
     return RV(j,v)
 end
+getdata(p::Node,f::Symbol) = getfield(p,:data)[f][2]
 
 +(a::T,b::S) where {T<:Node,S<:Node} = (a.x+b.x,a.y+b.y,a.z+b.z)
 -(a::T,b::S) where {T<:Node,S<:Node} = (a.x-b.x,a.y-b.y,a.z-b.z)
