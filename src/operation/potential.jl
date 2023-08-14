@@ -294,24 +294,89 @@ function (op::Operator{:g})(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{F
     f[j] = g
 end
 
-function (op::Operator{:∫∇𝑛vuds})(a::T,b::S;k::AbstractMatrix{Float64}) where {T,S<:AbstractElement}
+function (op::Operator{:∫vᵢnᵢuds})(a₁::T,a₂::S;k::AbstractMatrix{Float64}) where {T,S<:AbstractElement}
+    𝓖 = zip(a₁.𝓖,a₂.𝓖)
+    kᶜ = op.k
+    for (ξ₁,ξ₂) in 𝓖
+        N = ξ₂[:𝝭]
+        B₁ = ξ₁[:∂𝝭∂x]
+        B₂ = ξ₁[:∂𝝭∂y]
+        𝑤 = ξ₁.𝑤
+        n₁ = ξ₁.n₁
+        n₂ = ξ₁.n₂
+        if ξ₁.𝐺 == 9 || ξ₁.𝐺 == 10
+            𝒙₁,𝒙₂ = a₂.𝓒
+            x₁ = 𝒙₁.x
+            x₂ = 𝒙₂.x
+            y₁ = 𝒙₁.y
+            y₂ = 𝒙₂.y
+            g₁ = 1.0+2x₁+3y₁
+            g₂ = 1.0+2x₂+3y₂
+            # println(N[1]*g₁ + N[2]*g₂)
+            # println(𝑤)
+            # println(n₁)
+            # println(n₂)
+            # println(B₁[1])
+            # println(B₁[2])
+            # println(B₁[3])
+            # println(B₂[1])
+            # println(B₂[2])
+            # println(B₂[3])
+            # println(g₁)
+            # println(g₂)
+            # println((B₁[3]*n₁ + B₂[3]*n₂)*N[1]*𝑤)
+            # println((B₁[3]*n₁ + B₂[3]*n₂)*N[2]*𝑤)
+            # println((B₁[3]*n₁ + B₂[3]*n₂)*(N[1]*g₁ + N[2]*g₂)*𝑤)
+        end
+        for (i,xᵢ) in enumerate(a₁.𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(a₂.𝓒)
+                J = xⱼ.𝐼
+                k[I,J] += kᶜ*(B₁[i]*n₁+B₂[i]*n₂)*N[j]*𝑤
+            end
+        end
+    end
+end
+
+function (op::Operator{:∫vᵢnᵢgds})(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒;𝓖 = ap.𝓖
     kᶜ = op.k
-    α = op.α
     for ξ in 𝓖
-        N = ξ[:𝝭]
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
         𝑤 = ξ.𝑤
         n₁ = ξ.n₁
         n₂ = ξ.n₂
         g = ξ.g
+        if ξ.𝐺 == 9 || ξ.𝐺 == 10
+            # println(B₁[1])
+            # println(B₁[2])
+            # println(B₁[3])
+            # println(B₂[1])
+            # println(B₂[2])
+            # println(B₂[3])
+            # println((B₁[3]*n₁ + B₂[3]*n₂)*g*𝑤)
+        end
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
-            for (j,xⱼ) in enumerate(𝓒)
-                J = xⱼ.𝐼
-                k[I,J] -= kᶜ*((B₁[i]*n₁+B₂[i]*n₂)*N[j]+N[i]*(B₁[j]*n₁+B₂[j]*n₂))*𝑤
+            if I == 1
+                # println(f[I])
+                # println((B₁[i]*n₁+B₂[i]*n₂)*g*𝑤)
             end
+            f[I] += kᶜ*(B₁[i]*n₁+B₂[i]*n₂)*g*𝑤
         end
     end
+end
+
+function (op::Operator{:∫uds})(aps::Vector{T}) where T<:AbstractElement
+    u = zeros(length(aps))
+    for (c,ap) in enumerate(aps)
+        𝓖 = ap.𝓖
+        for ξ in 𝓖
+            𝑤 = ξ.𝑤
+            u[c] += ξ.u*𝑤
+        end
+        u[c] /= ap.𝐿
+    end
+    return u
 end

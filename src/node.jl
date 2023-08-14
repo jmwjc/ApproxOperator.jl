@@ -40,17 +40,9 @@ function Base.getindex(p::Node,f::Symbol)
     j = getfield(p,:index)[i]
     return RV(j,v)
 end
-getdata(p::Node,f::Symbol) = getfield(p,:data)[f][2]
 
 +(a::T,b::S) where {T<:Node,S<:Node} = (a.x+b.x,a.y+b.y,a.z+b.z)
 -(a::T,b::S) where {T<:Node,S<:Node} = (a.x-b.x,a.y-b.y,a.z-b.z)
-
-push!(ps::Vector{T},svs::Pair{Symbol,Vector{Float64}}...) where T<:Node = push!(ps[1],svs...)
-function push!(p::Node,svs::Pair{Symbol,Vector{Float64}}...)
-    for (s,v) in svs
-        push!(getfield(p,:data),s=>(1,v))
-    end
-end
 
 function printinfo(p::Node{S,N}) where {S,N}
     index = getfield(p,:index)

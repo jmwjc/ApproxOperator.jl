@@ -12,23 +12,25 @@ function importmsh(filename::String)
     datasize = parse(Int,d_)
     readline(fid)
     if version == 4.1
-        elements,nodes,entities = import_msh_4(fid)
+        elements,entities = import_msh_4(fid)
     elseif version == 2.2
-        elements,nodes,entities = import_msh_2(fid)
+        elements,entities = import_msh_2(fid)
     else
         println("Version does not match!")
     end
-    return elements, nodes, entities
+    return elements, entities
 end
 
 function import_msh_4(fid::IO) end
 
 function import_msh_2(fid::IO)
     etype = Dict(1=>:Seg2,2=>:Tri3,3=>:Quad4,8=>:Seg3,9=>:Tri6,15=>:Point)
-    points = Point[]
     elements = Dict{String,Any}()
     entities = Dict{String,Any}()
     physicalnames = Dict{Int,String}()
+    x = Float64[]
+    y = Float64[]
+    z = Float64[]
     for line in eachline(fid)
         if line == "\$PhysicalNames"
             numPhysicalNames = parse(Int,readline(fid))
@@ -45,14 +47,16 @@ function import_msh_2(fid::IO)
         elseif line == "\$Nodes"
             line = readline(fid)
             nₚ = parse(Int,line)
+            resize!(x,nₚ)
+            resize!(y,nₚ)
+            resize!(z,nₚ)
             for i in 1:nₚ
                 line = readline(fid)
-                i,x,y,z = split(line," ")
-                i = parse(Int,i)
-                x = parse(Float64,x)
-                y = parse(Float64,y)
-                z = parse(Float64,z)
-                push!(points,Point(i,x,y,z))
+                i_,x_,y_,z_ = split(line," ")
+                i_ = parse(Int,i_)
+                x[i_] = parse(Float64,x_)
+                y[i_] = parse(Float64,y_)
+                z[i_] = parse(Float64,z_)
             end
             readline(fid)
         elseif line == "\$Elements"
@@ -79,14 +83,10 @@ function import_msh_2(fid::IO)
                     elements[name] = type[]
                     entities[name] = Int[]
                 end
-                if type == Point
-                   push!(elements[name],points[nodeList...])
-                else
-                   push!(elements[name],type(Tuple(points[i] for i in nodeList)))
-                end
+                push!(elements[name],type(Tuple(nodeList),x,y,z))
                 push!(entities[name],elmEntary)
             end
         end
     end
-    return elements, points, entities
+    return elements, entities
 end

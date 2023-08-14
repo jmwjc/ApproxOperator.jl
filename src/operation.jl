@@ -10,6 +10,7 @@ Operator{T}(d::Pair{Symbol}...) where T = Operator{T}(Dict(d))
 getproperty(op::Operator,f::Symbol) = getfield(op,:data)[f]
 
 (op::Operator)(aps::Vector{T},gps::Vector{S},k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement} = op.(aps,gps,k=k,f=f)
+(op::Operator)(aps::Vector{T},gps::Vector{S},k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement} = op.(aps,gps,k=k)
 (op::Operator)(aps::Vector{T},k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement = op.(aps,k=k,f=f)
 (op::Operator)(aps::Vector{T},k::AbstractMatrix{Float64}) where T<:AbstractElement = op.(aps,k=k)
 (op::Operator)(aps::Vector{T},f::AbstractVector{Float64}) where T<:AbstractElement = op.(aps,f=f)
