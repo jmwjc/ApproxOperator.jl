@@ -67,6 +67,7 @@ function (op::Operator{:∫∫εᵢⱼσᵢⱼdxdy})(ap::T;k::AbstractMatrix{Flo
     end
 end
 
+
 function (op::Operator{:∫∫εᵛᵢⱼσᵛᵢⱼdxdy})(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     E = op.E
