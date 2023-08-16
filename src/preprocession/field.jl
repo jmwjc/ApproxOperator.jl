@@ -315,8 +315,8 @@ function (f::Field{(:𝐼,:𝐽),2,(:𝑔,:𝐺,:𝐶,:𝑠)})(as::Vector{Tri3},
     η = data[:η][2]
     points = zip(ξ,η)
     push!(f,
-        :ξ=>(:𝑔,as[1].x),
-        :η=>(:𝑔,as[1].y),
+        :ξ=>(:𝑔,ξ),
+        :η=>(:𝑔,η),
     )
     scheme = zip(weights,points)
     ne = length(as)

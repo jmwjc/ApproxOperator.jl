@@ -304,30 +304,6 @@ function (op::Operator{:∫vᵢnᵢuds})(a₁::T,a₂::S;k::AbstractMatrix{Float
         𝑤 = ξ₁.𝑤
         n₁ = ξ₁.n₁
         n₂ = ξ₁.n₂
-        if ξ₁.𝐺 == 9 || ξ₁.𝐺 == 10
-            𝒙₁,𝒙₂ = a₂.𝓒
-            x₁ = 𝒙₁.x
-            x₂ = 𝒙₂.x
-            y₁ = 𝒙₁.y
-            y₂ = 𝒙₂.y
-            g₁ = 1.0+2x₁+3y₁
-            g₂ = 1.0+2x₂+3y₂
-            # println(N[1]*g₁ + N[2]*g₂)
-            # println(𝑤)
-            # println(n₁)
-            # println(n₂)
-            # println(B₁[1])
-            # println(B₁[2])
-            # println(B₁[3])
-            # println(B₂[1])
-            # println(B₂[2])
-            # println(B₂[3])
-            # println(g₁)
-            # println(g₂)
-            # println((B₁[3]*n₁ + B₂[3]*n₂)*N[1]*𝑤)
-            # println((B₁[3]*n₁ + B₂[3]*n₂)*N[2]*𝑤)
-            # println((B₁[3]*n₁ + B₂[3]*n₂)*(N[1]*g₁ + N[2]*g₂)*𝑤)
-        end
         for (i,xᵢ) in enumerate(a₁.𝓒)
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(a₂.𝓒)
@@ -348,21 +324,8 @@ function (op::Operator{:∫vᵢnᵢgds})(ap::T;f::AbstractVector{Float64}) where
         n₁ = ξ.n₁
         n₂ = ξ.n₂
         g = ξ.g
-        if ξ.𝐺 == 9 || ξ.𝐺 == 10
-            # println(B₁[1])
-            # println(B₁[2])
-            # println(B₁[3])
-            # println(B₂[1])
-            # println(B₂[2])
-            # println(B₂[3])
-            # println((B₁[3]*n₁ + B₂[3]*n₂)*g*𝑤)
-        end
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
-            if I == 1
-                # println(f[I])
-                # println((B₁[i]*n₁+B₂[i]*n₂)*g*𝑤)
-            end
             f[I] += kᶜ*(B₁[i]*n₁+B₂[i]*n₂)*g*𝑤
         end
     end
@@ -379,4 +342,25 @@ function (op::Operator{:∫uds})(aps::Vector{T}) where T<:AbstractElement
         u[c] /= ap.𝐿
     end
     return u
+end
+
+function (op::Operator{:∫vtdΓ_debug})(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    println("debug begin")
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        t = ξ.t
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            f[I] += N[i]*t*𝑤
+            if I == 1
+                # println(N[i])
+                # println(t)
+                # println(𝑤)
+                println(N[i]*t*𝑤)
+            end
+        end
+    end
+    println("debug end")
 end
