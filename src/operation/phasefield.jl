@@ -107,7 +107,7 @@ function (op::Operator{:∫∫∇v∇vvvdxdy})(ap::T;k::AbstractMatrix{Float64},
             ε₂₂ += B₂[i]*xᵢ.d₂
             ε₁₂ += B₁[i]*xᵢ.d₂ + B₂[i]*xᵢ.d₁
         end
-        ℋₜ = max(ℋ,*(ε₁₁*σ₁₁ + ε₂₂*σ₂₂ + ε₁₂*σ₁₂))
+        ℋₜ = max(ℋ,(ε₁₁*σ₁₁ + ε₂₂*σ₂₂ + ε₁₂*σ₁₂))
         𝑤 = ξ.𝑤
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
@@ -115,7 +115,7 @@ function (op::Operator{:∫∫∇v∇vvvdxdy})(ap::T;k::AbstractMatrix{Float64},
                 J = xⱼ.𝐼
                 k[I,J] += (kc*(2*l*(B₁[i]*B₁[j] + B₂[i]*B₂[j]) + N[i]*N[j]/2/l) + ℋₜ*N[i]*N[j])*𝑤
             end
-            f[I] += N[i]*(kc/2/l - η*ℋₜ)*𝑤
+            f[I] += N[i]*kc/2/l*𝑤
         end
     end
 end
