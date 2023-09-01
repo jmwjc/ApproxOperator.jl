@@ -193,6 +193,83 @@ function (f::Field{(:𝐼,),1,(:𝑔,:𝐺,:𝐶,:𝑠)})(as::Vector{T}) where T
     return elements
 end
 
+function (f::Field{(:𝐼,),1,(:𝑔,:𝐺,:𝐶,:𝑠)})(as::Vector{T}),sp::SpatialPartition where T<:AbstractGeometry
+    data = getfield(f,:data𝓖)
+    weights = data[:w][2]
+    if haskey(data,:γ)
+        ξ = data[:ξ][2]
+        η = data[:η][2]
+        γ = data[:γ][2]
+        points = zip(ξ,η,γ)
+        push!(f,
+            :ξ=>(:𝑔,ξ),
+            :η=>(:𝑔,η),
+            :γ=>(:𝑔,γ),
+        )
+    elseif haskey(data,:η)
+        ξ = data[:ξ][2]
+        η = data[:η][2]
+        points = zip(ξ,η)
+        push!(f,
+            :ξ=>(:𝑔,ξ),
+            :η=>(:𝑔,η),
+        )
+    else
+        ξ = data[:ξ][2]
+        points = ξ
+        push!(f,
+            :ξ=>(:𝑔,ξ),
+        )
+    end
+    scheme = zip(weights,points)
+    ne = length(as)
+    ni = length(as[1].i)
+    ng = length(weights)
+    push!(f,
+        :x=>(:𝐼,as[1].x),
+        :y=>(:𝐼,as[1].y),
+        :z=>(:𝐼,as[1].z),
+    )
+    type = getfield(f,:type)
+    elements = type[]
+    𝑤 = zeros(ng*ne)
+    x = zeros(ng*ne)
+    y = zeros(ng*ne)
+    z = zeros(ng*ne)
+    push!(f,
+        :𝑤=>(:𝐺,𝑤),
+        :x=>(:𝐺,x),
+        :y=>(:𝐺,y),
+        :z=>(:𝐺,z),
+    )
+    for (C,a) in enumerate(as)
+        indices = Set{Int}()
+        for i in 1:ng
+            ξ = scheme[:ξ][i]
+            η = scheme[:η][i]
+            x,y,z = a(ξ,η)
+            union!(indices,sp(x,y,z))
+        end
+        for i in a.indices
+            f.𝐼 = i
+            ApproxOperator.add𝓒!(f)
+        end
+        for (g,(w,ps)) in enumerate(scheme)
+            f.𝑔 = g
+            f.𝐺 += 1
+            f.𝐶 = C
+            ApproxOperator.add𝓖!(f)
+            f.𝑠 += ni
+            𝑤[f.𝐺] = get𝐽(a,ps...)*w
+            x[f.𝐺], y[f.𝐺], z[f.𝐺] = a(ps...)
+        end
+        𝓒 = ApproxOperator.get𝓒(f)
+        𝓖 = ApproxOperator.get𝓖(f)
+        push!(elements,type(𝓒,𝓖))
+    end
+    return elements
+end
+
 function (f::Field{(:𝐼,),1,(:𝑔,:𝐺,:𝐶,:𝑠)})(as::Vector{Tuple{T₁,T₂,T₃}}) where {T₁<:AbstractGeometry,T₂<:AbstractGeometry,T₃<:AbstractElement}
     type = getfield(f,:type)
     if type<:AbstractReproducingKernel
