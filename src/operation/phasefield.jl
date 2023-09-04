@@ -122,7 +122,6 @@ end
 
 function (op::Operator{:UPDATE_PFM_2D})(ap::T) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    η = op.η
     for ξ in 𝓖
         N = ξ[:𝝭]
         B₁ = ξ[:∂𝝭∂x]
@@ -130,6 +129,7 @@ function (op::Operator{:UPDATE_PFM_2D})(ap::T) where T<:AbstractElement
         σ₁₁ = ξ.σ₁₁
         σ₂₂ = ξ.σ₂₂
         σ₁₂ = ξ.σ₁₂
+        v = 0.0
         ε₁₁ = 0.0
         ε₂₂ = 0.0
         ε₁₂ = 0.0
@@ -140,6 +140,6 @@ function (op::Operator{:UPDATE_PFM_2D})(ap::T) where T<:AbstractElement
             ε₁₂ += B₁[i]*xᵢ.d₂ + B₂[i]*xᵢ.d₁
             v += N[i]*xᵢ.v
         end
-        ξ.ℋ = max(ℋ,*(ε₁₁*σ₁₁ + ε₂₂*σ₂₂ + ε₁₂*σ₁₂))
+        ξ.ℋ = max(ℋ,ε₁₁*σ₁₁ + ε₂₂*σ₂₂ + ε₁₂*σ₁₂)
     end
 end
