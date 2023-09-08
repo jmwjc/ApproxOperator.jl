@@ -193,7 +193,7 @@ function (f::Field{(:𝐼,),1,(:𝑔,:𝐺,:𝐶,:𝑠)})(as::Vector{T}) where T
     return elements
 end
 
-function (f::Field{(:𝐼,),1,(:𝑔,:𝐺,:𝐶,:𝑠)})(as::Vector{T}),sp::SpatialPartition where T<:AbstractGeometry
+function (f::Field{(:𝐼,),1,(:𝑔,:𝐺,:𝐶,:𝑠)})(as::Vector{T},sp::SpatialPartition) where T<:AbstractGeometry
     data = getfield(f,:data𝓖)
     weights = data[:w][2]
     if haskey(data,:γ)
