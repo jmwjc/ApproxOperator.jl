@@ -12,13 +12,12 @@ mutable struct Field{S₁,N₁,S₂,N₂}
     data𝓖::Dict{Symbol,Tuple{Int,Vector{Float64}}}
 end
 
-function Field{S₁,N₁,S₂,N₂}(type::DataType,qtype::Symbol;qindex::Int=1) where {S₁,N₁,S₂,N₂}
+function Field{S₁,N₁,S₂,N₂}(type::DataType,qtype::Symbol,data𝓒::Dict{Symbol,Tuple{Int,Vector{Float64}}} = Dict{Symbol,Tuple{Int,Vector{Float64}}}();qindex::Int=1) where {S₁,N₁,S₂,N₂}
     index = Dict([s=>0 for s in (S₁...,S₂...)])
     scheme = quadraturerule(qtype)
     p₁ = 0
     l₁ = 0
     𝓒 = Node{S₁,N₁}[]
-    data𝓒 = Dict{Symbol,Tuple{Int,Vector{Float64}}}()
     p₂ = 0
     l₂ = 0
     𝓖 = Node{S₂,N₂}[]
@@ -155,11 +154,6 @@ function (f::Field{(:𝐼,),1,(:𝑔,:𝐺,:𝐶,:𝑠)})(as::Vector{T}) where T
     ne = length(as)
     ni = length(as[1].i)
     ng = length(weights)
-    push!(f,
-        :x=>(:𝐼,as[1].x),
-        :y=>(:𝐼,as[1].y),
-        :z=>(:𝐼,as[1].z),
-    )
     type = getfield(f,:type)
     elements = type[]
     𝑤 = zeros(ng*ne)
