@@ -44,6 +44,13 @@ end
 +(a::T,b::S) where {T<:Node,S<:Node} = (a.x+b.x,a.y+b.y,a.z+b.z)
 -(a::T,b::S) where {T<:Node,S<:Node} = (a.x-b.x,a.y-b.y,a.z-b.z)
 
+push!(ps::Vector{T},svs::Pair{Symbol,Vector{Float64}}...) where T<:Node = push!(ps[1],svs...)
+function push!(p::Node,svs::Pair{Symbol,Vector{Float64}}...)
+    for (s,v) in svs
+        push!(getfield(p,:data),s=>(1,v))
+    end
+end
+
 function printinfo(p::Node{S,N}) where {S,N}
     index = getfield(p,:index)
     data = getfield(p,:data)
