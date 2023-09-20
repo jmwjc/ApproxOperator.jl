@@ -141,6 +141,23 @@ function (op::Operator{:∫vᵢtᵢds})(ap::T;f::AbstractVector{Float64}) where 
     end
 end
 
+function (op::Operator{:g₂})(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64},dof::Symbol) where T<:AbstractElement{:Poi1}
+    x = ap.𝓒[1]
+    if dof == :d₁
+        j = 2*x.𝐼-1
+    else
+        j = 2*x.𝐼
+    end
+    g = getproperty(x,dof)
+    for i in 1:length(f)
+        f[i] -= k[i,j]*g
+    end
+    k[j,:] .= 0.
+    k[:,j] .= 0.
+    k[j,j] = 1.
+    f[j] = g
+end
+
 function (op::Operator{:∫λᵢgᵢds})(ap1::T,ap2::S;g::AbstractMatrix{Float64},q::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     for j in 1:length(ap1.𝓖)
         ξ₁ = ap1.𝓖[j]
