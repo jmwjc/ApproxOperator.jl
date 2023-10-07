@@ -125,7 +125,7 @@ function (op::Operator{:∫vgdΓ})(ap::T;k::AbstractMatrix{Float64},f::AbstractV
                 J = xⱼ.𝐼
                 k[I,J] += α*N[i]*N[j]*𝑤
             end
-            f[I] += α*N[i]*0.0*𝑤
+            f[I] += α*N[i]*g*𝑤
         end
     end
 end
