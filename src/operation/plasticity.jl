@@ -276,98 +276,98 @@ function (op::Operator{:∫vᵢσdΩ_frictional_contact})(ap::T;k::AbstractMatri
             ∂v∂y += B₂[i]*xᵢ.v
         end 
 
-        #norm∇v = (∂v∂x^2+∂v∂y^2)^0.5
-        #n₁ = ∂v∂x/norm∇v
-        #n₂ = ∂v∂y/norm∇v
-        #s₁ = n₂
-        #s₂ = -n₁
-        Γtmp = Set{Int}()
-        Γdam = Set{Int}()
-        Γfinal = Set{Int}()
-        #step1 找到的所有v>0.98的点
-        for (i,xᵢ) in enumerate(𝓒)
-            if xᵢ.v > 0.98   
-                #step2 并将其存入Γtmp中
-                push!(Γtmp, i)
-            end
-            if xᵢ.v > 0.05   
-                push!(Γdam, i)
-            end
-
-        end
-    
-       
-        while !isempty(Γtmp)
-         #step3 找到Γtmp中最大v最大的点
-
-            max_value = -Inf
-            max_node = nothing
-            
-            for i in Γtmp
-                if v > max_value
-                    max_value = v
-                    max_node = nodes[i]
-                end
-            end
-          
-            for node in Γtmp
-               
-                distance = norm(nodes[max_node] - nodes[node])
-                #step4 
-                if distance <= l
-                    deleteat!(Γtmp, findall(x -> x == node, Γtmp))
-                    push!(Γfinal, nodes[max_node])
-                end
-            end
-          
-            Γtmp = setdiff(Γtmp, Γfinal)
-        end
-        #stpe5 将Γfinal中的点进行排序
-        sorted_nodes = sort(collect(Γfinal), by = node -> nodes[node][1])  
-        crack_path = Vector{Tuple{Float64, Float64}}()
-    
-        normals = []
-        slips = []
-        #计算每一个线段的法向量和切向量
-        for i in 1:length(sorted_nodes)-1
-            node1 = nodes[sorted_nodes[i]]
-            node2 = nodes[sorted_nodes[i + 1]]
-            segment = (node1, node2)
-    
-            s = normalize!(node2 - node1)
-    
-
-            n = (-s[2], s[1])
-            push!(normals, n)
-
-            push!(crack_path, segment)
-
-        end
-        for node in Γdam
-            min_distance = Inf
-            for i in 1:length(crack_path) - 1
-                segment = crack_path[i]
-                distance = pointdistfromseg(segment, node)
-                if distance < min_distance
-                    min_distance = distance
-                    nearest_segment = segment
-                end
-            end
-            node.n = nearest_segment.n
-            node.s = nearest_segment.s
-            n₁ = n[1]
-            n₂ = n[2]
-            s₁ = n₂
-            s₂ = -n₁
-
-        end  
-        if v< 0.05
-            n₁ = 0.0
-            n₂ = 0.0
-            s₁ = 0.0
-            s₂ = 0.0
-            
-        end
+        norm∇v = (∂v∂x^2+∂v∂y^2)^0.5
+        n₁ = ∂v∂x/norm∇v
+        n₂ = ∂v∂y/norm∇v
+        s₁ = n₂
+        s₂ = -n₁
+       # Γtmp = Set{Int}()
+       # Γdam = Set{Int}()
+       # Γfinal = Set{Int}()
+       # #step1 找到的所有v>0.98的点
+       # for (i,xᵢ) in enumerate(𝓒)
+       #     if xᵢ.v > 0.98   
+       #         #step2 并将其存入Γtmp中
+       #         push!(Γtmp, i)
+       #     end
+       #     if xᵢ.v > 0.05   
+       #         push!(Γdam, i)
+       #     end
+#
+       # end
+    #
+       #
+       # while !isempty(Γtmp)
+       #  #step3 找到Γtmp中最大v最大的点
+#
+       #     max_value = -Inf
+       #     max_node = nothing
+       #     
+       #     for i in Γtmp
+       #         if v > max_value
+       #             max_value = v
+       #             max_node = nodes[i]
+       #         end
+       #     end
+       #   
+       #     for node in Γtmp
+       #        
+       #         distance = norm(nodes[max_node] - nodes[node])
+       #         #step4 
+       #         if distance <= l
+       #             deleteat!(Γtmp, findall(x -> x == node, Γtmp))
+       #             push!(Γfinal, nodes[max_node])
+       #         end
+       #     end
+       #   
+       #     Γtmp = setdiff(Γtmp, Γfinal)
+       # end
+       # #stpe5 将Γfinal中的点进行排序
+       # sorted_nodes = sort(collect(Γfinal), by = node -> nodes[node][1])  
+       # crack_path = Vector{Tuple{Float64, Float64}}()
+    #
+       # normals = []
+       # slips = []
+       # #计算每一个线段的法向量和切向量
+       # for i in 1:length(sorted_nodes)-1
+       #     node1 = nodes[sorted_nodes[i]]
+       #     node2 = nodes[sorted_nodes[i + 1]]
+       #     segment = (node1, node2)
+    #
+       #     s = normalize!(node2 - node1)
+    #
+#
+       #     n = (-s[2], s[1])
+       #     push!(normals, n)
+#
+       #     push!(crack_path, segment)
+#
+       # end
+       # for node in Γdam
+       #     min_distance = Inf
+       #     for i in 1:length(crack_path) - 1
+       #         segment = crack_path[i]
+       #         distance = pointdistfromseg(segment, node)
+       #         if distance < min_distance
+       #             min_distance = distance
+       #             nearest_segment = segment
+       #         end
+       #     end
+       #     node.n = nearest_segment.n
+       #     node.s = nearest_segment.s
+       #     n₁ = n[1]
+       #     n₂ = n[2]
+       #     s₁ = n₂
+       #     s₂ = -n₁
+#
+       # end  
+       # if v< 0.05
+       #     n₁ = 0.0
+       #     n₂ = 0.0
+       #     s₁ = 0.0
+       #     s₂ = 0.0
+       #     
+       # end
 
         # predict phase
         εₙ = ε₁₁*n₁*n₁ + ε₂₂*n₂*n₂ + ε₁₂*n₁*n₂
@@ -478,74 +478,7 @@ function (op::Operator{:∫vᵢσdΩ_frictional_contact})(ap::T;k::AbstractMatri
        end   
     end
 end 
-function calculate_n_and_s_vectors(nodes, v, l)
-        Γtmp = Set{Int}()
-        Γdam = Set{Int}()
-        Γfinal = Set{Int}()
-        #step1 找到的所有v>0.98的点
-        for (i,xᵢ) in enumerate(𝓒)
-            if xᵢ.v > 0.98   
-                #step2 并将其存入Γtmp中
-                push!(Γtmp, i)
-            end
-            if xᵢ.v > 0.05   
-                push!(Γdam, i)
-            end
-        end
-    
-        
-        while !isempty(Γtmp)
-         #step3 找到rtmp中最大v最大的点
-            max_v, max_node = findmax(v[collect(Γtmp)])
-         
-            for node in Γtmp
-               
-                distance = norm(nodes[max_node] - nodes[node])
-                #step4 
-                if distance <= l
-                    deleteat!(Γtmp, findall(x -> x == node, Γtmp))
-                    push!(Γfinal, nodes[max_node])
-                end
-            end
-          
-            Γtmp = setdiff(Γtmp, Γfinal)
-        end
-        #stpe5 将Γfinal中的点进行排序
-        sorted_nodes = sort(collect(Γfinal), by = node -> nodes[node][1])  
-        crack_path = Vector{Tuple{Float64, Float64}}()
-    
-        normals = []
-        slips = []
-        #计算每一个线段的法向量和切向量
-        for i in 1:length(sorted_nodes)-1
-            node1 = nodes[sorted_nodes[i]]
-            node2 = nodes[sorted_nodes[i + 1]]
-            segment = (node1, node2)
-    
-            s = normalize!(node2 - node1)
-    
 
-            n = (-s[2], s[1])
-            push!(normals, n)
-
-            push!(crack_path, segment)
-
-        end
-        for node in Γdam
-            min_distance = Inf
-            for i in 1:length(crack_path) - 1
-                distance = pointdistfromseg(segment, node)
-                if distance < min_distance
-                    min_distance = distance
-                    nearest_segment = segment
-                end
-            end
-            node.n = nearest_segment.n
-            node.s = nearest_segment.s
-
-        end  
-        return normals, slips
-    end
 """
 frictional-contact2
 """
