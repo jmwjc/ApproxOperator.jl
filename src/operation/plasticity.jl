@@ -275,9 +275,8 @@ function (op::Operator{:∫vᵢσdΩ_frictional_contact})(ap::T;k::AbstractMatri
             ∂v∂y += B₂[i]*xᵢ.v
         end 
 
-        norm∇v = (∂v∂x^2+∂v∂y^2)^0.5
-        n₁ = ∂v∂x/norm∇v
-        n₂ = ∂v∂y/norm∇v
+        n₁ = ξ.n₁
+        n₂ = ξ.n₂
         s₁ = n₂
         s₂ = -n₁
         #Γtmp = Set{Int}()
@@ -380,6 +379,7 @@ function (op::Operator{:∫vᵢσdΩ_frictional_contact})(ap::T;k::AbstractMatri
         𝑝 = -σ
 
         𝑓  = abs(τ) - μ̄ *𝑝
+
         if abs(1.0-v) < 2e-2
              ξ.σ₁₁ = σ₁₁ᵗʳ
              ξ.σ₂₂ = σ₂₂ᵗʳ
