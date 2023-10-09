@@ -143,3 +143,61 @@ function (op::Operator{:UPDATE_PFM_2D})(ap::T) where T<:AbstractElement
         ξ.ℋ = max(ℋ,ε₁₁*σ₁₁ + ε₂₂*σ₂₂ + ε₁₂*σ₁₂)
     end
 end
+
+function (op::Operator{:CRACK_NORMAL})(aps::Vector{T},nodes::Vector{N},v::Vector{Float64}) where {T<:AbstractElement,N<:Node}
+    l = op.l
+    Γtmp = findall(x->x<0.02,v)
+    Γfinal = Int[]
+    while ~isempty(Γtmp)
+        _,N1 = findmin(identity,v[Γtmp])
+        push!(Γfinal,Γtmp[N1])
+        x₁ = nodes[Γtmp[N1]].x
+        y₁ = nodes[Γtmp[N1]].y
+        for index in Γtmp
+            node = nodes[index]
+            x₂ = node.x
+            y₂ = node.y
+            Δ = ((x₁-x₂)^2 + (y₁-y₂)^2)^0.5
+            Δ < l ? setdiff!(Γtmp,index) : nothing
+        end
+    end
+    sort!(Γfinal, by = i->nodes[i].x)
+    n₁ = zeros(length(Γfinal)-1)
+    n₂ = zeros(length(Γfinal)-1)
+    for i in 1:length(Γfinal)-1
+        i₁ = Γfinal[i]
+        i₂ = Γfinal[i+1]
+        x₁ = nodes[i₁].x
+        y₁ = nodes[i₁].y
+        x₂ = nodes[i₂].x
+        y₂ = nodes[i₂].y
+        𝐿 = ((x₁-x₂)^2 + (y₁-y₂)^2)^0.5
+        n₁[i] = (y₂-y₁)/𝐿
+        n₂[i] = (x₁-x₂)/𝐿
+    end
+    for ap in aps
+        𝓖 = ap.𝓖
+        for ξ in 𝓖
+            𝐿 = Inf
+            x₀ = ξ.x
+            y₀ = ξ.y
+            for i in 1:length(Γfinal)-1
+                i₁ = Γfinal[i]
+                i₂ = Γfinal[i+1]
+                x₁ = nodes[i₁].x
+                y₁ = nodes[i₁].y
+                x₂ = nodes[i₂].x
+                y₂ = nodes[i₂].y
+                A = y₂-y₁
+                B = x₂-x₁
+                C = y₁*(x₂-x₁) - x₁*(y₂-y₁)
+                𝐿tmp = abs(A*x₀+B*y₀+C)/(A^2+B^2)^0.5
+                if 𝐿tmp < 𝐿
+                    ξ.n₁ = n₁[i]
+                    ξ.n₂ = n₂[i]
+                    𝐿 = 𝐿tmp
+                end
+            end
+        end
+    end
+end
