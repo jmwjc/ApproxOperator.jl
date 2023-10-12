@@ -107,12 +107,12 @@ function (a::Seg3)(ξ::Float64)
     x₁ = a.x[a.i[1]]
     y₁ = a.y[a.i[1]]
     z₁ = a.z[a.i[1]]
-    x₂ = a.x[a.i[2]]
-    y₂ = a.y[a.i[2]]
-    z₂ = a.z[a.i[2]]
-    x₃ = a.x[a.i[3]]
-    y₃ = a.y[a.i[3]]
-    z₃ = a.z[a.i[3]]
+    x₂ = a.x[a.i[3]]
+    y₂ = a.y[a.i[3]]
+    z₂ = a.z[a.i[3]]
+    x₃ = a.x[a.i[2]]
+    y₃ = a.y[a.i[2]]
+    z₃ = a.z[a.i[2]]
     N₁ = 0.5*ξ*(ξ-1.0)
     N₂ = 1.0-ξ^2
     N₃ = 0.5*ξ*(ξ+1.0)
@@ -125,7 +125,7 @@ function (a::Seg3)(b::Poi1,::Any)
     i = findfirst(x->x==b.i[1],a.i)
     if i == 1
         return -1.0
-    elseif i == 3
+    elseif i == 2
         return 1.0
     else
         return nothing
