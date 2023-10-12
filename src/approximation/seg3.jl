@@ -17,6 +17,8 @@ function get𝒙(ap::T,ξ::Float64) where T<:AbstractElement{:Seg3}
     return (x₁*N₁+x₂*N₂+x₃*N₃,y₁*N₁+y₂*N₂+y₃*N₃,z₁*N₁+z₂*N₂+z₃*N₃)
 end
 
+@inline get𝐽(ap::T,::Any) where T<:AbstractElement{:Seg3} = 0.5*get𝐿(ap)
+
 @inline get𝑤(ap::T,ξ::Node) where T<:AbstractElement{:Seg3} = 0.5*get𝐿(ap)*ξ.w
 
 function get𝐿(ap::T) where T<:AbstractElement{:Seg3}
@@ -30,8 +32,8 @@ function get𝐿(ap::T) where T<:AbstractElement{:Seg3}
 end
 
 function set𝝭!(ap::Element{:Seg3},x::Node)
-    𝝭 = x[:𝝭]
     ξ = x.ξ
+    𝝭 = x[:𝝭]
     𝝭[1] = 0.5*ξ*(ξ-1.0)
     𝝭[2] = 1.0-ξ^2
     𝝭[3] = 0.5*ξ*(ξ+1.0)
