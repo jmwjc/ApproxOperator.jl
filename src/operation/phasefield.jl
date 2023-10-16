@@ -148,16 +148,25 @@ function (op::Operator{:CRACK_NORMAL})(aps::Vector{T},nodes::Vector{N},v::Vector
     l = op.l
     Γtmp = findall(x->x<0.02,v)
     Γfinal = Int[]
-    while ~isempty(Γtmp)
+    # 循环，当Γtmp不为空时
+while ~isempty(Γtmp)
+        # 找到identity中v[Γtmp]的最小值，并将其索引N1记录
         _,N1 = findmin(identity,v[Γtmp])
+        # 将Γtmp[N1]添加到Γfinal中
         push!(Γfinal,Γtmp[N1])
+        # 记录Γtmp[N1]的x坐标和y坐标
         x₁ = nodes[Γtmp[N1]].x
         y₁ = nodes[Γtmp[N1]].y
+        # 遍历Γtmp中的每一个元素
         for index in Γtmp
+            # 记录当前元素对应的节点
             node = nodes[index]
+            # 记录当前节点对应的x坐标和y坐标
             x₂ = node.x
             y₂ = node.y
+            # 计算当前节点和Γtmp[N1]之间的距离
             Δ = ((x₁-x₂)^2 + (y₁-y₂)^2)^0.5
+            # 如果距离小于l，则将当前节点从Γtmp中移除
             Δ < l ? setdiff!(Γtmp,index) : nothing
         end
     end

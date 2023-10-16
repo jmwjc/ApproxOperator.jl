@@ -77,6 +77,10 @@ function (op::Operator{:∫vᵢσdΩ_tresca})(ap::T;k::AbstractMatrix{Float64},f
         σ₁₂ᵗʳ = σ₁₂ + Cᵢⱼᵢⱼ*Δε₁₂
         σ₁,σ₂,n₁,n₂ = getσₙ(σ₁₁ᵗʳ,σ₂₂ᵗʳ,σ₁₂ᵗʳ)
         fᵗʳ = σ₁ - σ₂ - 2.0*c
+       # println(fᵗʳ)
+       # if fᵗʳ> 0
+       #     error("进入塑性")   
+       # end
 
         if fᵗʳ > 1E-13
             Δγ = fᵗʳ/4.0/μ
@@ -142,12 +146,12 @@ function (op::Operator{:∫vᵢσdΩ_mohr_coulomb})(ap::T;k::AbstractMatrix{Floa
     Cᵢᵢⱼⱼ = λ
     Cᵢⱼᵢⱼ = μ
     
-    for ξ in enumerate(𝓖)
+    for (ii,ξ) in enumerate(𝓖)
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
         σ₁₁ = ξ.σ₁₁
         σ₂₂ = ξ.σ₂₂
-        σ₃₃ = ξ.σ₃₃
+        #σ₃₃ = ξ.σ₃₃
         σ₁₂ = ξ.σ₁₂
         εᵖ₁₁ = ξ.εᵖ₁₁
         εᵖ₂₂ = ξ.εᵖ₂₂
@@ -167,6 +171,8 @@ function (op::Operator{:∫vᵢσdΩ_mohr_coulomb})(ap::T;k::AbstractMatrix{Floa
         σ₁₂ᵗʳ = σ₁₂ + Cᵢⱼᵢⱼ*Δε₁₂
         σ₁,σ₂,n₁,n₂ = getσₙ(σ₁₁ᵗʳ,σ₂₂ᵗʳ,σ₁₂ᵗʳ)
         fᵗʳ = σ₁-σ₂ + (σ₁+σ₂) * sin(𝜙) - 2.0*c*cos(𝜙)
+
+
         if fᵗʳ > tol
             sin𝜙 = sin(𝜙)
             sin²𝜙 = sin(𝜙)*sin(𝜙)
@@ -279,94 +285,6 @@ function (op::Operator{:∫vᵢσdΩ_frictional_contact})(ap::T;k::AbstractMatri
         n₂ = ξ.n₂
         s₁ = n₂
         s₂ = -n₁
-        #Γtmp = Set{Int}()
-        #Γdam = Set{Int}()
-        #Γfinal = Set{Int}()
-        ##step1 找到的所有v>0.98的点
-        #for (i,xᵢ) in enumerate(𝓒)
-        #    if xᵢ.v > 0.98   
-        #        #step2 并将其存入Γtmp中
-        #        push!(Γtmp, i)
-        #    end
-        #    if xᵢ.v > 0.05   
-        #        push!(Γdam, i)
-        #    end
-#
-        #end
-    #
-       #
-        #while !isempty(Γtmp)
-        # #step3 找到Γtmp中最大v最大的点
-#
-        #    max_value = -Inf
-        #    max_node = nothing
-        #    
-        #    for i in Γtmp
-        #        if v > max_value
-        #            max_value = v
-        #            max_node = nodes[i]
-        #        end
-        #    end
-        #  
-        #    for node in Γtmp
-        #       
-        #        distance = norm(nodes[max_node] - nodes[node])
-        #        #step4 
-        #        if distance <= l
-        #            deleteat!(Γtmp, findall(x -> x == node, Γtmp))
-        #            push!(Γfinal, nodes[max_node])
-        #        end
-        #    end
-        #  
-        #    Γtmp = setdiff(Γtmp, Γfinal)
-        #end
-        ##stpe5 将Γfinal中的点进行排序
-        #sorted_nodes = sort(collect(Γfinal), by = node -> nodes[node][1])  
-        #crack_path = Vector{Tuple{Float64, Float64}}()
-    #
-        #normals = []
-        #slips = []
-        ##计算每一个线段的法向量和切向量
-        #for i in 1:length(sorted_nodes)-1
-        #    node1 = nodes[sorted_nodes[i]]
-        #    node2 = nodes[sorted_nodes[i + 1]]
-        #    segment = (node1, node2)
-    #
-        #    s = normalize!(node2 - node1)
-    #
-#
-        #    n = (-s[2], s[1])
-        #    push!(normals, n)
-#
-        #    push!(crack_path, segment)
-#
-        #end
-        #for node in Γdam
-        #    min_distance = Inf
-        #    for i in 1:length(crack_path) - 1
-        #        segment = crack_path[i]
-        #        distance = pointdistfromseg(segment, node)
-        #        if distance < min_distance
-        #            min_distance = distance
-        #            nearest_segment = segment
-        #        end
-        #    end
-        #    node.n = nearest_segment.n
-        #    node.s = nearest_segment.s
-        #    n₁ = n[1]
-        #    n₂ = n[2]
-        #    s₁ = n₂
-        #    s₂ = -n₁
-#
-        #end  
-        #if v< 0.05
-        #    n₁ = 0.0
-        #    n₂ = 0.0
-        #    s₁ = 0.0
-        #    s₂ = 0.0
-        #    
-        #end
-#
         ## predict phase
         εₙ = ε₁₁*n₁*n₁ + ε₂₂*n₂*n₂ + ε₁₂*n₁*n₂
 
@@ -618,14 +536,14 @@ function (op::Operator{:∫vᵢσdΩ_frictional_contact_2})(ap::T;k::AbstractMat
             end    
         end   
 
-       for (i,xᵢ) in enumerate(𝓒)
-           I = xᵢ.𝐼
-           for (j,xⱼ) in enumerate(𝓒)
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
              J = xⱼ.𝐼
-             k[2*I-1,2*J-1] += (Cᵗ₁₁₁₁*B₁[i]*B₁[j] + Cᵗ₁₂₁₂*B₂[i]*B₂[j] + Cᵗ₁₁₁₂*B₁[i]*B₂[j] + Cᵗ₁₂₁₁*B₂[i]*B₁[j])*𝑤
-             k[2*I-1,2*J]   += (Cᵗ₁₁₂₂*B₁[i]*B₂[j] + Cᵗ₁₂₁₂*B₂[i]*B₁[j] + Cᵗ₁₁₁₂*B₁[i]*B₁[j] + Cᵗ₁₂₂₂*B₂[i]*B₂[j])*𝑤
-             k[2*I,2*J-1]   += (Cᵗ₂₂₁₁*B₂[i]*B₁[j] + Cᵗ₁₂₁₂*B₁[i]*B₂[j] + Cᵗ₁₂₁₁*B₁[i]*B₁[j] + Cᵗ₂₂₁₂*B₂[i]*B₂[j])*𝑤
-             k[2*I,2*J]     += (Cᵗ₂₂₂₂*B₂[i]*B₂[j] + Cᵗ₁₂₁₂*B₁[i]*B₁[j] + Cᵗ₁₂₂₂*B₁[i]*B₂[j] + Cᵗ₂₂₁₂*B₂[i]*B₁[j])*𝑤
+             k[2*I-1,2*J-1] += (Cᵗ₁₁₁₁*B₁[i]*B₁[j] + Cᵗ₁₁₁₂*B₁[i]*B₂[j] + Cᵗ₁₂₁₁*B₂[i]*B₁[j] + Cᵗ₁₂₁₂*B₂[i]*B₂[j])*𝑤
+             k[2*I-1,2*J]   += (Cᵗ₁₁₁₂*B₁[i]*B₁[j] + Cᵗ₁₁₂₂*B₁[i]*B₂[j] + Cᵗ₁₂₁₂*B₂[i]*B₁[j] + Cᵗ₁₂₂₂*B₂[i]*B₂[j])*𝑤
+             k[2*I,2*J-1]   += (Cᵗ₁₂₁₁*B₁[i]*B₁[j] + Cᵗ₁₂₁₂*B₁[i]*B₂[j] + Cᵗ₂₂₁₁*B₂[i]*B₁[j] + Cᵗ₂₂₁₂*B₂[i]*B₂[j])*𝑤
+             k[2*I,2*J]     += (Cᵗ₁₂₁₂*B₁[i]*B₁[j] + Cᵗ₁₂₂₂*B₁[i]*B₂[j] + Cᵗ₂₂₁₂*B₂[i]*B₁[j] + Cᵗ₂₂₂₂*B₂[i]*B₂[j])*𝑤
            end
            fint[2*I-1] += (B₁[i]*ξ.σ₁₁ + B₂[i]*ξ.σ₁₂)*𝑤
            fint[2*I]   += (B₁[i]*ξ.σ₁₂ + B₂[i]*ξ.σ₂₂)*𝑤
@@ -715,20 +633,7 @@ function (op::Operator{:∫vᵢσdΩ_mc_phasefield})(ap::T;k::AbstractMatrix{Flo
             Cᵗ₁₁₁₂ = 0.0
             Cᵗ₂₂₁₂ = 0.0
         else   
-            if εₙ > 0.0
-               σ₁₁ᵗʳ = σ₁₁ + (v^2+η)*(Cᵢᵢᵢᵢ*Δε₁₁ + Cᵢᵢⱼⱼ*Δε₂₂)
-               σ₂₂ᵗʳ = σ₂₂ + (v^2+η)*(Cᵢᵢᵢᵢ*Δε₂₂ + Cᵢᵢⱼⱼ*Δε₁₁)
-               σ₁₂ᵗʳ = σ₁₂ + (v^2+η)*Cᵢⱼᵢⱼ*Δε₁₂
-               ξ.σ₁₁ = σ₁₁ᵗʳ
-               ξ.σ₂₂ = σ₂₂ᵗʳ
-               ξ.σ₁₂ = σ₁₂ᵗʳ
-               Cᵗ₁₁₁₁ = (v^2+η)*Cᵢᵢᵢᵢ
-               Cᵗ₂₂₂₂ = (v^2+η)*Cᵢᵢᵢᵢ
-               Cᵗ₁₁₂₂ = (v^2+η)*Cᵢᵢⱼⱼ 
-               Cᵗ₁₂₁₂ = (v^2+η)*Cᵢⱼᵢⱼ 
-               Cᵗ₁₁₁₂ = 0.0
-               Cᵗ₂₂₁₂ = 0.0
-            else
+
                 if fᵗʳ > tol
                     sin𝜙 = sin(𝜙)
                     sin²𝜙 = sin(𝜙)*sin(𝜙)
@@ -761,7 +666,7 @@ function (op::Operator{:∫vᵢσdΩ_mc_phasefield})(ap::T;k::AbstractMatrix{Flo
                     Cᵗ₁₁₁₂ = 0.0
                     Cᵗ₂₂₁₂ = 0.0
                 end             
-            end
+            
         end    
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
