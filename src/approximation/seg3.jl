@@ -5,21 +5,21 @@ function get𝒙(ap::T,ξ::Float64) where T<:AbstractElement{:Seg3}
     x₁ = ap.𝓒[1].x
     y₁ = ap.𝓒[1].y
     z₁ = ap.𝓒[1].z
-    x₂ = ap.𝓒[3].x
-    y₂ = ap.𝓒[3].y
-    z₂ = ap.𝓒[3].z
-    x₃ = ap.𝓒[2].x
-    y₃ = ap.𝓒[2].y
-    z₃ = ap.𝓒[2].z
+    x₂ = ap.𝓒[2].x
+    y₂ = ap.𝓒[2].y
+    z₂ = ap.𝓒[2].z
+    x₃ = ap.𝓒[3].x
+    y₃ = ap.𝓒[3].y
+    z₃ = ap.𝓒[3].z
     N₁ = 0.5*ξ*(ξ-1.0)
-    N₂ = 1.0-ξ^2
-    N₃ = 0.5*ξ*(ξ+1.0)
+    N₂ = 0.5*ξ*(ξ+1.0)
+    N₃ = 1.0-ξ^2
     return (x₁*N₁+x₂*N₂+x₃*N₃,y₁*N₁+y₂*N₂+y₃*N₃,z₁*N₁+z₂*N₂+z₃*N₃)
 end
 
-@inline get𝐽(ap::T,::Any) where T<:AbstractElement{:Seg3} = 0.5*get𝐿(ap)
+get𝐽(ap::T,::Any) where T<:AbstractElement{:Seg3} = 0.5*get𝐿(ap)
 
-@inline get𝑤(ap::T,ξ::Node) where T<:AbstractElement{:Seg3} = 0.5*get𝐿(ap)*ξ.w
+get𝑤(ap::T,ξ::Node) where T<:AbstractElement{:Seg3} = 0.5*get𝐿(ap)*ξ.w
 
 function get𝐿(ap::T) where T<:AbstractElement{:Seg3}
     x₁ = ap.𝓒[1].x

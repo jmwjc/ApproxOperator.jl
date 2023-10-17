@@ -274,9 +274,9 @@ function get𝐿(a::Seg3)
     x₁ = a.x[a.i[1]]
     y₁ = a.y[a.i[1]]
     z₁ = a.z[a.i[1]]
-    x₂ = a.x[a.i[3]]
-    y₂ = a.y[a.i[3]]
-    z₂ = a.z[a.i[3]]
+    x₂ = a.x[a.i[2]]
+    y₂ = a.y[a.i[2]]
+    z₂ = a.z[a.i[2]]
     return ((x₂-x₁)^2+(y₂-y₁)^2+(z₂-z₁)^2)^0.5
 end
 get𝐽(a::Seg3,::Float64) = 0.5*get𝐿(a)
