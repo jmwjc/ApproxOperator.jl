@@ -111,6 +111,25 @@ function (op::Operator{:∫∫εᵈᵢⱼσᵈᵢⱼdxdy})(ap::T;k::AbstractMatr
     end
 end
 
+function (op::Operator{:∫∫p∇vdxdy})(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    p = op.p
+    for ξ in 𝓖
+        N = ξ[:𝝭]
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        𝑤 = ξ.𝑤
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[2*I-1,2*J-1] += p*N[i]*(B₁[i]*B₁[j]+B₂[i]*B₂[j])*𝑤
+                k[2*I,2*J]     += p*N[i]*(B₁[i]*B₂[j]+B₂[i]*B₁[j])*𝑤
+            end
+        end
+    end
+end
+
 function (op::Operator{:∫∫vᵢbᵢdxdy})(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
