@@ -111,20 +111,22 @@ function (op::Operator{:∫∫εᵈᵢⱼσᵈᵢⱼdxdy})(ap::T;k::AbstractMatr
     end
 end
 
-function (op::Operator{:∫∫p∇vdxdy})(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
-    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    p = op.p
-    for ξ in 𝓖
-        N = ξ[:𝝭]
-        B₁ = ξ[:∂𝝭∂x]
-        B₂ = ξ[:∂𝝭∂y]
-        𝑤 = ξ.𝑤
-        for (i,xᵢ) in enumerate(𝓒)
+function (op::Operator{:∫∫p∇vdxdy})(apu::T,app::S;k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+    𝓒u = apu.𝓒
+    𝓒p = app.𝓒
+    𝓖u = apu.𝓖
+    𝓖p = app.𝓖
+    for (ξu,ξp) in zip(𝓖u,𝓖p)
+        N = ξp[:𝝭]
+        B₁ = ξu[:∂𝝭∂x]
+        B₂ = ξu[:∂𝝭∂y]
+        𝑤 = ξu.𝑤
+        for (i,xᵢ) in enumerate(𝓒u)
             I = xᵢ.𝐼
-            for (j,xⱼ) in enumerate(𝓒)
+            for (j,xⱼ) in enumerate(𝓒p)
                 J = xⱼ.𝐼
-                k[2*I-1,2*J-1] += p*N[i]*(B₁[i]*B₁[j]+B₂[i]*B₂[j])*𝑤
-                k[2*I,2*J]     += p*N[i]*(B₁[i]*B₂[j]+B₂[i]*B₁[j])*𝑤
+                k[2*I-1,J] += B₁[i]*N[j]*𝑤
+                k[2*I,J]   += B₂[i]*N[j]*𝑤
             end
         end
     end
