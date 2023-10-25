@@ -217,7 +217,6 @@ function (f::Field{(:𝐼,),1,(:𝑔,:𝐺,:𝐶,:𝑠)})(as::Vector{T},sp::Spat
     end
     scheme = zip(weights,points)
     ne = length(as)
-    ni = length(as[1].i)
     ng = length(weights)
     push!(f,
         :x=>(:𝐼,as[1].x),
@@ -238,13 +237,12 @@ function (f::Field{(:𝐼,),1,(:𝑔,:𝐺,:𝐶,:𝑠)})(as::Vector{T},sp::Spat
     )
     for (C,a) in enumerate(as)
         indices = Set{Int}()
-        for i in 1:ng
-            ξ = scheme[:ξ][i]
-            η = scheme[:η][i]
-            x,y,z = a(ξ,η)
-            union!(indices,sp(x,y,z))
+        for (w,ps) in scheme
+            xᵢ,yᵢ,zᵢ = a(ps...)
+            union!(indices,sp(xᵢ,yᵢ,zᵢ))
         end
-        for i in a.indices
+        ni = length(indices)
+        for i in indices
             f.𝐼 = i
             ApproxOperator.add𝓒!(f)
         end
