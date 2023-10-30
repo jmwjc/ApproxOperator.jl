@@ -219,9 +219,9 @@ function (f::Field{(:𝐼,),1,(:𝑔,:𝐺,:𝐶,:𝑠)})(as::Vector{T},sp::Spat
     ne = length(as)
     ng = length(weights)
     push!(f,
-        :x=>(:𝐼,as[1].x),
-        :y=>(:𝐼,as[1].y),
-        :z=>(:𝐼,as[1].z),
+        :x=>(:𝐼,sp.x),
+        :y=>(:𝐼,sp.y),
+        :z=>(:𝐼,sp.z),
     )
     type = getfield(f,:type)
     elements = type[]
