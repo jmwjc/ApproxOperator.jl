@@ -24,7 +24,7 @@ end
 function import_msh_4(fid::IO) end
 
 function import_msh_2(fid::IO)
-    etype = Dict(1=>:Seg2,2=>:Tri3,3=>:Quad4,8=>:Seg3,9=>:Tri6,15=>:Point,16=>:Quad8)
+    etype = Dict(1=>:Seg2,2=>:Tri3,3=>:Quad4,8=>:Seg3,9=>:Tri6,15=>:Poi1,16=>:Quad8)
     elements = Dict{String,Any}()
     entities = Dict{String,Any}()
     physicalnames = Dict{Int,String}()

@@ -522,3 +522,25 @@ function getσₙ(σ₁₁::Float64,σ₂₂::Float64,σ₃₃::Float64,σ₁₂
     n₃ = (N₃[1]/normN₃,N₃[2]/normN₃,N₃[3]/normN₃)
     return σ₁,σ₂,σ₃,n₁,n₂,n₃
 end
+
+function (op::Operator{:∫κεγds})(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
+𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+EI = op.EI
+EA = op.EA
+GA = op.GA
+R = op.R
+for ξ in 𝓖
+    N = ξ[:𝝭]
+    B₁ = ξ[:∂𝝭∂x]
+    𝑤 = ξ.𝑤
+    for (i,xᵢ) in enumerate(𝓒)
+        I = xᵢ.𝐼
+        for (j,xⱼ) in enumerate(𝓒)
+            J = xⱼ.𝐼
+            k[I,J]       += (5/6*N[i]/R*GA*N[j]/R+B₁[i]*EA*B₁[j])*𝑤
+            k[2*I,2*J]   += (5/6*B₁[i]*GA*B₁[j]+N[i]/R*EA*N[j]/R)*𝑤
+            k[3*I,3*J]   += (B₁[i]*EI*B₁[j]+5/6*N[i]*GA*N[j])*𝑤
+        end
+    end
+end
+end

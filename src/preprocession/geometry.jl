@@ -270,6 +270,8 @@ function get𝐿(a::Seg2)
 end
 get𝐽(a::Seg2,::Float64) = 0.5*get𝐿(a)
 
+get𝐽(a::Poi1,::Float64) = 1
+
 function get𝐿(a::Seg3)
     x₁ = a.x[a.i[1]]
     y₁ = a.y[a.i[1]]
