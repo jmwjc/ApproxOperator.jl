@@ -456,7 +456,7 @@ function (op::Operator{:∫vᵢgᵢds})(ap::T;k::AbstractMatrix{Float64},f::Abst
     end
 end
 
-function (op::Operator{:∫vᵢgᵢdΓ})(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+function (op::Operator{:∫vᵢθᵢds})(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     α = op.α
     for ξ in 𝓖
@@ -472,14 +472,15 @@ function (op::Operator{:∫vᵢgᵢdΓ})(ap::T;k::AbstractMatrix{Float64},f::Abs
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                k[2*I-1,2*J-1] += α*N[i]*n₁₁*N[j]*𝑤
-                k[2*I,2*J-1]   += α*N[i]*n₁₂*N[j]*𝑤
-                k[2*I-1,2*J]   += α*N[i]*n₁₂*N[j]*𝑤
-                k[2*I,2*J]     += α*N[i]*n₂₂*N[j]*𝑤
+                k[3*I-2,3*J-2] += α*N[i]*n₁₁*N[j]*𝑤
+                k[3*I-2,3*J-1] += α*N[i]*n₁₂*N[j]*𝑤
+                k[3*I-1,3*J-2] += α*N[i]*n₁₂*N[j]*𝑤
+                k[3*I-1,3*J-1] += α*N[i]*n₂₂*N[j]*𝑤
+                k[3*I,3*J]     += α*N[i]*N[j]*𝑤
             end
-            f[2*I-1] += α*N[i]*(n₁₁*g₁+n₁₂*g₂)*𝑤
-            f[2*I]   += α*N[i]*(n₁₂*g₁+n₂₂*g₂)*𝑤
-            f[2*I+1] += α*N[i]*(n₁₂*g₁+n₂₂*g₂)*𝑤
+            f[3*I-2] += α*N[i]*(n₁₁*g₁+n₁₂*g₂)*𝑤
+            f[3*I-1] += α*N[i]*(n₁₂*g₁+n₂₂*g₂)*𝑤
+            f[3*I]   += α*N[i]*g₃*𝑤
         end
     end
 end
@@ -559,15 +560,16 @@ kGA = op.kGA
 R = op.R
 for ξ in 𝓖
     N = ξ[:𝝭]
-    B₁ = ξ[:∂𝝭∂x]
+    B = ξ[:∂𝝭∂x]
     𝑤 = ξ.𝑤
     for (i,xᵢ) in enumerate(𝓒)
         I = xᵢ.𝐼
         for (j,xⱼ) in enumerate(𝓒)
             J = xⱼ.𝐼
-            k[I,J]       += (N[i]/R*kGA*N[j]/R+B₁[i]*EA*B₁[j])*𝑤
+            k[3*I-2,3*J-2] += (N[i]*kGA/R^2*N[j]+B[i]*EA*B[j])*𝑤
+            k[3*I-2,3*J-1] += (N[i]*kGA/R*B[j]-B[i]*EA/R*N[j])*𝑤
             k[2*I,2*J]   += (B₁[i]*kGA*B₁[j]+N[i]/R*EA*N[j]/R)*𝑤
-            k[3*I,3*J]   += (B₁[i]*EI*B₁[j]+N[i]*kGA*N[j])*𝑤
+            k[3*I,3*J]   += (B[i]*EI*B[j]+N[i]*kGA*N[j])*𝑤
         end
     end
 end
