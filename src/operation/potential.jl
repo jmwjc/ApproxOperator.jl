@@ -294,12 +294,30 @@ function (op::Operator{:g})(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{F
     f[j] = g
 end
 
-function (op::Operator{:∫∇𝑛vuds})(a::T,b::S;k::AbstractMatrix{Float64}) where {T,S<:AbstractElement}
+function (op::Operator{:∫vᵢnᵢuds})(a₁::T,a₂::S;k::AbstractMatrix{Float64}) where {T,S<:AbstractElement}
+    𝓖 = zip(a₁.𝓖,a₂.𝓖)
+    kᶜ = op.k
+    for (ξ₁,ξ₂) in 𝓖
+        N = ξ₂[:𝝭]
+        B₁ = ξ₁[:∂𝝭∂x]
+        B₂ = ξ₁[:∂𝝭∂y]
+        𝑤 = ξ₁.𝑤
+        n₁ = ξ₁.n₁
+        n₂ = ξ₁.n₂
+        for (i,xᵢ) in enumerate(a₁.𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(a₂.𝓒)
+                J = xⱼ.𝐼
+                k[I,J] += kᶜ*(B₁[i]*n₁+B₂[i]*n₂)*N[j]*𝑤
+            end
+        end
+    end
+end
+
+function (op::Operator{:∫vᵢnᵢgds})(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒;𝓖 = ap.𝓖
     kᶜ = op.k
-    α = op.α
     for ξ in 𝓖
-        N = ξ[:𝝭]
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
         𝑤 = ξ.𝑤
@@ -308,10 +326,41 @@ function (op::Operator{:∫∇𝑛vuds})(a::T,b::S;k::AbstractMatrix{Float64}) w
         g = ξ.g
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
-            for (j,xⱼ) in enumerate(𝓒)
-                J = xⱼ.𝐼
-                k[I,J] -= kᶜ*((B₁[i]*n₁+B₂[i]*n₂)*N[j]+N[i]*(B₁[j]*n₁+B₂[j]*n₂))*𝑤
+            f[I] += kᶜ*(B₁[i]*n₁+B₂[i]*n₂)*g*𝑤
+        end
+    end
+end
+
+function (op::Operator{:∫uds})(aps::Vector{T}) where T<:AbstractElement
+    u = zeros(length(aps))
+    for (c,ap) in enumerate(aps)
+        𝓖 = ap.𝓖
+        for ξ in 𝓖
+            𝑤 = ξ.𝑤
+            u[c] += ξ.u*𝑤
+        end
+        u[c] /= ap.𝐿
+    end
+    return u
+end
+
+function (op::Operator{:∫vtdΓ_debug})(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    println("debug begin")
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        t = ξ.t
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            f[I] += N[i]*t*𝑤
+            if I == 1
+                # println(N[i])
+                # println(t)
+                # println(𝑤)
+                println(N[i]*t*𝑤)
             end
         end
     end
+    println("debug end")
 end

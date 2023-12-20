@@ -10,12 +10,14 @@ function importcomsol(filename::String)
             nₚ,s = split(line," ")
             nₚ = parse(Int,nₚ)
         elseif line == "# Mesh vertex coordinates"
+            x = zeros(nₚ)
+            y = zeros(nₚ)
+            z = zeros(nₚ)
             for i in 1:nₚ
                 line = readline(fid)
                 x,y = split(line," ")
-                x = parse(Float64,x)
-                y = parse(Float64,y)
-                push!(points,Point(i,x,y,0.0))
+                x[i] = parse(Float64,x)
+                y[i] = parse(Float64,y)
             end
         elseif line == "# Type #1"
             for i in 1:5
@@ -30,7 +32,7 @@ function importcomsol(filename::String)
                 i1,i2 = split(line," ")
                 i1 = parse(Int,i1)+1
                 i2 = parse(Int,i2)+1
-                push!(elements["Γ"],Seg2((points[i1],points[i2])))
+                push!(elements["Γ"],Seg2((i1,i2),x,y,z))
             end
             for i in 1:3
                 readline(fid)
@@ -54,9 +56,9 @@ function importcomsol(filename::String)
                 i1 = parse(Int,i1)+1
                 i2 = parse(Int,i2)+1
                 i3 = parse(Int,i3)+1
-                push!(elements["Ω"],Tri3((points[i1],points[i2],points[i3]),(Seg2((points[i2],points[i3])),Seg2((points[i3],points[i1])),Seg2((points[i1],points[i2])))))
+                push!(elements["Ω"],Tri3((i1,i2,i3),x,y,z))
             end
         end
     end
-    return elements,points,entities
+    return elements, entities
 end
