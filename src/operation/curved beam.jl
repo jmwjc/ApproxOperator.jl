@@ -54,3 +54,72 @@ function (op::Operator{:∫κεγds})(ap::T;k::AbstractMatrix{Float64}) where T<
         end
     end
 end
+
+function (op::Operator{:∫δNEA⁻¹Nds})(a::T,b::S;k::AbstractMatrix{Float64},g::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+    𝓒₁ = a.𝓒; 𝓖₁ = a.𝓖
+    𝓒₂ = a.𝓒; 𝓖₂ = a.𝓖
+    EA = op.EA
+    for (ξ₁,ξ₂) in zip(𝓖₁,𝓖₂)
+        N = ξ₁[:𝝭]
+        B = ξ₁[:∂𝝭∂x]
+        Ñ = ξ₂[:𝝭]
+        𝑤 = ξ₁.𝑤
+        𝑤ᵇ = ξ₁.𝑤ᵇ
+        for (i,xᵢ) in enumerate(𝓒₁)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒₁)
+                J = xⱼ.𝐼
+                k[2*I-1,2*J-1] += N[i]*N[j]/EA*𝑤
+                k[2*I,2*J]     += N[i]*N[j]/EA*𝑤
+            end
+            for (j,xⱼ) in enumerate(𝓒₂)
+                J = xⱼ.𝐼
+                g[2*I-1,2*J-1] += B[i]*Ñ[j]*𝑤 - N[i]*Ñ[j]*𝑤ᵇ
+                g[2*I,2*J]     += B[i]*Ñ[j]*𝑤 - N[i]*Ñ[j]*𝑤ᵇ
+            end
+        end
+    end
+end
+
+function (op::Operator{:∫δMEI⁻¹Mds})(a::T,b::S;k::AbstractMatrix{Float64},g::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+    𝓒₁ = a.𝓒; 𝓖₁ = a.𝓖
+    𝓒₂ = a.𝓒; 𝓖₂ = a.𝓖
+    EI = op.EI
+    for (ξ₁,ξ₂) in zip(𝓖₁,𝓖₂)
+        N = ξ₁[:𝝭]
+        B = ξ₁[:∂𝝭∂x]
+        C = ξ₁[:∂²𝝭∂x²]
+        Ñ = ξ₂[:𝝭]
+        B̃ = ξ₂[:∂𝝭∂x]
+        𝑤 = ξ₁.𝑤
+        𝑤ᵇ = ξ₁.𝑤ᵇ
+        for (i,xᵢ) in enumerate(𝓒₁)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒₁)
+                J = xⱼ.𝐼
+                k[2*I-1,2*J-1] += N[i]*N[j]/EI*𝑤
+                k[2*I,2*J]     += N[i]*N[j]/EI*𝑤
+            end
+            for (j,xⱼ) in enumerate(𝓒₂)
+                J = xⱼ.𝐼
+                g[2*I-1,2*J-1] += C[i]*Ñ[j]*𝑤 - (B[i]*Ñ[j] - N[i]*B̃[j])*𝑤ᵇ
+                g[2*I,2*J]     += C[i]*Ñ[j]*𝑤 - (B[i]*Ñ[j] - N[i]*B̃[j])*𝑤ᵇ
+            end
+        end
+    end
+end
+
+function (op::Operator{:∫Bᵢvᵢds})(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        B = ξ[:∂𝝭∂x]
+        𝑤 = ξ.𝑤
+        g₁ = ξ.g₁
+        g₂ = ξ.g₂
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            f[2*I-1] += B[i]*g₁*𝑤
+            f[2*I]   += B[i]*g₂*𝑤
+        end
+    end
+end

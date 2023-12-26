@@ -5,6 +5,7 @@ import InteractiveUtils: subtypes
 import Printf: @printf
 
 abstract type AbstractElement{T} end
+abstract type AbstractPiecewise{T}<:AbstractElement{T} end
 abstract type SpatialPartition end
 
 include("node.jl")

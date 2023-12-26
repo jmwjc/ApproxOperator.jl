@@ -123,7 +123,7 @@ function Base.push!(f::Field,ps::Any...)
 end
 
 function (f::Field{(:𝐼,),1,(:𝑔,:𝐺,:𝐶,:𝑠)})(as::Vector{T}) where T<:AbstractGeometry
-    if f.type ∈ (PiecewisePolynomial,PiecewiseParametric)
+    if f.type<:AbstractPiecewise
         return setPiecewise(as)
     else
         return setElement(as)
@@ -233,11 +233,13 @@ function setPiecewise(as::Vector{T}) where T<:AbstractGeometry
     x = zeros(ng*ne)
     y = zeros(ng*ne)
     z = zeros(ng*ne)
+    𝐽 = zeros(ng*ne)
     push!(f,
         :𝑤=>(:𝐺,𝑤),
         :x=>(:𝐺,x),
         :y=>(:𝐺,y),
         :z=>(:𝐺,z),
+        :𝐽=>(:𝐺,𝐽),
     )
     𝑛𝑝 = get𝑛𝑝(as[1])
     for (C,a) in enumerate(as)
@@ -251,7 +253,8 @@ function setPiecewise(as::Vector{T}) where T<:AbstractGeometry
             f.𝐶 = C
             ApproxOperator.add𝓖!(f)
             f.𝑠 += 𝑛𝑝
-            𝑤[f.𝐺] = get𝐽(a,ps...)*w
+            𝐽[f.𝐺] = get𝐽(a,ps...)
+            𝑤[f.𝐺] = 𝐽[f.𝐺]*w
             x[f.𝐺], y[f.𝐺], z[f.𝐺] = a(ps...)
         end
         𝓒 = ApproxOperator.get𝓒(f)

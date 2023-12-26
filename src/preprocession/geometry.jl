@@ -405,6 +405,10 @@ function get𝒏(a::Seg2)
     return (y₂-y₁)/𝐿, (x₁-x₂)/𝐿
 end
 
+function get𝑫(a::Seg2)
+    return (-1.0,1.0)
+end
+
 Base.issubset(a::AbstractGeometry,b::AbstractGeometry) = a.i ⊆ b.i
 
 function Base.intersect(as::Vector{Seg2},bs::Vector{Tri3})
