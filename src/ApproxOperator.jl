@@ -29,6 +29,7 @@ include("approximation/rkgradientsmoothing.jl")
 include("approximation/Crouzeix-Raviart.jl")
 include("approximation/grkgsi.jl")
 include("approximation/rkwave.jl")
+include("approximation/piecewise.jl")
 include("operation/potential.jl")
 include("operation/elasticity.jl")
 include("operation/curved beam.jl")
@@ -47,7 +48,7 @@ export prescribe!
 export Operator
 export Node, Element
 export TRElement
-export ReproducingKernel, RKGradientSmoothing, GRKGradientSmoothing
+export ReproducingKernel, RKGradientSmoothing, GRKGradientSmoothing, PiecewiseParametric
 export set𝝭!, set∇𝝭!, set∇²𝝭!
 
 end

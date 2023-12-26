@@ -123,14 +123,15 @@ function Base.push!(f::Field,ps::Any...)
 end
 
 function (f::Field{(:𝐼,),1,(:𝑔,:𝐺,:𝐶,:𝑠)})(as::Vector{T}) where T<:AbstractGeometry
-    if f.type<:AbstractPiecewise
-        return setPiecewise(as)
+    type = getfield(f,:type)
+    if type<:AbstractPiecewise
+        return setPiecewise(f,as)
     else
-        return setElement(as)
+        return setElement(f,as)
     end
 end
 
-function setElement(as::Vector{T}) where T<:AbstractGeometry
+function setElement(f::Field{(:𝐼,),1,(:𝑔,:𝐺,:𝐶,:𝑠)},as::Vector{T}) where T<:AbstractGeometry
     data = getfield(f,:data𝓖)
     weights = data[:w][2]
     if haskey(data,:γ)
@@ -195,7 +196,7 @@ function setElement(as::Vector{T}) where T<:AbstractGeometry
     return elements
 end
 
-function setPiecewise(as::Vector{T}) where T<:AbstractGeometry
+function setPiecewise(f::Field{(:𝐼,),1,(:𝑔,:𝐺,:𝐶,:𝑠)},as::Vector{T}) where T<:AbstractGeometry
     data = getfield(f,:data𝓖)
     weights = data[:w][2]
     if haskey(data,:γ)
@@ -241,7 +242,7 @@ function setPiecewise(as::Vector{T}) where T<:AbstractGeometry
         :z=>(:𝐺,z),
         :𝐽=>(:𝐺,𝐽),
     )
-    𝑛𝑝 = get𝑛𝑝(as[1])
+    𝑛𝑝 = get𝑛𝑝(type((0,0,Node{(:𝐼,),1}[]),(0,0,Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}[])))
     for (C,a) in enumerate(as)
         for i in 1:𝑛𝑝
             f.𝐼 += 1
