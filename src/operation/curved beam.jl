@@ -109,17 +109,27 @@ function (op::Operator{:∫δMEI⁻¹Mds})(a::T,b::S;k::AbstractMatrix{Float64},
     end
 end
 
-function (op::Operator{:∫Bᵢvᵢds})(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
-    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    for ξ in 𝓖
-        B = ξ[:∂𝝭∂x]
-        𝑤 = ξ.𝑤
+function (op::Operator{:Bᵢvᵢ})(a::T,b::S;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+    𝓒₁ = a.𝓒; 𝓖₁ = a.𝓖
+    𝓒₂ = a.𝓒; 𝓖₂ = a.𝓖
+    for (ξ₁,ξ₂) in zip(𝓖₁,𝓖₂)
+        N = ξ₁[:𝝭]
+        B = ξ₁[:∂𝝭∂x]
+        C = ξ₁[:∂²𝝭∂x²]
+        Ñ = ξ₂[:𝝭]
+        𝑤 = ξ₁.𝑤
         g₁ = ξ.g₁
         g₂ = ξ.g₂
-        for (i,xᵢ) in enumerate(𝓒)
+        n₁ = ξ.n₁    
+        for (i,xᵢ) in enumerate(𝓒₁)
             I = xᵢ.𝐼
-            f[2*I-1] += B[i]*g₁*𝑤
-            f[2*I]   += B[i]*g₂*𝑤
+            for (j,xⱼ) in enumerate(𝓒₂)
+                J = xⱼ.𝐼
+                k[2*I-1,2*J-1] += n₁*B[i]*Ñ[j]*𝑤
+                k[2*I,2*J]     += n₁*B[i]*Ñ[j]*𝑤
+            end
+            f[2*I-1] += n₁*B[i]*g₁*𝑤
+            f[2*I]   += n₁*B[i]*g₂*𝑤
         end
     end
 end

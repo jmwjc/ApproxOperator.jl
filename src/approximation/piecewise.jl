@@ -37,12 +37,33 @@ function set𝝭!(ap::PiecewisePolynomial{:Linear1D},𝒙::Node)
     𝝭[2] = 𝒙.x
 end
 
+function set∇𝝭!(ap::PiecewisePolynomial{:Linear1D},𝒙::Node)
+    𝝭 = 𝒙[:𝝭]
+    𝝭[1] = 1.0
+    𝝭[2] = 𝒙.x
+    ∂𝝭∂x = 𝒙[:∂𝝭∂x]
+    ∂𝝭∂x[1] = 0.0
+    ∂𝝭∂x[2] = 1.0
+end
+
 function set𝝭!(ap::PiecewisePolynomial{:Quadratic1D},𝒙::Node)
     𝝭 = 𝒙[:𝝭]
     x = 𝒙.x
     𝝭[1] = 1.0
     𝝭[2] = x
     𝝭[3] = x^2
+end
+
+function set∇𝝭!(ap::PiecewisePolynomial{:Quadratic1D},𝒙::Node)
+    𝝭 = 𝒙[:𝝭]
+    x = 𝒙.x
+    𝝭[1] = 1.0
+    𝝭[2] = x
+    𝝭[3] = x^2
+    ∂𝝭∂x = 𝒙[:∂𝝭∂x]
+    ∂𝝭∂x[1] = 0.0
+    ∂𝝭∂x[2] = 1.0
+    ∂𝝭∂x[3] = 2.0*x
 end
 
 function set𝝭!(ap::PiecewiseParametric{:Constant1D},𝒙::Node)
@@ -52,13 +73,14 @@ end
 
 function set𝝭!(ap::PiecewiseParametric{:Linear1D},𝒙::Node)
     𝝭 = 𝒙[:𝝭]
+    ξ = 0.5*(1.0+𝒙.ξ)
     𝝭[1] = 1.0
-    𝝭[2] = 𝒙.ξ
+    𝝭[2] = ξ
 end
 
 function set𝝭!(ap::PiecewiseParametric{:Quadratic1D},𝒙::Node)
     𝝭 = 𝒙[:𝝭]
-    x = 𝒙.ξ
+    ξ = 0.5*(1.0+𝒙.ξ)
     𝝭[1] = 1.0
     𝝭[2] = ξ
     𝝭[3] = ξ^2
@@ -67,6 +89,13 @@ end
 function set𝝭!(ap::PiecewisePolynomial{:Constant2D},𝒙::Node)
     𝝭 = 𝒙[:𝝭]
     𝝭[1] = 1.0
+end
+
+function set𝝭!(ap::PiecewisePolynomial{:Linear2D},𝒙::Node)
+    𝝭 = 𝒙[:𝝭]
+    𝝭[1] = 1.0
+    𝝭[2] = 𝒙.x
+    𝝭[3] = 𝒙.y
 end
 
 function set𝝭!(ap::PiecewisePolynomial{:Linear2D},𝒙::Node)
