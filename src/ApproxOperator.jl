@@ -48,7 +48,7 @@ export prescribe!
 export Operator
 export Node, Element
 export TRElement
-export ReproducingKernel, RKGradientSmoothing, GRKGradientSmoothing, PiecewiseParametric
+export ReproducingKernel, RKGradientSmoothing, GRKGradientSmoothing, PiecewiseParametric, PiecewisePolynomial
 export set𝝭!, set∇𝝭!, set∇²𝝭!
 
 end

@@ -1,9 +1,9 @@
-struct PiecewisePolynomial{𝑝,T}<:AbstractElement{T}
+struct PiecewisePolynomial{𝑝,T}<:AbstractPiecewise{T}
     𝓒::Tuple{Int,Int,Vector{Node{(:𝐼,),1}}}
     𝓖::Tuple{Int,Int,Vector{Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}}}
 end
 
-struct PiecewiseParametric{𝑝,T}<:AbstractElement{T}
+struct PiecewiseParametric{𝑝,T}<:AbstractPiecewise{T}
     𝓒::Tuple{Int,Int,Vector{Node{(:𝐼,),1}}}
     𝓖::Tuple{Int,Int,Vector{Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}}}
 end
