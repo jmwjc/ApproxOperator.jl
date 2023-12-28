@@ -265,110 +265,110 @@ function setPiecewise(f::Field{(:𝐼,),1,(:𝑔,:𝐺,:𝐶,:𝑠)},as::Vector{
     return elements
 end
 
-function setPiecewise(f::Field{(:𝐼,),1,(:𝑔,:𝐺,:𝐶,:𝑠)},as::Vector{Tuple{T,S}}) where {T<:AbstractGeometry{:Poi1},S<:AbstractGeometry{:Seg2}}
-    data = getfield(f,:data𝓖)
-    weights = data[:w][2]
-    ξ = data[:ξ][2]
-    points = ξ
-    scheme = zip(weights,points)
-    ne = length(as)
-    ng = length(weights)
-    ni = length(as[1].i)
-    type = getfield(f,:type)
-    elements = type[]
-    ξ = zeros(ne*ng)
-    D₁ = zeros(ne*ng)
-    𝑤 = zeros(ng*ne)
-    x = zeros(ng*ne)
-    y = zeros(ng*ne)
-    z = zeros(ng*ne)
-    𝐽 = zeros(ng*ne)
-    push!(f,
-        :𝑤=>(:𝐺,𝑤),
-        :x=>(:𝐺,x),
-        :y=>(:𝐺,y),
-        :z=>(:𝐺,z),
-        :𝐽=>(:𝐺,𝐽),
-        :ξ=>(:𝐺,ξ),
-        :D₁=>(:𝐺,D₁),
-    )
-    𝑛𝑝 = get𝑛𝑝(type((0,0,Node{(:𝐼,),1}[]),(0,0,Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}[])))
-    for (C,(a,b)) in enumerate(as)
-        for i in 1:𝑛𝑝
-            f.𝐼 += 1
-            ApproxOperator.add𝓒!(f)
-        end
-        for (g,(w,ps)) in enumerate(scheme)
-            f.𝑔 = g
-            f.𝐺 += 1
-            f.𝐶 = C
-            ApproxOperator.add𝓖!(f)
-            f.𝑠 += 𝑛𝑝
-            𝐽[f.𝐺] = get𝐽(a,ps...)
-            𝑤[f.𝐺] = 𝐽[f.𝐺]*w
-            ((x[f.𝐺], y[f.𝐺], z[f.𝐺]),ξ[f.𝐺]) = a(b,ps...)
-            if ξ[f.𝐺] ≈ 0.0
-                D₁[f.𝐺] = -1.0
-            elseif ξ[f.𝐺] ≈ 1.0
-                D₁[f.𝐺] = 1.0
-            end
-        end
-        𝓒 = ApproxOperator.get𝓒(f)
-        𝓖 = ApproxOperator.get𝓖(f)
-        push!(elements,type(𝓒,𝓖))
-    end
-    return elements
-end
+# function setPiecewise(f::Field{(:𝐼,),1,(:𝑔,:𝐺,:𝐶,:𝑠)},as::Vector{Tuple{T,S}}) where {T<:AbstractGeometry{:Poi1},S<:AbstractGeometry{:Seg2}}
+#     data = getfield(f,:data𝓖)
+#     weights = data[:w][2]
+#     ξ = data[:ξ][2]
+#     points = ξ
+#     scheme = zip(weights,points)
+#     ne = length(as)
+#     ng = length(weights)
+#     ni = length(as[1].i)
+#     type = getfield(f,:type)
+#     elements = type[]
+#     ξ = zeros(ne*ng)
+#     D₁ = zeros(ne*ng)
+#     𝑤 = zeros(ng*ne)
+#     x = zeros(ng*ne)
+#     y = zeros(ng*ne)
+#     z = zeros(ng*ne)
+#     𝐽 = zeros(ng*ne)
+#     push!(f,
+#         :𝑤=>(:𝐺,𝑤),
+#         :x=>(:𝐺,x),
+#         :y=>(:𝐺,y),
+#         :z=>(:𝐺,z),
+#         :𝐽=>(:𝐺,𝐽),
+#         :ξ=>(:𝐺,ξ),
+#         :D₁=>(:𝐺,D₁),
+#     )
+#     𝑛𝑝 = get𝑛𝑝(type((0,0,Node{(:𝐼,),1}[]),(0,0,Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}[])))
+#     for (C,(a,b)) in enumerate(as)
+#         for i in 1:𝑛𝑝
+#             f.𝐼 += 1
+#             ApproxOperator.add𝓒!(f)
+#         end
+#         for (g,(w,ps)) in enumerate(scheme)
+#             f.𝑔 = g
+#             f.𝐺 += 1
+#             f.𝐶 = C
+#             ApproxOperator.add𝓖!(f)
+#             f.𝑠 += 𝑛𝑝
+#             𝐽[f.𝐺] = get𝐽(a,ps...)
+#             𝑤[f.𝐺] = 𝐽[f.𝐺]*w
+#             ((x[f.𝐺], y[f.𝐺], z[f.𝐺]),ξ[f.𝐺]) = a(b,ps...)
+#             if ξ[f.𝐺] ≈ 0.0
+#                 D₁[f.𝐺] = -1.0
+#             elseif ξ[f.𝐺] ≈ 1.0
+#                 D₁[f.𝐺] = 1.0
+#             end
+#         end
+#         𝓒 = ApproxOperator.get𝓒(f)
+#         𝓖 = ApproxOperator.get𝓖(f)
+#         push!(elements,type(𝓒,𝓖))
+#     end
+#     return elements
+# end
 
-function setPiecewise(f::Field{(:𝐼,),1,(:𝑔,:𝐺,:𝐶,:𝑠)},as::Vector{Tuple{T,S}}) where {T<:AbstractGeometry{:Seg2},S<:AbstractGeometry{:Tri3}}
-    data = getfield(f,:data𝓖)
-    weights = data[:w][2]
-    ξ = data[:ξ][2]
-    points = ξ
-    scheme = zip(weights,points)
-    ne = length(as)
-    ng = length(weights)
-    ni = length(as[1].i)
-    type = getfield(f,:type)
-    elements = type[]
-    𝑤 = zeros(ng*ne)
-    x = zeros(ng*ne)
-    y = zeros(ng*ne)
-    z = zeros(ng*ne)
-    𝐽 = zeros(ng*ne)
-    ξ = zeros(ne*ng)
-    η = zeros(ne*ng)
-    push!(f,
-        :𝑤=>(:𝐺,𝑤),
-        :x=>(:𝐺,x),
-        :y=>(:𝐺,y),
-        :z=>(:𝐺,z),
-        :𝐽=>(:𝐺,𝐽),
-        :ξ=>(:𝐺,ξ),
-        :η=>(:𝐺,η),
-    )
-    𝑛𝑝 = get𝑛𝑝(type((0,0,Node{(:𝐼,),1}[]),(0,0,Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}[])))
-    for (C,(a,b)) in enumerate(as)
-        for i in 1:𝑛𝑝
-            f.𝐼 += 1
-            ApproxOperator.add𝓒!(f)
-        end
-        for (g,(w,ps)) in enumerate(scheme)
-            f.𝑔 = g
-            f.𝐺 += 1
-            f.𝐶 = C
-            ApproxOperator.add𝓖!(f)
-            f.𝑠 += 𝑛𝑝
-            𝐽[f.𝐺] = get𝐽(a,ps...)
-            𝑤[f.𝐺] = 𝐽[f.𝐺]*w
-            ((x[f.𝐺], y[f.𝐺], z[f.𝐺]),(ξ[f.𝐺],η[f.𝐺])) = a(b,ps...)
-        end
-        𝓒 = ApproxOperator.get𝓒(f)
-        𝓖 = ApproxOperator.get𝓖(f)
-        push!(elements,type(𝓒,𝓖))
-    end
-    return elements
-end
+# function setPiecewise(f::Field{(:𝐼,),1,(:𝑔,:𝐺,:𝐶,:𝑠)},as::Vector{Tuple{T,S}}) where {T<:AbstractGeometry{:Seg2},S<:AbstractGeometry{:Tri3}}
+#     data = getfield(f,:data𝓖)
+#     weights = data[:w][2]
+#     ξ = data[:ξ][2]
+#     points = ξ
+#     scheme = zip(weights,points)
+#     ne = length(as)
+#     ng = length(weights)
+#     ni = length(as[1].i)
+#     type = getfield(f,:type)
+#     elements = type[]
+#     𝑤 = zeros(ng*ne)
+#     x = zeros(ng*ne)
+#     y = zeros(ng*ne)
+#     z = zeros(ng*ne)
+#     𝐽 = zeros(ng*ne)
+#     ξ = zeros(ne*ng)
+#     η = zeros(ne*ng)
+#     push!(f,
+#         :𝑤=>(:𝐺,𝑤),
+#         :x=>(:𝐺,x),
+#         :y=>(:𝐺,y),
+#         :z=>(:𝐺,z),
+#         :𝐽=>(:𝐺,𝐽),
+#         :ξ=>(:𝐺,ξ),
+#         :η=>(:𝐺,η),
+#     )
+#     𝑛𝑝 = get𝑛𝑝(type((0,0,Node{(:𝐼,),1}[]),(0,0,Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}[])))
+#     for (C,(a,b)) in enumerate(as)
+#         for i in 1:𝑛𝑝
+#             f.𝐼 += 1
+#             ApproxOperator.add𝓒!(f)
+#         end
+#         for (g,(w,ps)) in enumerate(scheme)
+#             f.𝑔 = g
+#             f.𝐺 += 1
+#             f.𝐶 = C
+#             ApproxOperator.add𝓖!(f)
+#             f.𝑠 += 𝑛𝑝
+#             𝐽[f.𝐺] = get𝐽(a,ps...)
+#             𝑤[f.𝐺] = 𝐽[f.𝐺]*w
+#             ((x[f.𝐺], y[f.𝐺], z[f.𝐺]),(ξ[f.𝐺],η[f.𝐺])) = a(b,ps...)
+#         end
+#         𝓒 = ApproxOperator.get𝓒(f)
+#         𝓖 = ApproxOperator.get𝓖(f)
+#         push!(elements,type(𝓒,𝓖))
+#     end
+#     return elements
+# end
 
 function (f::Field{(:𝐼,),1,(:𝑔,:𝐺,:𝐶,:𝑠)})(as::Vector{T},sp::SpatialPartition) where T<:AbstractGeometry
     data = getfield(f,:data𝓖)
