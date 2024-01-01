@@ -1,5 +1,5 @@
 
-abstract type AbstractReproducingKernel{𝑠,𝜙,T}<:AbstractElement{T} end
+abstract type AbstractReproducingKernel{𝑠,𝜙}<:AbstractElement end
 
 """
 SymMat

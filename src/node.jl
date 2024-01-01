@@ -17,24 +17,28 @@ end
 Node
 """
 struct Node{T,N}
-    index::NTuple{N,Int}
+    index::NamedTuple{T,NTuple{N,Int}}
     data::Dict{Symbol,Tuple{Int,Vector{Float64}}}
 end
+const 𝑿ᵢ = Node{(:𝐼,),1}
+const 𝑿ₛ = Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}
 
 function Base.getproperty(p::Node{T,N},s::Symbol) where {T,N}
     index = getfield(p,:index)
     if s ∈ T
-        return index[findfirst(x->x==s,T)]
+        return index[s]
     else
         i,v = getfield(p,:data)[s]
         return v[index[i]]
     end
 end
+
 function Base.setproperty!(p::Node,s::Symbol,x::Float64)
     i,v = getfield(p,:data)[s]
     j = getfield(p,:index)[i]
     v[j] = x
 end
+
 function Base.getindex(p::Node,f::Symbol)
     i,v = getfield(p,:data)[f]
     j = getfield(p,:index)[i]
@@ -44,23 +48,28 @@ end
 +(a::T,b::S) where {T<:Node,S<:Node} = (a.x+b.x,a.y+b.y,a.z+b.z)
 -(a::T,b::S) where {T<:Node,S<:Node} = (a.x-b.x,a.y-b.y,a.z-b.z)
 
-push!(ps::Vector{T},svs::Pair{Symbol,Vector{Float64}}...) where T<:Node = push!(ps[1],svs...)
+push!(ps::Vector{T},svs::Pair{Symbol,S}...) where {T<:Node,S} = push!(ps[1],svs...)
+
 function push!(p::Node,svs::Pair{Symbol,Vector{Float64}}...)
     for (s,v) in svs
         push!(getfield(p,:data),s=>(1,v))
     end
 end
 
-function printinfo(p::Node{S,N}) where {S,N}
+function push!(p::Node{T},svs::Pair{Symbol,Tuple{Symbol,Vector{Float64}}}...) where T
+    for (s,(i,v)) in svs
+        index = findfirst(T,i)
+        push!(getfield(p,:data),s=>(index,v))
+    end
+end
+
+function printinfo(p::Node{S}) where S
     index = getfield(p,:index)
     data = getfield(p,:data)
-    print("Node( ")
-    for (n,s) in enumerate(S)
-        i = index[n]
-        print(string(s)*" = $i ")
-    end
+    print("Node")
+    print(index)
+    println(":")
     shapes = Symbol[]
-    println("):")
     for (name,(n,vs)) in data
         if n ≠ 0
             s = S[n]

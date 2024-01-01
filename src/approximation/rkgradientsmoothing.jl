@@ -1,5 +1,5 @@
 
-struct RKGradientSmoothing{𝑝,𝑠,𝜙,T}<:AbstractReproducingKernel{𝑠,𝜙,T}
+struct RKGradientSmoothing{𝑝,𝑠,𝜙,T}<:AbstractReproducingKernel{𝑠,𝜙}
     𝓒::Tuple{Int,Int,Vector{Node{(:𝐼,),1}}}
     𝓖::Tuple{Int,Int,Vector{Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}}}
     𝓖ˢ::Tuple{Int,Int,Vector{Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}}}
@@ -249,7 +249,7 @@ function set𝝭!(ap::RKGradientSmoothing{:Quadratic2D,𝑠,𝜙,:Tri3}) where {
     end
 end
 
-struct RK2ndGradientSmoothing{𝑝,𝑠,𝜙,T}<:AbstractReproducingKernel{𝑠,𝜙,T}
+struct RK2ndGradientSmoothing{𝑝,𝑠,𝜙,T}<:AbstractReproducingKernel{𝑠,𝜙}
     𝓒::Tuple{Int,Int,Vector{Node{(:𝐼,),1}}}
     𝓖::Tuple{Int,Int,Vector{Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}}}
     𝓖ˢ::Tuple{Int,Int,Vector{Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}}}
@@ -286,14 +286,14 @@ get∂𝒑₂∂η(ap::ReproducingKernel{:Quartic2D},ξ::Float64,η::Float64) = 
 get∂²𝒑₂∂ξ²(ap::ReproducingKernel{:Quartic2D},ξ::Any) = (0.,0.,0.,2.,0.,0.)
 get∂²𝒑₂∂ξ∂η(ap::ReproducingKernel{:Quartic2D},ξ::Any) = (0.,0.,0.,0.,1.,0.)
 get∂²𝒑₂∂η²(ap::ReproducingKernel{:Quartic2D},ξ::Any) = (0.,0.,0.,0.,0.,2.)
-function cal𝗚₂!(ap::ReproducingKernel{:Quadratic2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
+function cal𝗚₂!(ap::ReproducingKernel{:Quadratic2D,𝑠,𝜙}) where {𝑠,𝜙}
     𝗚⁻¹ = get𝗚(ap,:∇̃²)
     𝐴 = ap.𝓖[1].𝐴
     𝗚⁻¹[1] = 1.0/𝐴
     return 𝗚⁻¹
 end
 
-function cal𝗚₂!(ap::ReproducingKernel{:Cubic2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
+function cal𝗚₂!(ap::ReproducingKernel{:Cubic2D,𝑠,𝜙}) where {𝑠,𝜙}
     𝗚⁻¹ = get𝗚(ap,:∇̃²)
     𝐴 = ap.𝓖[1].𝐴
     𝗚⁻¹[1] =   9.0/𝐴
@@ -305,7 +305,7 @@ function cal𝗚₂!(ap::ReproducingKernel{:Cubic2D,𝑠,𝜙,:Tri3}) where {�
     return 𝗚⁻¹
 end
 
-function cal∇𝗚₂!(ap::ReproducingKernel{:Cubic2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
+function cal∇𝗚₂!(ap::ReproducingKernel{:Cubic2D,𝑠,𝜙}) where {𝑠,𝜙}
     𝗚⁻¹ = get𝗚(ap,:∇̃²)
     𝗚⁻¹∂ξ = get𝗚(ap,:∂∇̃²∂ξ)
     𝗚⁻¹∂η = get𝗚(ap,:∂∇̃²∂η)
@@ -334,7 +334,7 @@ function cal∇𝗚₂!(ap::ReproducingKernel{:Cubic2D,𝑠,𝜙,:Tri3}) where {
     return 𝗚⁻¹,𝗚⁻¹∂ξ,𝗚⁻¹∂η
 end
 
-function cal𝗚₂!(ap::ReproducingKernel{:Quartic2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
+function cal𝗚₂!(ap::ReproducingKernel{:Quartic2D,𝑠,𝜙}) where {𝑠,𝜙}
     𝗚⁻¹ = get𝗚(ap,:∇̃²)
     𝐴 = ap.𝓖[1].𝐴
     𝗚⁻¹[1] =   36.0/𝐴
@@ -361,7 +361,7 @@ function cal𝗚₂!(ap::ReproducingKernel{:Quartic2D,𝑠,𝜙,:Tri3}) where {�
     return 𝗚⁻¹
 end
 
-function cal∇𝗚₂!(ap::ReproducingKernel{:Quartic2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
+function cal∇𝗚₂!(ap::ReproducingKernel{:Quartic2D,𝑠,𝜙}) where {𝑠,𝜙}
     𝗚⁻¹ = get𝗚(ap,:∇̃²)
     𝗚⁻¹∂ξ = get𝗚(ap,:∂∇̃²∂ξ)
     𝗚⁻¹∂η = get𝗚(ap,:∂∇̃²∂η)
@@ -434,7 +434,7 @@ function cal∇𝗚₂!(ap::ReproducingKernel{:Quartic2D,𝑠,𝜙,:Tri3}) where
 
     return 𝗚⁻¹,𝗚⁻¹∂ξ,𝗚⁻¹∂η
 end
-function set∇̃²𝝭!(gp::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3},ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3}) where {𝒑,𝑠,𝜙}
+function set∇̃²𝝭!(gp::ReproducingKernel{𝒑,𝑠,𝜙},ap::ReproducingKernel{𝒑,𝑠,𝜙}) where {𝒑,𝑠,𝜙}
     𝓒 = gp.𝓒
     𝓖 = gp.𝓖
     𝐴 = 𝓖[1].𝐴
@@ -563,7 +563,7 @@ function set∇̃²𝝭!(gp::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3},ap::Reprodu
     end
 end
 
-function set∇∇̃²𝝭!(gp::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3},ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3}) where {𝒑,𝑠,𝜙}
+function set∇∇̃²𝝭!(gp::ReproducingKernel{𝒑,𝑠,𝜙},ap::ReproducingKernel{𝒑,𝑠,𝜙}) where {𝒑,𝑠,𝜙}
     x₁ = ap.𝓒[1].x;y₁ = ap.𝓒[1].y
     x₂ = ap.𝓒[2].x;y₂ = ap.𝓒[2].y
     x₃ = ap.𝓒[3].x;y₃ = ap.𝓒[3].y
@@ -884,7 +884,7 @@ function set∇∇̃²𝝭!(gp::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3},ap::Repr
     end
 end
 
-function set∇̄𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Seg2}) where {𝒑,𝑠,𝜙}
+function set∇̄𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙}) where {𝒑,𝑠,𝜙}
     𝓒 = ap.𝓒
     𝓖 = ap.𝓖
     for ξ̂ in 𝓖
@@ -906,7 +906,7 @@ function set∇̄𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Seg2}) where {𝒑,
     end
 end
 
-function set∇̄𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3}) where {𝒑,𝑠,𝜙}
+function set∇̄𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙}) where {𝒑,𝑠,𝜙}
     𝓒 = ap.𝓒
     𝓖 = ap.𝓖
     for ξ̂ in 𝓖
@@ -936,7 +936,7 @@ function set∇̄𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3}) where {𝒑,
     end
 end
 
-function set∇∇̄²𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3};Γᵍ::Union{ReproducingKernel{𝒑,𝑠,𝜙,:Tri3},Nothing}=nothing,Γᶿ::Union{ReproducingKernel{𝒑,𝑠,𝜙,:Tri3},Nothing}=nothing,Γᴾ::Vector{ReproducingKernel{𝒑,𝑠,𝜙,:Tri3}}=[]) where {𝒑,𝑠,𝜙}
+function set∇∇̄²𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙};Γᵍ::Union{ReproducingKernel{𝒑,𝑠,𝜙},Nothing}=nothing,Γᶿ::Union{ReproducingKernel{𝒑,𝑠,𝜙},Nothing}=nothing,Γᴾ::Vector{ReproducingKernel{𝒑,𝑠,𝜙}}=[]) where {𝒑,𝑠,𝜙}
     x₁ = ap.𝓒[1].x;y₁ = ap.𝓒[1].y
     x₂ = ap.𝓒[2].x;y₂ = ap.𝓒[2].y
     x₃ = ap.𝓒[3].x;y₃ = ap.𝓒[3].y
@@ -1166,7 +1166,7 @@ function set∇∇̄²𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3};Γᵍ::U
     end
 end
 
-function set∇̄²𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3};Γᵍ::Vector{ReproducingKernel{𝒑,𝑠,𝜙,:Tri3}}=[],Γᶿ::Vector{ReproducingKernel{𝒑,𝑠,𝜙,:Tri3}}=[],Γᴾ::Vector{ReproducingKernel{𝒑,𝑠,𝜙,:Tri3}}=[]) where {𝒑,𝑠,𝜙}
+function set∇̄²𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙};Γᵍ::Vector{ReproducingKernel{𝒑,𝑠,𝜙}}=[],Γᶿ::Vector{ReproducingKernel{𝒑,𝑠,𝜙}}=[],Γᴾ::Vector{ReproducingKernel{𝒑,𝑠,𝜙}}=[]) where {𝒑,𝑠,𝜙}
     x₁ = ap.𝓒[1].x;y₁ = ap.𝓒[1].y
     x₂ = ap.𝓒[2].x;y₂ = ap.𝓒[2].y
     x₃ = ap.𝓒[3].x;y₃ = ap.𝓒[3].y

@@ -1,49 +1,5 @@
 
-@inline get𝒙(ap::T,ξ::Node) where T<:AbstractElement{:Quad} = get𝒙(ap,ξ.ξ,ξ.η)
-
-function get𝒙(ap::T,ξ::Float64,η::Float64) where T<:AbstractElement{:Quad}
-    x₁ = ap.𝓒[1].x
-    y₁ = ap.𝓒[1].y
-    z₁ = ap.𝓒[1].z
-    x₂ = ap.𝓒[2].x
-    y₂ = ap.𝓒[2].y
-    z₂ = ap.𝓒[2].z
-    x₃ = ap.𝓒[3].x
-    y₃ = ap.𝓒[3].y
-    z₃ = ap.𝓒[3].z
-    x₄ = ap.𝓒[4].x
-    y₄ = ap.𝓒[4].y
-    z₄ = ap.𝓒[4].z
-    N₁,N₂,N₃,N₄ = get𝝭(ap,ξ,η)
-    return (x₁*N₁+x₂*N₂+x₃*N₃+x₄*N₄,y₁*N₁+y₂*N₂+y₃*N₃+y₄*N₄,z₁*N₁+z₂*N₂+z₃*N₃+z₄*N₄)
-end
-
-function get𝑱(ap::T,ξ::Node) where T<:AbstractElement{:Quad}
-    x₁ = ap.𝓒[1].x
-    x₂ = ap.𝓒[2].x
-    x₃ = ap.𝓒[3].x
-    x₄ = ap.𝓒[4].x
-    y₁ = ap.𝓒[1].y
-    y₂ = ap.𝓒[2].y
-    y₃ = ap.𝓒[3].y
-    y₄ = ap.𝓒[4].y
-    ∂N₁∂ξ,∂N₂∂ξ,∂N₃∂ξ,∂N₄∂ξ = get∂𝝭∂ξ(ap,ξ)
-    ∂N₁∂η,∂N₂∂η,∂N₃∂η,∂N₄∂η = get∂𝝭∂η(ap,ξ)
-    J₁₁ = ∂N₁∂ξ*x₁ + ∂N₂∂ξ*x₂ + ∂N₃∂ξ*x₃ + ∂N₄∂ξ*x₄
-    J₁₂ = ∂N₁∂η*x₁ + ∂N₂∂η*x₂ + ∂N₃∂η*x₃ + ∂N₄∂η*x₄
-    J₂₁ = ∂N₁∂ξ*y₁ + ∂N₂∂ξ*y₂ + ∂N₃∂ξ*y₃ + ∂N₄∂ξ*y₄
-    J₂₂ = ∂N₁∂η*y₁ + ∂N₂∂η*y₂ + ∂N₃∂η*y₃ + ∂N₄∂η*y₄
-    return J₁₁,J₂₁,J₁₂,J₂₂
-end
-
-@inline function get𝐽(ap::T,ξ::Node) where T<:AbstractElement{:Quad}
-    J₁₁,J₂₁,J₁₂,J₂₂ = get𝑱(ap,ξ)
-    return J₁₁*J₂₂-J₂₁*J₁₂
-end
-
-@inline get𝑤(ap::T,ξ::Node) where T<:AbstractElement{:Quad} = get𝐽(ap,ξ)*ξ.w
-
-function set𝝭!(ap::Element{:Quad},x::Node)
+function set𝝭!(::Element{:Quad},x::Node)
     ξ = x.ξ
     η = x.η
     𝝭 = x[:𝝭]
@@ -54,6 +10,13 @@ function set𝝭!(ap::Element{:Quad},x::Node)
 end
 
 function set∇𝝭!(ap::Element{:Quad},x::Node)
+    ξ = x.ξ
+    η = x.η
+    𝝭 = x[:𝝭]
+    𝝭[1] = 0.25*(1.0-ξ)*(1.0-η)
+    𝝭[2] = 0.25*(1.0+ξ)*(1.0-η)
+    𝝭[3] = 0.25*(1.0+ξ)*(1.0+η)
+    𝝭[4] = 0.25*(1.0-ξ)*(1.0+η)
     𝓒 = ap.𝓒
     x₁,x₂,x₃,x₄ = (xᵢ.x for xᵢ in 𝓒)
     y₁,y₂,y₃,y₄ = (xᵢ.y for xᵢ in 𝓒)

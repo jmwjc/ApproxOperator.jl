@@ -4,8 +4,8 @@ import Base: +, -, *, /, getindex, setindex!, getproperty, setproperty!, length,
 import InteractiveUtils: subtypes
 import Printf: @printf
 
-abstract type AbstractElement{T} end
-abstract type AbstractPiecewise{T}<:AbstractElement{T} end
+abstract type AbstractElement end
+abstract type AbstractPiecewise<:AbstractElement end
 abstract type SpatialPartition end
 
 include("node.jl")
@@ -15,7 +15,6 @@ include("meshfree.jl")
 
 include("preprocession/integration.jl")
 include("preprocession/geometry.jl")
-include("preprocession/field.jl")
 include("preprocession/importcomsol.jl")
 include("approximation/quad.jl")
 include("approximation/quad8.jl")
@@ -44,9 +43,10 @@ include("operation/plasticity.jl")
 include("littletools.jl")
 
 
-export prescribe!
+export prescribe!, addNode!
 export Operator
-export Node, Element
+export 𝑿ᵢ, 𝑿ₛ
+export Element
 export TRElement
 export ReproducingKernel, RKGradientSmoothing, GRKGradientSmoothing, PiecewiseParametric, PiecewisePolynomial
 export set𝝭!, set∇𝝭!, set∇²𝝭!

@@ -281,7 +281,7 @@ function (op::Operator{:∫∇̄𝑛vgdΓ})(ap::T;k::AbstractMatrix{Float64},f::
     end
 end
 
-function (op::Operator{:g})(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64},dof::Symbol=:d) where T<:AbstractElement{:Poi1}
+function (op::Operator{:g})(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64},dof::Symbol=:d) where T<:AbstractElement
     x, = ap.𝓒
     j = x.𝐼
     g = getproperty(x,dof)

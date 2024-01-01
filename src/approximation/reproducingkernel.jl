@@ -1,7 +1,7 @@
 
-struct ReproducingKernel{𝑝,𝑠,𝜙,T}<:AbstractReproducingKernel{𝑠,𝜙,T}
-    𝓒::Tuple{Int,Int,Vector{Node{(:𝐼,),1}}}
-    𝓖::Tuple{Int,Int,Vector{Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}}}
+struct ReproducingKernel{𝑝,𝑠,𝜙}<:AbstractReproducingKernel{𝑠,𝜙}
+    𝓒::Vector{𝑿ᵢ}
+    𝓖::Vector{𝑿ₛ}
 end
 
 get𝑛𝒑(    ::ReproducingKernel{:Linear1D}) = 2
@@ -87,7 +87,7 @@ get𝒑(::ReproducingKernel{:Quartic2D},x::NTuple{3,Float64}) =
 )
 get∂𝒑∂x(::ReproducingKernel{:Quartic2D},x::NTuple{3,Float64}) =
 (
-    0., 1., 0., 2*x[1], x[2], 0., 3*x[1]^2, 2*x[1]*x[2], x[2]^2, 0., 4.0*x[1]^3, 3.0*x[1]^2*x[2], 2.0*x[1]*x[2]^2, x[2]^3, 0.
+    0., 1., 0., 2*x[1], x[2], 0., 3*x[1]^2, 2*x[1]*x[2], x[2]^2, 0., 4.0*x[1]^3, 3.0*x[1]^2*x[2], 2.0*x[1]*x[2]^2, x[2]^3, 0.0
 )
 get∂𝒑∂y(::ReproducingKernel{:Quartic2D},x::NTuple{3,Float64}) =
 (
