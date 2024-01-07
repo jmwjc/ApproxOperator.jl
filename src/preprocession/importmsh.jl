@@ -1,92 +1,133 @@
 
-"""
-importmsh
-"""
-function importmsh(filename::String)
-    fid = open(filename,"r")
-    readline(fid)
-    line = readline(fid)
-    v_,f_,d_ = split(line," ")
-    version = parse(Float64,v_)
-    filetype = parse(Int,f_)
-    datasize = parse(Int,d_)
-    readline(fid)
-    if version == 4.1
-        elements,entities = import_msh_4(fid)
-    elseif version == 2.2
-        elements,entities = import_msh_2(fid)
+function getPhysicalGroups()
+    entities = Dict{String,Pair{Int,Int}}()
+    dimTags = gmsh.model.getPhysicalGroups()
+    for (dim,tag) in dimTags
+        name = gmsh.model.getPhysicalName(dim,tag)
+        tags = gmsh.model.getEntitiesForPhysicalGroup(dim,tag)
+        entities[name] = dim=>tags[1]
+    end
+    return entities
+end
+
+function get𝑿ᵢ()
+    nodeTags, coord = gmsh.model.mesh.getNodes()
+    nₚ = length(nodeTags)
+    x = coord[1:3:3*nₚ]
+    y = coord[2:3:3*nₚ]
+    z = coord[3:3:3*nₚ]
+    data = Dict([:x=>(1,x),:y=>(1,y),:z=>(1,z)])
+    return [𝑿ᵢ((𝐼=i,),data) for i in 1:nₚ]
+end
+
+
+prequote = quote
+    types = Dict([1=>:Seg2, 2=>:Tri3, 3=>:Quad, 4=>:Tet4, 8=>:Seg3, 9=>:Tri6, 10=>:Quad9, 11=>:Tet10, 15=>:Poi1, 16=>Quad8])
+    dim, tag = dimTag
+    elementTypes, ~, nodeTags = gmsh.model.mesh.getElements(dim,tag)
+    elements = Element[]
+end
+
+coordinates = quote
+    ξ = localCoord[1:3:end]
+    η = localCoord[2:3:end]
+    γ = localCoord[3:3:end]
+    jacobians, determinants, coord = gmsh.model.mesh.getJacobians(elementType, localCoord, tag)
+    x = coord[1:3:end]
+    y = coord[2:3:end]
+    z = coord[3:3:end]
+    𝑤 = [weight*determinant for determinant in determinants for weight in weights]
+    data = Dict([
+        :w=>(1,weights),
+        :x=>(2,x),
+        :y=>(2,y),
+        :z=>(2,z),
+        :𝑤=>(2,𝑤),
+    ])
+    if dim == 3
+        push!(data, :ξ=>(1,ξ), :η=>(1,η), :γ=>(1,γ))
+    elseif dim == 2
+        push!(data, :ξ=>(1,ξ), :η=>(1,η))
     else
-        println("Version does not match!")
+        push!(data, :ξ=>(1,ξ))
     end
-    return elements, entities
+
+    ng = length(weights)
+    ne = Int(length(nodeTag)/ni)
 end
 
-function import_msh_4(fid::IO) end
-
-function import_msh_2(fid::IO)
-    etype = Dict(1=>:Seg2,2=>:Tri3,3=>:Quad4,8=>:Seg3,9=>:Tri6,15=>:Poi1,16=>:Quad8)
-    elements = Dict{String,Any}()
-    entities = Dict{String,Any}()
-    physicalnames = Dict{Int,String}()
-    x = Float64[]
-    y = Float64[]
-    z = Float64[]
-    for line in eachline(fid)
-        if line == "\$PhysicalNames"
-            numPhysicalNames = parse(Int,readline(fid))
-            physicalnames=>Dict{Int,String}()
-            for i in 1:numPhysicalNames
-                line = readline(fid)
-                d_,p_,n_ = split(line," ")
-                dimension = parse(Int,d_)
-                physicalTag = parse(Int,p_)
-                name = strip(n_,'\"')
-                physicalnames[physicalTag] = name
-            end
-            readline(fid)
-        elseif line == "\$Nodes"
-            line = readline(fid)
-            nₚ = parse(Int,line)
-            resize!(x,nₚ)
-            resize!(y,nₚ)
-            resize!(z,nₚ)
-            for i in 1:nₚ
-                line = readline(fid)
-                i_,x_,y_,z_ = split(line," ")
-                i_ = parse(Int,i_)
-                x[i_] = parse(Float64,x_)
-                y[i_] = parse(Float64,y_)
-                z[i_] = parse(Float64,z_)
-            end
-            readline(fid)
-        elseif line == "\$Elements"
-            line = readline(fid)
-            nₑ = parse(Int,line)
-            for i in 1:nₑ
-                line = readline(fid)
-                entries = split(line," ")
-                elmN_ = entries[1]
-                elmT_ = entries[2]
-                numT_ = entries[3]
-                phyT_ = entries[4]
-                elmE_ = entries[5]
-                l_ = entries[6:end]
-                elmNumber = parse(Int,elmN_)
-                elmType = parse(Int,elmT_)
-                numTag = parse(Int,numT_)
-                phyTag = parse(Int,phyT_)
-                elmEntary = parse(Int,elmE_)
-                nodeList = parse.(Int,l_)
-                name = physicalnames[phyTag]
-                type = eval(etype[elmType])
-                if ~haskey(elements,name)
-                    elements[name] = type[]
-                    entities[name] = Int[]
-                end
-                push!(elements[name],type(Tuple(nodeList),x,y,z))
-                push!(entities[name],elmEntary)
-            end
-        end
+length_area_volume = quote
+    if elementType == 1
+        𝐿 = [2*determinants[C*ng] for C in 1:ne]
+        push!(data, :𝐿=>(3,𝐿))
+    elseif elementType == 2
+        𝐴 = [determinants[C*ng]/2 for C in 1:ne]
+        push!(data, :𝐴=>(3,𝐴))
     end
-    return elements, entities
 end
+
+typeForFEM = quote
+    type = Element{types[elementType]}
+end
+
+integrationByGmsh = quote
+    ~, ~, order, ni = gmsh.model.mesh.getElementProperties(elementType)
+    if integrationOrder < 0 integrationOrder = order end
+    integrationType = "Gauss"*string(integrationOrder)
+    localCoord, weights = gmsh.model.mesh.getIntegrationPoints(elementType,integrationType)
+end
+
+integrationByManual = quote
+    localCoord, weights = integration
+    ni = length(weights)
+end
+
+generateForFEM = quote
+    G = 0
+    s = 0
+    for C in 1:ne
+        𝓒 = nodes[nodeTag[ni*(C-1)+1:ni*C]]
+        𝓖 = [𝑿ₛ((𝑔 = g, 𝐺 = G+g, 𝐶 = C, 𝑠 = s+(g-1)*ni), data) for g in 1:ng]
+        G += ng
+        s += ng*ni
+        push!(elements,type(𝓒,𝓖))
+    end
+end
+
+@eval begin
+
+function getElements(nodes::Vector{N},dimTag::Pair{Int,Int},integrationOrder::Int = -1) where N<:Node
+    $prequote
+    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
+        ## element type
+        $typeForFEM
+        ## integration rule
+        $integrationByGmsh
+        ## coordinates
+        $coordinates
+        ## special variables
+        $length_area_volume
+        ## generate element
+        $generateForFEM
+    end
+    return elements
+end
+
+function getElements(nodes::Vector{N},dimTag::Pair{Int,Int},integration::NTuple{2,Vector{Float64}}) where N<:Node
+    $prequote
+    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
+        ## element type
+        $typeForFEM
+        ## integration rule
+        $integrationByManual
+        ## coordiantes
+        $coordinates
+        ## special variables
+        $length_area_volume
+        ## generate element
+        $generateForFEM
+    end
+    return elements
+end
+
+end 

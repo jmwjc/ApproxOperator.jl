@@ -1,4 +1,3 @@
 {
-    "git.ignoreLimitWarning": true,
-    "julia.environmentPath": "/Users/wujc/code/ApproxOperator.jl"
+    "git.ignoreLimitWarning": true
 }
