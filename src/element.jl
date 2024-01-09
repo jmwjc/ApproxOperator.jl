@@ -31,6 +31,20 @@ for set𝝭 in (:set𝝭!,:set∇𝝭!,:set∇²𝝭!)
     end
 end
 
+function Base.push!(aps::Vector{T},iss::Pair{Symbol, Symbol}...) where T<:AbstractElement
+    for is in iss
+        i,s = is
+        data = getfield(aps[1].𝓖[1],:data)
+        index = getfield(aps[end].𝓖[end],:index)
+        if i ≠ :𝑠
+            j = findfirst(keys(index),i)
+            data[s] = (j,zeros(index[i]))
+        else
+            data[s] = (4,zeros(index[:𝑠]+length(aps[end].𝓒)))
+        end
+    end
+end
+
 function Base.show(io::IO,::MIME"text/plain",a::T) where T<:AbstractElement
     𝓒 = a.𝓒
     𝓖 = a.𝓖

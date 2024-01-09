@@ -49,8 +49,8 @@ export Operator
 export 𝑿ᵢ, 𝑿ₛ
 export Element
 export TRElement
-export ReproducingKernel, RKGradientSmoothing, GRKGradientSmoothing, PiecewiseParametric, PiecewisePolynomial
+export ReproducingKernel, RKGradientSmoothing, GRKGradientSmoothing, PiecewiseParametric, PiecewisePolynomial, RegularGrid
 export set𝝭!, set∇𝝭!, set∇²𝝭!
-export getPhysicalGroups, get𝑿ᵢ, getElements
+export getPhysicalGroups, get𝑿ᵢ, getElements, addEdgeElements
 
 end

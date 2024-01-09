@@ -1,11 +1,11 @@
 
 function getPhysicalGroups()
-    entities = Dict{String,Pair{Int,Int}}()
+    entities = Dict{String,Tuple{Int,Int}}()
     dimTags = gmsh.model.getPhysicalGroups()
     for (dim,tag) in dimTags
         name = gmsh.model.getPhysicalName(dim,tag)
         tags = gmsh.model.getEntitiesForPhysicalGroup(dim,tag)
-        entities[name] = dim=>tags[1]
+        entities[name] = (dim,tags[1])
     end
     return entities
 end
@@ -20,12 +20,11 @@ function get𝑿ᵢ()
     return [𝑿ᵢ((𝐼=i,),data) for i in 1:nₚ]
 end
 
-
 prequote = quote
     types = Dict([1=>:Seg2, 2=>:Tri3, 3=>:Quad, 4=>:Tet4, 8=>:Seg3, 9=>:Tri6, 10=>:Quad9, 11=>:Tet10, 15=>:Poi1, 16=>Quad8])
     dim, tag = dimTag
     elementTypes, ~, nodeTags = gmsh.model.mesh.getElements(dim,tag)
-    elements = Element[]
+    elements = AbstractElement[]
 end
 
 coordinates = quote
@@ -56,7 +55,7 @@ coordinates = quote
     ne = Int(length(nodeTag)/ni)
 end
 
-length_area_volume = quote
+cal_length_area_volume = quote
     if elementType == 1
         𝐿 = [2*determinants[C*ng] for C in 1:ne]
         push!(data, :𝐿=>(3,𝐿))
@@ -68,6 +67,28 @@ end
 
 typeForFEM = quote
     type = Element{types[elementType]}
+end
+
+cal_normal = quote
+    if normal
+        nodeTags = gmsh.model.mesh.getElementEdgeNodes(elementType,tag,true)
+        if dim == 1
+            n₁ = zeros(ne)
+            n₂ = zeros(ne)
+            for C in 1:ne
+                𝐿 = 2*determinants[C*ng]
+                coord, = gmsh.model.mesh.getNode(nodeTags[2*C-1])
+                x₁ = coord[1]
+                y₁ = coord[2]
+                coord, = gmsh.model.mesh.getNode(nodeTags[2*C])
+                x₂ = coord[1]
+                y₂ = coord[2]
+                n₁[C] = (y₂-y₁)/𝐿
+                n₂[C] = (x₁-x₂)/𝐿
+            end
+            push!(data,:n₁=>(3,n₁),:n₂=>(3,n₂))
+        end
+    end
 end
 
 integrationByGmsh = quote
@@ -113,9 +134,13 @@ generateForNeighbor = quote
     end
 end
 
+generateSummary = quote
+    println("Info: Generate $ne elements of $type with $ng integration points.")
+end
+
 @eval begin
 
-function getElements(nodes::Vector{N},dimTag::Pair{Int,Int},integrationOrder::Int = -1) where N<:Node
+function getElements(nodes::Vector{N},dimTag::Pair{Int,Int},integrationOrder::Int = -1;normal::Bool=false) where N<:Node
     $prequote
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## element type
@@ -125,14 +150,17 @@ function getElements(nodes::Vector{N},dimTag::Pair{Int,Int},integrationOrder::In
         ## coordinates
         $coordinates
         ## special variables
-        $length_area_volume
+        $cal_length_area_volume # length area and volume
+        $cal_normal # unit outernal normal
         ## generate element
         $generateForFEM
+        ## summary
+        $generateSummary
     end
     return elements
 end
 
-function getElements(nodes::Vector{N},dimTag::Pair{Int,Int},integration::NTuple{2,Vector{Float64}}) where N<:Node
+function getElements(nodes::Vector{N},dimTag::Tuple{Int,Int},integration::NTuple{2,Vector{Float64}};normal::Bool=false) where N<:Node
     $prequote
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## element type
@@ -142,14 +170,17 @@ function getElements(nodes::Vector{N},dimTag::Pair{Int,Int},integration::NTuple{
         ## coordiantes
         $coordinates
         ## special variables
-        $length_area_volume
+        $cal_length_area_volume # length area and volume
+        $cal_normal # unit outernal normal
         ## generate element
         $generateForFEM
+        ## summary
+        $generateSummary
     end
     return elements
 end
 
-function getElements(nodes::Vector{N},dimTag::Pair{Int,Int},type::DataType,integrationOrder::Int = -1) where N<:Node
+function getElements(nodes::Vector{N},dimTag::Tuple{Int,Int},type::DataType,integrationOrder::Int = -1;normal::Bool=false) where N<:Node
     $prequote
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## integration rule
@@ -157,14 +188,17 @@ function getElements(nodes::Vector{N},dimTag::Pair{Int,Int},type::DataType,integ
         ## coordinates
         $coordinates
         ## special variables
-        $length_area_volume
+        $cal_length_area_volume # length area and volume
+        $cal_normal # unit outernal normal
         ## generate element
         $generateForFEM
+        ## summary
+        $generateSummary
     end
     return elements
 end
 
-function getElements(nodes::Vector{N},dimTag::Pair{Int,Int},type::DataType,integration::NTuple{2,Vector{Float64}}) where N<:Node
+function getElements(nodes::Vector{N},dimTag::Tuple{Int,Int},type::DataType,integration::NTuple{2,Vector{Float64}};normal::Bool=false) where N<:Node
     $prequote
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## integration rule
@@ -172,14 +206,17 @@ function getElements(nodes::Vector{N},dimTag::Pair{Int,Int},type::DataType,integ
         ## coordiantes
         $coordinates
         ## special variables
-        $length_area_volume
+        $cal_length_area_volume # length area and volume
+        $cal_normal # unit outernal normal
         ## generate element
         $generateForFEM
+        ## summary
+        $generateSummary
     end
     return elements
 end
 
-function getElements(nodes::Vector{N},dimTag::Pair{Int,Int},type::DataType,integrationOrder::Int = -1,sp::SpatialPartition) where N<:Node
+function getElements(nodes::Vector{N},dimTag::Tuple{Int,Int},type::DataType,integrationOrder::Int,sp::SpatialPartition;normal::Bool=false) where N<:Node
     $prequote
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## integration rule
@@ -187,14 +224,17 @@ function getElements(nodes::Vector{N},dimTag::Pair{Int,Int},type::DataType,integ
         ## coordinates
         $coordinates
         ## special variables
-        $length_area_volume
+        $cal_length_area_volume # length area and volume
+        $cal_normal # unit outernal normal
         ## generate element
         $generateForNeighbor
+        ## summary
+        $generateSummary
     end
     return elements
 end
 
-function getElements(nodes::Vector{N},dimTag::Pair{Int,Int},type::DataType,integration::NTuple{2,Vector{Float64}},sp::SpatialPartition) where N<:Node
+function getElements(nodes::Vector{N},dimTag::Tuple{Int,Int},type::DataType,integration::NTuple{2,Vector{Float64}},sp::SpatialPartition;normal::Bool=false) where N<:Node
     $prequote
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## integration rule
@@ -202,9 +242,12 @@ function getElements(nodes::Vector{N},dimTag::Pair{Int,Int},type::DataType,integ
         ## coordinates
         $coordinates
         ## special variables
-        $length_area_volume
+        $cal_length_area_volume # length area and volume
+        $cal_normal # unit outernal normal
         ## generate element
         $generateForNeighbor
+        ## summary
+        $generateSummary
     end
     return elements
 end
