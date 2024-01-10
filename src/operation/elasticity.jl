@@ -166,6 +166,23 @@ function (op::Operator{:∫∫vᵢbᵢdxdy})(ap::T;f::AbstractVector{Float64}) w
     end
 end
 
+function (op::Operator{:∫vᵢbᵢdΩ})(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        N = ξ[:𝝭]
+        𝑤 = ξ.𝑤
+        b₁ = ξ.b₁
+        b₂ = ξ.b₂
+        b₃ = ξ.b₃
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            f[3*I-2] += N[i]*b₁*𝑤
+            f[3*I-1] += N[i]*b₂*𝑤
+            f[3*I]   += N[i]*b₃*𝑤
+        end
+    end
+end
+
 function (op::Operator{:∫vᵢtᵢds})(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -177,6 +194,23 @@ function (op::Operator{:∫vᵢtᵢds})(ap::T;f::AbstractVector{Float64}) where 
             I = xᵢ.𝐼
             f[2*I-1] += N[i]*t₁*𝑤
             f[2*I]   += N[i]*t₂*𝑤
+        end
+    end
+end
+
+function (op::Operator{:∫vᵢtᵢdΓ})(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        N = ξ[:𝝭]
+        𝑤 = ξ.𝑤
+        t₁ = ξ.t₁
+        t₂ = ξ.t₂
+        t₃ = ξ.t₃
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            f[3*I-2] += N[i]*t₁*𝑤
+            f[3*I-1] += N[i]*t₂*𝑤
+            f[3*I]   += N[i]*t₃*𝑤
         end
     end
 end
@@ -453,6 +487,42 @@ function (op::Operator{:∫vᵢgᵢds})(ap::T;k::AbstractMatrix{Float64},f::Abst
             end
             f[2*I-1] += α*N[i]*(n₁₁*g₁+n₁₂*g₂)*𝑤
             f[2*I]   += α*N[i]*(n₁₂*g₁+n₂₂*g₂)*𝑤
+        end
+    end
+end
+
+function (op::Operator{:∫vᵢgᵢdΓ})(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    α = op.α
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        n₁₁ = ξ.n₁₁
+        n₁₂ = ξ.n₁₂
+        n₁₃ = ξ.n₁₃
+        n₂₂ = ξ.n₂₂
+        n₂₃ = ξ.n₂₃
+        n₃₃ = ξ.n₃₃
+        g₁ = ξ.g₁
+        g₂ = ξ.g₂
+        g₃ = ξ.g₃
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[3*I-2,3*J-2] += α*N[i]*n₁₁*N[j]*𝑤
+                k[3*I-2,3*J-1] += α*N[i]*n₁₂*N[j]*𝑤
+                k[3*I-2,3*J]   += α*N[i]*n₁₃*N[j]*𝑤
+                k[3*I-1,3*J-2] += α*N[i]*n₁₂*N[j]*𝑤
+                k[3*I-1,3*J-1] += α*N[i]*n₂₂*N[j]*𝑤
+                k[3*I-1,3*J]   += α*N[i]*n₂₃*N[j]*𝑤
+                k[3*I,3*J-2]   += α*N[i]*n₁₃*N[j]*𝑤
+                k[3*I,3*J-1]   += α*N[i]*n₂₃*N[j]*𝑤
+                k[3*I,3*J]     += α*N[i]*n₃₃*N[j]*𝑤
+            end
+            f[3*I-2] += α*N[i]*(n₁₁*g₁+n₁₂*g₂+n₁₂*g₃)*𝑤
+            f[3*I-1] += α*N[i]*(n₁₂*g₁+n₂₂*g₂+n₂₃*g₃)*𝑤
+            f[3*I]   += α*N[i]*(n₁₃*g₁+n₂₃*g₂+n₃₃*g₃)*𝑤
         end
     end
 end

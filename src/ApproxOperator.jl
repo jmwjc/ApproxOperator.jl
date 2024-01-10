@@ -2,6 +2,7 @@ module ApproxOperator
 
 import Base: +, -, *, /, getindex, setindex!, getproperty, setproperty!, length, push!, fill!, issubset, intersect, show
 import InteractiveUtils: subtypes
+import StaticArrays: SVector, SMatrix, @SArray
 import Printf: @printf
 import Gmsh: gmsh
 
