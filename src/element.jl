@@ -31,9 +31,9 @@ for set𝝭 in (:set𝝭!,:set∇𝝭!,:set∇²𝝭!)
     end
 end
 
-function Base.push!(aps::Vector{T},iss::Pair{Symbol, Symbol}...) where T<:AbstractElement
-    for is in iss
-        i,s = is
+function Base.push!(aps::Vector{T},sis::Pair{Symbol, Symbol}...) where T<:AbstractElement
+    for si in sis
+        s,i = si
         data = getfield(aps[1].𝓖[1],:data)
         index = getfield(aps[end].𝓖[end],:index)
         if i ≠ :𝑠
@@ -42,6 +42,14 @@ function Base.push!(aps::Vector{T},iss::Pair{Symbol, Symbol}...) where T<:Abstra
         else
             data[s] = (4,zeros(index[:𝑠]+length(aps[end].𝓒)))
         end
+    end
+end
+
+function Base.push!(aps::Vector{T},svs::Pair{Symbol, Tuple{Int,Vector{Float64}}}...) where T<:AbstractElement
+    for sv in svs
+        s,v = sv
+        data = getfield(aps[1].𝓖[1],:data)
+        data[s] = v
     end
 end
 
