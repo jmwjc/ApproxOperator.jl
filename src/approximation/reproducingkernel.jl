@@ -144,7 +144,7 @@ end
 
 function get𝗠(ap::AbstractReproducingKernel,s::Symbol)
     n = get𝑛𝒑(ap)
-    data = getfield(getfield(ap,:𝓖)[3][1],:data)
+    data = getfield(ap.𝓖[1],:data)
     fill!(data[s][2],0.)
     return SymMat(n,data[s][2])
 end

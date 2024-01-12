@@ -133,3 +133,24 @@ function (op::Operator{:Bᵢvᵢ})(a::T,b::S;k::AbstractMatrix{Float64},f::Abstr
         end
     end
 end
+
+function (op::Operator{:∫κεds})(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    EI = op.EI
+    EA = op.EA
+    a₁ = op.a₁
+    a₃ = op.a₃
+    for ξ in 𝓖
+        B = ξ[:∂𝝭∂x]
+        C = ξ[:∂²𝝭∂x²]
+        𝑤 = ξ.𝑤
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[2*I-1,2*J-1] += B[i]*(a₁[1]+a₁[2])*EA*(a₁[1]+a₁[2])*B[j]*𝑤
+                k[2*I,2*J]     -= C[i]*(a₃[1]+a₃[2])*EI*(a₃[1]+a₃[2])*C[j]*𝑤
+            end
+        end
+    end
+end

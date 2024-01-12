@@ -17,7 +17,7 @@ function (op::Operator{:∫εᵢⱼNᵢⱼκᵢⱼMᵢⱼdΩ})(ap::T;k::Abstract
         a¹¹ = ξ.a¹¹
         a¹² = ξ.a¹²
         a²² = ξ.a²²
-        a₁₁ = ξ.𝒂₁₍₁₎
+        a₁₁ = ξ.a₁₁
         a₁₂ = ξ.a₁₂
         a₁₃ = ξ.a₁₃
         a₂₁ = ξ.a₂₁
@@ -106,7 +106,7 @@ function (op::Operator{:∫δθθdΓ})(ap::T;k::AbstractMatrix{Float64},f::Abstr
     end
 end
 
-function (op::Operator{:ScordelisLoRoof_𝐴})(ap::T)
+function (op::Operator{:ScordelisLoRoof_𝐴})(ap::T) where T<:AbstractElement
     𝓒 = ap.𝓒
     ξ = ap.𝓖[1]
     w = 0.0
