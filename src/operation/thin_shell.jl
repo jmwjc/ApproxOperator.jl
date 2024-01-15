@@ -82,6 +82,9 @@ function (op::Operator{:∫δθθdΓ})(ap::T;k::AbstractMatrix{Float64},f::Abstr
         B₂ = ξ[:∂𝝭∂y]
         n¹ = ξ.n₁
         n² = ξ.n₂
+        a₃₁ = ξ.a₃₁
+        a₃₂ = ξ.a₃₂
+        a₃₃ = ξ.a₃₃
         θ = ξ.θ
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
