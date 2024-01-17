@@ -54,5 +54,6 @@ export TRElement
 export ReproducingKernel, RKGradientSmoothing, GRKGradientSmoothing, PiecewiseParametric, PiecewisePolynomial, RegularGrid
 export set𝝭!, set∇𝝭!, set∇²𝝭!
 export getPhysicalGroups, get𝑿ᵢ, getElements, addEdgeElements
+export getMacroElementsForTriangles, getMacroElementsForTriangleEdges
 
 end

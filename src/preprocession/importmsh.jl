@@ -28,6 +28,9 @@ prequote = quote
 end
 
 coordinates = quote
+    ng = length(weights)
+    ne = Int(length(nodeTag)/ni)
+
     ξ = localCoord[1:3:end]
     η = localCoord[2:3:end]
     γ = localCoord[3:3:end]
@@ -50,9 +53,62 @@ coordinates = quote
     else
         push!(data, :ξ=>(1,ξ))
     end
+end
 
+coordinatesForEdges = quote
     ng = length(weights)
     ne = Int(length(nodeTag)/ni)
+
+    ξ = zeros(ne*ng)
+    η = zeros(ne*ng)
+    γ = zeros(ne*ng)
+    n₁ = zeros(ne)
+    n₂ = zeros(ne)
+    s₁ = zeros(ne)
+    s₂ = zeros(ne)
+    Δ = zeros(ng)
+    jacobians, determinants, coord = gmsh.model.mesh.getJacobians(elementType, localCoord, tag)
+    x = coord[1:3:end]
+    y = coord[2:3:end]
+    z = coord[3:3:end]
+    𝑤 = [weight*determinant for determinant in determinants for weight in weights]
+    dimΩ,tagΩ = dimTagsΩ
+    ~, tagsΩ = gmsh.model.mesh.getElements(dimΩ,tagΩ)
+    for C in 1:ng
+        𝐿 = 2*determinants[C*ng]
+        coord, = gmsh.model.mesh.getNode(nodeTags[2*C-1])
+        x₁ = coord[1]
+        y₁ = coord[2]
+        coord, = gmsh.model.mesh.getNode(nodeTags[2*C])
+        x₂ = coord[1]
+        y₂ = coord[2]
+        n₁[C] = (y₂-y₁)/𝐿
+        n₂[C] = (x₁-x₂)/𝐿
+        s₁[C] = -n₂[C]
+        s₂[C] =  n₁[C]
+        for g in 1:ng
+            xg = coord[3*(ng*(C-1)+g)+1]
+            yg = coord[3*(ng*(C-1)+g)+2]
+            zg = coord[3*(ng*(C-1)+g)+3]
+        end
+    end
+    data = Dict([
+        :w=>(1,weights),
+        :x=>(2,x),
+        :y=>(2,y),
+        :z=>(2,z),
+        :𝑤=>(2,𝑤),
+        :n₁=>(3,n₁),
+        :n₂=>(3,n₂),
+        :s₁=>(3,s₁),
+        :s₂=>(3,s₂),
+        :Δ=>(1,Δ),
+    ])
+    if dim == 2
+        push!(data, :ξ=>(1,ξ), :η=>(1,η), :γ=>(1,γ))
+    else
+        push!(data, :ξ=>(1,ξ), :η=>(1,η))
+    end
 end
 
 cal_length_area_volume = quote
@@ -99,6 +155,7 @@ integrationByGmsh = quote
 end
 
 integrationByManual = quote
+    ~, ~, ~, ni = gmsh.model.mesh.getElementProperties(elementType)
     localCoord, weights = integration
 end
 
@@ -131,6 +188,32 @@ generateForNeighbor = quote
         G += ng
         s += ng*ni
         push!(elements,type(𝓒,𝓖))
+    end
+end
+
+generateForPiecewise = quote
+    elements = Vector{type}(undef,ne)
+    data𝓒 = Dict{Symbol,Tuple{Int,Vector{Float64}}}()
+    ni = get𝑛𝑝(type(𝑿ᵢ[],𝑿ₛ[]))
+    n₁ = Int(round(n/2))
+    n₂ = Int(round(0.25*ne/n))
+    for j in 1:n₂
+        for i in 1:n₁
+            𝓒 = [𝑿ᵢ((𝐼=n₁*ni*(j-1)+ni*(i-1)+k,),data𝓒) for k in 1:ni]
+            for k in 1:nc
+                C = 2*nc*n₁*(j-1)+nc*(i-1)+k
+                G = ng*(C-1)
+                s = G*ni
+                𝓖 = [𝑿ₛ((𝑔 = g, 𝐺 = G+g, 𝐶 = C, 𝑠 = s+(g-1)*ni), data) for g in 1:ng]
+                elements[C] = type(𝓒,𝓖)
+
+                C = nc*n₁*(2*j-1)+nc*(i-1)+k
+                G = ng*(C-1)
+                s = G*ni
+                𝓖 = [𝑿ₛ((𝑔 = g, 𝐺 = G+g, 𝐶 = C, 𝑠 = s+(g-1)*ni), data) for g in 1:ng]
+                elements[C] = type(𝓒,𝓖)
+            end
+        end
     end
 end
 
@@ -246,6 +329,42 @@ function getElements(nodes::Vector{N},dimTag::Tuple{Int,Int},type::DataType,inte
         $cal_normal # unit outernal normal
         ## generate element
         $generateForNeighbor
+        ## summary
+        $generateSummary
+    end
+    return elements
+end
+
+function getMacroElementsForTriangles(dimTag::Tuple{Int,Int},type::DataType,integration::NTuple{2,Vector{Float64}},n::Int)
+    $prequote
+    nc = 4
+    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
+        ## integration rule
+        $integrationByManual
+        ## coordinates
+        $coordinates
+        ## special variables
+        $cal_length_area_volume # length area and volume
+        ## generate element
+        $generateForPiecewise
+        ## summary
+        $generateSummary
+    end
+    return elements
+end
+
+function getMacroBoundaryElementsForTriangles(dimTag::Tuple{Int,Int},dimTagΩ::Tuple{Int,Int},type::DataType,integration::NTuple{2,Vector{Float64}},n::Int)
+    $prequote
+    nc = 12
+    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
+        ## integration rule
+        $integrationByManual
+        ## coordinates
+        $coordinatesForEdges
+        ## special variables
+        $cal_length_area_volume # length area and volume
+        ## generate element
+        $generateForPiecewise
         ## summary
         $generateSummary
     end
