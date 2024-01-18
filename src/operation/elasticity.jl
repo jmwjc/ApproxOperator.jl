@@ -520,7 +520,7 @@ function (op::Operator{:∫vᵢgᵢdΓ})(ap::T;k::AbstractMatrix{Float64},f::Abs
                 k[3*I,3*J-1]   += α*N[i]*n₂₃*N[j]*𝑤
                 k[3*I,3*J]     += α*N[i]*n₃₃*N[j]*𝑤
             end
-            f[3*I-2] += α*N[i]*(n₁₁*g₁+n₁₂*g₂+n₁₂*g₃)*𝑤
+            f[3*I-2] += α*N[i]*(n₁₁*g₁+n₁₂*g₂+n₁₃*g₃)*𝑤
             f[3*I-1] += α*N[i]*(n₁₂*g₁+n₂₂*g₂+n₂₃*g₃)*𝑤
             f[3*I]   += α*N[i]*(n₁₃*g₁+n₂₃*g₂+n₃₃*g₃)*𝑤
         end

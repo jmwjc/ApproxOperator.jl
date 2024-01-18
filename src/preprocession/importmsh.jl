@@ -72,24 +72,32 @@ coordinatesForEdges = quote
     y = coord[2:3:end]
     z = coord[3:3:end]
     𝑤 = [weight*determinant for determinant in determinants for weight in weights]
-    dimΩ,tagΩ = dimTagsΩ
+
+    for g in 1:ng
+        ξg = localCoord[3*g-2]
+        if abs(ξg) ≈ 1.0 Δ[g] = 1.0 end
+    end
+
+    nodeTags = gmsh.model.mesh.getElementEdgeNodes(elementType,tag,true)
+    dimΩ,tagΩ = dimTagΩ
     ~, tagsΩ = gmsh.model.mesh.getElements(dimΩ,tagΩ)
-    for C in 1:ng
-        𝐿 = 2*determinants[C*ng]
-        coord, = gmsh.model.mesh.getNode(nodeTags[2*C-1])
-        x₁ = coord[1]
-        y₁ = coord[2]
-        coord, = gmsh.model.mesh.getNode(nodeTags[2*C])
-        x₂ = coord[1]
-        y₂ = coord[2]
-        n₁[C] = (y₂-y₁)/𝐿
-        n₂[C] = (x₁-x₂)/𝐿
-        s₁[C] = -n₂[C]
-        s₂[C] =  n₁[C]
-        for g in 1:ng
-            xg = coord[3*(ng*(C-1)+g)+1]
-            yg = coord[3*(ng*(C-1)+g)+2]
-            zg = coord[3*(ng*(C-1)+g)+3]
+    for (CΩ,tagΩ) in enumerate(tagsΩ[1])
+        for C in 3*CΩ-2:3*CΩ
+            𝐿 = 2*determinants[C*ng]
+            coord, = gmsh.model.mesh.getNode(nodeTags[2*C-1])
+            x₁ = coord[1]
+            y₁ = coord[2]
+            coord, = gmsh.model.mesh.getNode(nodeTags[2*C])
+            x₂ = coord[1]
+            y₂ = coord[2]
+            n₁[C] = (y₂-y₁)/𝐿
+            n₂[C] = (x₁-x₂)/𝐿
+            s₁[C] = -n₂[C]
+            s₂[C] =  n₁[C]
+            for g in 1:ng
+                G = ng*(C-1)+g
+                ξ[G], η[G], γ[G] = gmsh.model.mesh.getLocalCoordinatesInElement(tagΩ, x[G], y[G], z[G])
+            end
         end
     end
     data = Dict([
@@ -195,23 +203,19 @@ generateForPiecewise = quote
     elements = Vector{type}(undef,ne)
     data𝓒 = Dict{Symbol,Tuple{Int,Vector{Float64}}}()
     ni = get𝑛𝑝(type(𝑿ᵢ[],𝑿ₛ[]))
-    n₁ = Int(round(n/2))
-    n₂ = Int(round(0.25*ne/n))
+    n₁ = Int(round(n/nₕ))
+    n₂ = Int(round(ne/nₐ/n₁/nₕ^2))
     for j in 1:n₂
         for i in 1:n₁
             𝓒 = [𝑿ᵢ((𝐼=n₁*ni*(j-1)+ni*(i-1)+k,),data𝓒) for k in 1:ni]
-            for k in 1:nc
-                C = 2*nc*n₁*(j-1)+nc*(i-1)+k
-                G = ng*(C-1)
-                s = G*ni
-                𝓖 = [𝑿ₛ((𝑔 = g, 𝐺 = G+g, 𝐶 = C, 𝑠 = s+(g-1)*ni), data) for g in 1:ng]
-                elements[C] = type(𝓒,𝓖)
-
-                C = nc*n₁*(2*j-1)+nc*(i-1)+k
-                G = ng*(C-1)
-                s = G*ni
-                𝓖 = [𝑿ₛ((𝑔 = g, 𝐺 = G+g, 𝐶 = C, 𝑠 = s+(g-1)*ni), data) for g in 1:ng]
-                elements[C] = type(𝓒,𝓖)
+            for k in 1:nₕ
+                for l in 1:nₐ*nₕ
+                    C = nₐ*nₕ*n₁*(nₕ*(j-1)+k-1)+nₐ*nₕ*(i-1)+l
+                    G = ng*(C-1)
+                    s = G*ni
+                    𝓖 = [𝑿ₛ((𝑔 = g, 𝐺 = G+g, 𝐶 = C, 𝑠 = s+(g-1)*ni), data) for g in 1:ng]
+                    elements[C] = type(𝓒,𝓖)
+                end
             end
         end
     end
@@ -337,7 +341,7 @@ end
 
 function getMacroElementsForTriangles(dimTag::Tuple{Int,Int},type::DataType,integration::NTuple{2,Vector{Float64}},n::Int)
     $prequote
-    nc = 4
+    nₕ = 2; nₐ = 2
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## integration rule
         $integrationByManual
@@ -355,7 +359,7 @@ end
 
 function getMacroBoundaryElementsForTriangles(dimTag::Tuple{Int,Int},dimTagΩ::Tuple{Int,Int},type::DataType,integration::NTuple{2,Vector{Float64}},n::Int)
     $prequote
-    nc = 12
+    nₕ = 2; nₐ = 6
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## integration rule
         $integrationByManual
