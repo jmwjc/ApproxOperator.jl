@@ -19,7 +19,7 @@ function Base.setproperty!(ap::T,s::Symbol,v::Float64) where T<:AbstractElement
     setproperty!(ξ,s,v)
 end
 
-for set𝝭 in (:set𝝭!,:set∇𝝭!,:set∇²𝝭!)
+for set𝝭 in (:set𝝭!,:set∇𝝭!,:set∇²𝝭!,:set∇̂³𝝭!)
     @eval begin
         function $set𝝭(a::T) where T<:AbstractElement
             𝓖 = a.𝓖

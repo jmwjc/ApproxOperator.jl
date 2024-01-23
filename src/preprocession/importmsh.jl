@@ -139,6 +139,8 @@ cal_normal = quote
         if dim == 1
             n₁ = zeros(ne)
             n₂ = zeros(ne)
+            s₁ = zeros(ne)
+            s₂ = zeros(ne)
             for C in 1:ne
                 𝐿 = 2*determinants[C*ng]
                 coord, = gmsh.model.mesh.getNode(nodeTags[2*C-1])
@@ -149,8 +151,10 @@ cal_normal = quote
                 y₂ = coord[2]
                 n₁[C] = (y₂-y₁)/𝐿
                 n₂[C] = (x₁-x₂)/𝐿
+                s₁[C] = -n₂[C]
+                s₂[C] =  n₁[C]
             end
-            push!(data,:n₁=>(3,n₁),:n₂=>(3,n₂))
+            push!(data,:n₁=>(3,n₁),:n₂=>(3,n₂),:s₁=>(3,s₁),:s₂=>(3,s₂))
         end
     end
 end
