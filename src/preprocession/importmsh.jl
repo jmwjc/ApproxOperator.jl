@@ -343,9 +343,8 @@ function getElements(nodes::Vector{N},dimTag::Tuple{Int,Int},type::DataType,inte
     return elements
 end
 
-function getMacroElementsForTriangles(dimTag::Tuple{Int,Int},type::DataType,integrationOrder::Int,n::Int)
+function getMacroElements(dimTag::Tuple{Int,Int},type::DataType,integrationOrder::Int,n::Int;nₕ::Int=1,nₐ::Int=2)
     $prequote
-    nₕ = 2; nₐ = 2
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## integration rule
         $integrationByGmsh
@@ -361,50 +360,13 @@ function getMacroElementsForTriangles(dimTag::Tuple{Int,Int},type::DataType,inte
     return elements
 end
 
-function getMacroElementsForTriangles(dimTag::Tuple{Int,Int},type::DataType,integration::NTuple{2,Vector{Float64}},n::Int)
+function getMacroElements(dimTag::Tuple{Int,Int},type::DataType,integration::NTuple{2,Vector{Float64}},n::Int;nₕ::Int=1,nₐ::Int=2)
     $prequote
-    nₕ = 2; nₐ = 2
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## integration rule
         $integrationByManual
         ## coordinates
         $coordinates
-        ## special variables
-        $cal_length_area_volume # length area and volume
-        ## generate element
-        $generateForPiecewise
-        ## summary
-        $generateSummary
-    end
-    return elements
-end
-
-function getMacroBoundaryElementsForTriangles(dimTag::Tuple{Int,Int},dimTagΩ::Tuple{Int,Int},type::DataType,integrationOrder::Int,n::Int)
-    $prequote
-    nₕ = 2; nₐ = 6
-    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
-        ## integration rule
-        $integrationByGmsh
-        ## coordinates
-        $coordinatesForEdges
-        ## special variables
-        $cal_length_area_volume # length area and volume
-        ## generate element
-        $generateForPiecewise
-        ## summary
-        $generateSummary
-    end
-    return elements
-end
-
-function getMacroBoundaryElementsForTriangles(dimTag::Tuple{Int,Int},dimTagΩ::Tuple{Int,Int},type::DataType,integration::NTuple{2,Vector{Float64}},n::Int)
-    $prequote
-    nₕ = 2; nₐ = 6
-    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
-        ## integration rule
-        $integrationByManual
-        ## coordinates
-        $coordinatesForEdges
         ## special variables
         $cal_length_area_volume # length area and volume
         ## generate element
