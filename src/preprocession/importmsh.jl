@@ -377,4 +377,38 @@ function getMacroElements(dimTag::Tuple{Int,Int},type::DataType,integration::NTu
     return elements
 end
 
+function getMacroBoundaryElements(dimTag::Tuple{Int,Int},dimTagΩ::Tuple{Int,Int},type::DataType,integrationOrder::Int,n::Int;nₕ::Int=1,nₐ::Int=6)
+    $prequote
+    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
+        ## integration rule
+        $integrationByGmsh
+        ## coordinates
+        $coordinatesForEdges
+        ## special variables
+        $cal_length_area_volume # length area and volume
+        ## generate element
+        $generateForPiecewise
+        ## summary
+        $generateSummary
+    end
+    return elements
+end
+
+function getMacroBoundaryElements(dimTag::Tuple{Int,Int},dimTagΩ::Tuple{Int,Int},type::DataType,integration::NTuple{2,Vector{Float64}},n::Int;nₕ::Int=1,nₐ::Int=6)
+    $prequote
+    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
+        ## integration rule
+        $integrationByManual
+        ## coordinates
+        $coordinatesForEdges
+        ## special variables
+        $cal_length_area_volume # length area and volume
+        ## generate element
+        $generateForPiecewise
+        ## summary
+        $generateSummary
+    end
+    return elements
+end
+
 end 
