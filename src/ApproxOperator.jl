@@ -42,6 +42,8 @@ include("operation/error_estimates.jl")
 include("preprocession/importmsh.jl")
 include("operation/Kirchhoff_Love_plate.jl")
 include("operation/plasticity.jl")
+include("operation/Hamilton.jl")
+
 
 include("littletools.jl")
 
