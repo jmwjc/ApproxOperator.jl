@@ -13,9 +13,14 @@ end
 function get𝑿ᵢ()
     nodeTags, coord = gmsh.model.mesh.getNodes()
     nₚ = length(nodeTags)
-    x = coord[1:3:3*nₚ]
-    y = coord[2:3:3*nₚ]
-    z = coord[3:3:3*nₚ]
+    x = zeros(nₚ)
+    y = zeros(nₚ)
+    z = zeros(nₚ)
+    for (i,I) in enumerate(nodeTags)
+        x[I] = coord[3*i-2]
+        y[I] = coord[3*i-1]
+        z[I] = coord[3*i]
+    end
     data = Dict([:x=>(1,x),:y=>(1,y),:z=>(1,z)])
     return [𝑿ᵢ((𝐼=i,),data) for i in 1:nₚ]
 end
