@@ -3,6 +3,7 @@ module ApproxOperator
 import Base: +, -, *, /, getindex, setindex!, getproperty, setproperty!, length, push!, fill!, issubset, intersect, show
 import InteractiveUtils: subtypes
 import StaticArrays: SVector, SMatrix, @SArray
+import Tensors: Vec, ⋅
 import Printf: @printf
 import Gmsh: gmsh
 
@@ -54,6 +55,6 @@ export TRElement
 export ReproducingKernel, RKGradientSmoothing, GRKGradientSmoothing, PiecewiseParametric, PiecewisePolynomial, RegularGrid
 export set𝝭!, set∇𝝭!, set∇²𝝭!, set∇̂³𝝭!
 export getPhysicalGroups, get𝑿ᵢ, getElements, addEdgeElements
-export getMacroElements, getMacroBoundaryElements
+export getMacroElements, getMacroBoundaryElements, getCurvedElements
 
 end

@@ -13,9 +13,14 @@ end
 function get𝑿ᵢ()
     nodeTags, coord = gmsh.model.mesh.getNodes()
     nₚ = length(nodeTags)
-    x = coord[1:3:3*nₚ]
-    y = coord[2:3:3*nₚ]
-    z = coord[3:3:3*nₚ]
+    x = zeros(nₚ)
+    y = zeros(nₚ)
+    z = zeros(nₚ)
+    for (i,I) in enumerate(nodeTags)
+        x[I] = coord[3*i-2]
+        y[I] = coord[3*i-1]
+        z[I] = coord[3*i]
+    end
     data = Dict([:x=>(1,x),:y=>(1,y),:z=>(1,z)])
     return [𝑿ᵢ((𝐼=i,),data) for i in 1:nₚ]
 end
@@ -38,7 +43,13 @@ coordinates = quote
     x = coord[1:3:end]
     y = coord[2:3:end]
     z = coord[3:3:end]
-    𝑤 = [weight*determinant for determinant in determinants for weight in weights]
+    𝑤 = zeros(length(determinants))
+    for i in 1:Int(length(determinants)/ng)
+        for (j,w) in enumerate(weights)
+            G = ng*(i-1)+j
+            𝑤[G] = determinants[G]*w
+        end
+    end
     data = Dict([
         :w=>(1,weights),
         :x=>(2,x),
@@ -71,7 +82,13 @@ coordinatesForEdges = quote
     x = coord[1:3:end]
     y = coord[2:3:end]
     z = coord[3:3:end]
-    𝑤 = [weight*determinant for determinant in determinants for weight in weights]
+    𝑤 = zeros(length(determinants))
+    for i in 1:Int(length(determinants)/ng)
+        for (j,w) in enumerate(weights)
+            G = ng*(i-1)+j
+            𝑤[G] = determinants[G]*w
+        end
+    end
 
     for g in 1:ng
         ξg = localCoord[3*g-2]
@@ -116,6 +133,62 @@ coordinatesForEdges = quote
         push!(data, :ξ=>(1,ξ), :η=>(1,η), :γ=>(1,γ))
     else
         push!(data, :ξ=>(1,ξ), :η=>(1,η))
+    end
+end
+
+curvilinearCoordinates = quote
+    ng = length(weights)
+    ne = Int(length(nodeTag)/ni)
+
+    ξ = localCoord[1:3:end]
+    η = localCoord[2:3:end]
+    γ = localCoord[3:3:end]
+    jacobians, determinants, coord = gmsh.model.mesh.getJacobians(elementType, localCoord, tag)
+    x = coord[1:3:end]
+    y = coord[2:3:end]
+    z = coord[3:3:end]
+    𝑤 = zeros(length(determinants))
+    if dim == 2
+        for i in 1:Int(length(determinants)/ng)
+            for (j,w) in enumerate(weights)
+                G = ng*(i-1)+j
+                x_ = Vec{3}((x[G],y[G],z[G]))
+                # J1 = 𝐽(x_)
+                # J2 = cos(y[G]/25)
+                # println("J1: $J1, J2: $J2")
+                𝑤[G] = determinants[G]*𝐽(x_)*w
+            end
+        end
+    elseif dim == 1
+        ∂x∂ξ = jacobians[1:9:end]
+        ∂y∂ξ = jacobians[2:9:end]
+        ∂z∂ξ = jacobians[3:9:end]
+        for i in 1:Int(length(determinants)/ng)
+            for (j,w) in enumerate(weights)
+                G = ng*(i-1)+j
+                x_ = Vec{3}((x[G],y[G],z[G]))
+                ∂ξ = Vec{3}((∂x∂ξ[G],∂y∂ξ[G],∂z∂ξ[G]))
+                J = ((𝒂₁(x_)⋅∂ξ)^2+(𝒂₂(x_)⋅∂ξ)^2+(𝒂₃(x_)⋅∂ξ)^2)^0.5
+                println(∂ξ)
+                # det = determinants[G]
+                # println("determinant: $det, 𝐽: $J.")
+                𝑤[G] = J*w
+            end
+        end
+    end
+    data = Dict([
+        :w=>(1,weights),
+        :x=>(2,x),
+        :y=>(2,y),
+        :z=>(2,z),
+        :𝑤=>(2,𝑤),
+    ])
+    if dim == 3
+        push!(data, :ξ=>(1,ξ), :η=>(1,η), :γ=>(1,γ))
+    elseif dim == 2
+        push!(data, :ξ=>(1,ξ), :η=>(1,η))
+    else
+        push!(data, :ξ=>(1,ξ))
     end
 end
 
@@ -231,7 +304,7 @@ end
 
 @eval begin
 
-function getElements(nodes::Vector{N},dimTag::Pair{Int,Int},integrationOrder::Int = -1;normal::Bool=false) where N<:Node
+function getElements(nodes::Vector{N},dimTag::Tuple{Int,Int},integrationOrder::Int = -1;normal::Bool=false) where N<:Node
     $prequote
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## element type
@@ -405,6 +478,26 @@ function getMacroBoundaryElements(dimTag::Tuple{Int,Int},dimTagΩ::Tuple{Int,Int
         $cal_length_area_volume # length area and volume
         ## generate element
         $generateForPiecewise
+        ## summary
+        $generateSummary
+    end
+    return elements
+end
+
+function getCurvedElements(nodes::Vector{N},dimTag::Tuple{Int,Int},integrationOrder::Int = -1;normal::Bool=false,𝒂₁::Function=(x)->(1.0,0.0,0.0),𝒂₂::Function=(x)->(0.0,1.0,0.0),𝒂₃::Function=(x)->(0.0,0.0,1.0),𝐽::Function=(x)->1.0) where N<:Node
+    $prequote
+    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
+        ## element type
+        $typeForFEM
+        ## integration rule
+        $integrationByGmsh
+        ## coordinates
+        $curvilinearCoordinates
+        ## special variables
+        $cal_length_area_volume # length area and volume
+        $cal_normal # unit outernal normal
+        ## generate element
+        $generateForFEM
         ## summary
         $generateSummary
     end
