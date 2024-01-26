@@ -159,6 +159,13 @@ curvilinearCoordinates = quote
                 𝑤[G] = determinants[G]*𝐽(x_)*w
             end
         end
+        data = Dict([
+            :w=>(1,weights),
+            :x=>(2,x),
+            :y=>(2,y),
+            :z=>(2,z),
+            :𝑤=>(2,𝑤),
+        ])
     elseif dim == 1
         ∂x∂ξ = jacobians[1:9:end]
         ∂y∂ξ = jacobians[2:9:end]
@@ -200,15 +207,20 @@ curvilinearCoordinates = quote
                 𝑤[G] = J*w
             end
         end
-        push!(data,:n₁=>(3,n₁),:n₂=>(3,n₂),:s₁=>(3,s₁),:s₂=>(3,s₂),:s¹=>(3,s¹),:s²=>(3,s²))
+        data = Dict([
+            :w=>(1,weights),
+            :x=>(2,x),
+            :y=>(2,y),
+            :z=>(2,z),
+            :𝑤=>(2,𝑤),
+            :n₁=>(2,n₁),
+            :n₂=>(2,n₂),
+            :s₁=>(2,s₁),
+            :s₂=>(2,s₂),
+            :s¹=>(2,s¹),
+            :s²=>(2,s²),
+        ])
     end
-    data = Dict([
-        :w=>(1,weights),
-        :x=>(2,x),
-        :y=>(2,y),
-        :z=>(2,z),
-        :𝑤=>(2,𝑤),
-    ])
     if dim == 2
         push!(data, :ξ=>(1,ξ), :η=>(1,η))
     else
