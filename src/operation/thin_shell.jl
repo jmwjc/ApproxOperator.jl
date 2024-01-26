@@ -1530,3 +1530,24 @@ function (op::Operator{:ScordelisLoRoof_𝐴})(ap::T) where T<:AbstractElement
     end
     return w
 end
+
+function (op::Operator{:SphericalShell_𝐴})(ap::T) where T<:AbstractElement
+    𝓒 = ap.𝓒
+    ξ = ap.𝓖[1]
+    w = 0.0
+    N = ξ[:𝝭]
+    for (i,xᵢ) in enumerate(𝓒)
+        w += N[i]*xᵢ.d₁
+    end
+    return w
+end
+function (op::Operator{:SphericalShell_𝐵})(ap::T) where T<:AbstractElement
+    𝓒 = ap.𝓒
+    ξ = ap.𝓖[1]
+    w = 0.0
+    N = ξ[:𝝭]
+    for (i,xᵢ) in enumerate(𝓒)
+        w += N[i]*xᵢ.d₂
+    end
+    return w
+end
