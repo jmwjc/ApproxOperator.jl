@@ -163,18 +163,44 @@ curvilinearCoordinates = quote
         ∂x∂ξ = jacobians[1:9:end]
         ∂y∂ξ = jacobians[2:9:end]
         ∂z∂ξ = jacobians[3:9:end]
-        for i in 1:Int(length(determinants)/ng)
+        n₁ = zeros(ne*ng)
+        n₂ = zeros(ne*ng)
+        s₁ = zeros(ne*ng)
+        s₂ = zeros(ne*ng)
+        s¹ = zeros(ne*ng)
+        s² = zeros(ne*ng)
+        nodeTags = gmsh.model.mesh.getElementEdgeNodes(elementType, tag, true)
+        for C in 1:ne
+            𝐿 = 2*determinants[C*ng]
+            coord, = gmsh.model.mesh.getNode(nodeTags[2*C-1])
+            x₁ = coord[1]
+            y₁ = coord[2]
+            coord, = gmsh.model.mesh.getNode(nodeTags[2*C])
+            x₂ = coord[1]
+            y₂ = coord[2]
+            t¹ = (x₂-x₁)/𝐿
+            t² = (y₂-y₁)/𝐿
             for (j,w) in enumerate(weights)
-                G = ng*(i-1)+j
+                G = ng*(C-1)+j
                 x_ = Vec{3}((x[G],y[G],z[G]))
                 ∂ξ = Vec{3}((∂x∂ξ[G],∂y∂ξ[G],∂z∂ξ[G]))
                 J = ((𝒂₁(x_)⋅∂ξ)^2+(𝒂₂(x_)⋅∂ξ)^2+(𝒂₃(x_)⋅∂ξ)^2)^0.5
-                println(∂ξ)
+                deta = (a₁₁(x_)*a₂₂(x_)-2*a₁₂(x_))
+                t₁ = a₁₁(x_)*t¹ + a₁₂(x_)*t²
+                t₂ = a₁₂(x_)*t¹ + a₂₂(x_)*t²
+                t = (t¹*t₁+t²*t₂)
+                s₁[G] = t₁/t
+                s₂[G] = t₂/t
+                s¹[G] = t¹/t
+                s²[G] = t²/t
+                n₁[G] = t²*deta
+                n₂[G] =-t₁*deta
                 # det = determinants[G]
                 # println("determinant: $det, 𝐽: $J.")
                 𝑤[G] = J*w
             end
         end
+        push!(data,:n₁=>(3,n₁),:n₂=>(3,n₂),:s₁=>(3,s₁),:s₂=>(3,s₂),:s¹=>(3,s¹),:s²=>(3,s²))
     end
     data = Dict([
         :w=>(1,weights),
@@ -183,9 +209,7 @@ curvilinearCoordinates = quote
         :z=>(2,z),
         :𝑤=>(2,𝑤),
     ])
-    if dim == 3
-        push!(data, :ξ=>(1,ξ), :η=>(1,η), :γ=>(1,γ))
-    elseif dim == 2
+    if dim == 2
         push!(data, :ξ=>(1,ξ), :η=>(1,η))
     else
         push!(data, :ξ=>(1,ξ))
@@ -484,7 +508,7 @@ function getMacroBoundaryElements(dimTag::Tuple{Int,Int},dimTagΩ::Tuple{Int,Int
     return elements
 end
 
-function getCurvedElements(nodes::Vector{N},dimTag::Tuple{Int,Int},integrationOrder::Int = -1;normal::Bool=false,𝒂₁::Function=(x)->(1.0,0.0,0.0),𝒂₂::Function=(x)->(0.0,1.0,0.0),𝒂₃::Function=(x)->(0.0,0.0,1.0),𝐽::Function=(x)->1.0) where N<:Node
+function getCurvedElements(nodes::Vector{N},dimTag::Tuple{Int,Int},integrationOrder::Int = -1;𝒂₁::Function=(x)->(1.0,0.0,0.0),𝒂₂::Function=(x)->(0.0,1.0,0.0),𝒂₃::Function=(x)->(0.0,0.0,1.0),𝐽::Function=(x)->1.0,a₁₁::Function=(x)->1.0,a₂₂::Function=(x)->1.0,a₁₂::Function=(x)->1.0) where N<:Node
     $prequote
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## element type
@@ -495,7 +519,6 @@ function getCurvedElements(nodes::Vector{N},dimTag::Tuple{Int,Int},integrationOr
         $curvilinearCoordinates
         ## special variables
         $cal_length_area_volume # length area and volume
-        $cal_normal # unit outernal normal
         ## generate element
         $generateForFEM
         ## summary
