@@ -156,7 +156,7 @@ curvilinearCoordinates = quote
                 # J1 = 𝐽(x_)
                 # J2 = cos(y[G]/25)
                 # println("J1: $J1, J2: $J2")
-                𝑤[G] = determinants[G]*𝐽(x_)*w
+                𝑤[G] = determinants[G]*cs.𝐽(x_)*w
             end
         end
         data = Dict([
@@ -167,11 +167,14 @@ curvilinearCoordinates = quote
             :𝑤=>(2,𝑤),
         ])
     elseif dim == 1
+        Δ = zeros(ng)
         ∂x∂ξ = jacobians[1:9:end]
         ∂y∂ξ = jacobians[2:9:end]
         ∂z∂ξ = jacobians[3:9:end]
         n₁ = zeros(ne*ng)
         n₂ = zeros(ne*ng)
+        n¹ = zeros(ne*ng)
+        n² = zeros(ne*ng)
         s₁ = zeros(ne*ng)
         s₂ = zeros(ne*ng)
         s¹ = zeros(ne*ng)
@@ -190,22 +193,36 @@ curvilinearCoordinates = quote
             for (j,w) in enumerate(weights)
                 G = ng*(C-1)+j
                 x_ = Vec{3}((x[G],y[G],z[G]))
-                ∂ξ = Vec{3}((∂x∂ξ[G],∂y∂ξ[G],∂z∂ξ[G]))
-                J = ((𝒂₁(x_)⋅∂ξ)^2+(𝒂₂(x_)⋅∂ξ)^2+(𝒂₃(x_)⋅∂ξ)^2)^0.5
-                deta = (a₁₁(x_)*a₂₂(x_)-2*a₁₂(x_))
-                t₁ = a₁₁(x_)*t¹ + a₁₂(x_)*t²
-                t₂ = a₁₂(x_)*t¹ + a₂₂(x_)*t²
-                t = (t¹*t₁+t²*t₂)
+                𝒂₁_ = cs.𝒂₁(x_)
+                𝒂₂_ = cs.𝒂₂(x_)
+                𝒂₃_ = cs.𝒂₃(x_)
+                J = ((𝒂₁_[1]*∂x∂ξ[G] + 𝒂₂_[1]*∂y∂ξ[G] + 𝒂₃_[1]*∂z∂ξ[G])^2
+                  +  (𝒂₁_[2]*∂x∂ξ[G] + 𝒂₂_[2]*∂y∂ξ[G] + 𝒂₃_[2]*∂z∂ξ[G])^2
+                  +  (𝒂₁_[3]*∂x∂ξ[G] + 𝒂₂_[3]*∂y∂ξ[G] + 𝒂₃_[3]*∂z∂ξ[G])^2)^0.5
+                deta = (cs.a₁₁(x_)*cs.a₂₂(x_)-2*cs.a₁₂(x_))^0.5
+                deta₁ = (cs.Γ¹₁₁(x_)+cs.Γ²₁₂(x_))*deta
+                deta₂ = (cs.Γ¹₁₂(x_)+cs.Γ²₂₂(x_))*deta
+                t₁ = cs.a₁₁(x_)*t¹ + cs.a₁₂(x_)*t²
+                t₂ = cs.a₁₂(x_)*t¹ + cs.a₂₂(x_)*t²
+                t = (t¹*t₁+t²*t₂)^0.5
                 s₁[G] = t₁/t
                 s₂[G] = t₂/t
                 s¹[G] = t¹/t
                 s²[G] = t²/t
-                n₁[G] = t²*deta
-                n₂[G] =-t₁*deta
+                n₁[G] = s²[G]*deta
+                n₂[G] =-s¹[G]*deta
+                n¹[G] = cs.a¹¹(x_)*n₁[G] + cs.a¹²(x_)*n₂[G]
+                n²[G] = cs.a¹²(x_)*n₁[G] + cs.a²²(x_)*n₂[G]
+                t¹₁ = cs.Γ¹₁₁(x_)*t¹ + cs.Γ¹₁₂(x_)*t²
+                t¹₂ = cs.Γ¹₁₁(x_)*t¹
                 # det = determinants[G]
                 # println("determinant: $det, 𝐽: $J.")
                 𝑤[G] = J*w
             end
+        end
+        for g in 1:ng
+            ξg = localCoord[3*g-2]
+            if abs(ξg) ≈ 1.0 Δ[g] = 1.0 end
         end
         data = Dict([
             :w=>(1,weights),
@@ -215,10 +232,13 @@ curvilinearCoordinates = quote
             :𝑤=>(2,𝑤),
             :n₁=>(2,n₁),
             :n₂=>(2,n₂),
+            :n¹=>(2,n¹),
+            :n²=>(2,n²),
             :s₁=>(2,s₁),
             :s₂=>(2,s₂),
             :s¹=>(2,s¹),
             :s²=>(2,s²),
+            :Δ=>(1,Δ),
         ])
     end
     if dim == 2
@@ -520,7 +540,7 @@ function getMacroBoundaryElements(dimTag::Tuple{Int,Int},dimTagΩ::Tuple{Int,Int
     return elements
 end
 
-function getCurvedElements(nodes::Vector{N},dimTag::Tuple{Int,Int},integrationOrder::Int = -1;𝒂₁::Function=(x)->(1.0,0.0,0.0),𝒂₂::Function=(x)->(0.0,1.0,0.0),𝒂₃::Function=(x)->(0.0,0.0,1.0),𝐽::Function=(x)->1.0,a₁₁::Function=(x)->1.0,a₂₂::Function=(x)->1.0,a₁₂::Function=(x)->1.0) where N<:Node
+function getCurvedElements(nodes::Vector{N},dimTag::Tuple{Int,Int},integrationOrder::Int = -1,cs::Function) where N<:Node
     $prequote
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## element type
