@@ -179,6 +179,14 @@ curvilinearCoordinates = quote
         s₂ = zeros(ne*ng)
         s¹ = zeros(ne*ng)
         s² = zeros(ne*ng)
+        ∂₁n₁ = zeros(ne*ng)
+        ∂₁n₂ = zeros(ne*ng)
+        ∂₂n₁ = zeros(ne*ng)
+        ∂₂n₂ = zeros(ne*ng)
+        ∂₁s₁ = zeros(ne*ng)
+        ∂₁s₂ = zeros(ne*ng)
+        ∂₂s₁ = zeros(ne*ng)
+        ∂₂s₂ = zeros(ne*ng)
         nodeTags = gmsh.model.mesh.getElementEdgeNodes(elementType, tag, true)
         for C in 1:ne
             𝐿 = 2*determinants[C*ng]
@@ -213,8 +221,26 @@ curvilinearCoordinates = quote
                 n₂[G] =-s¹[G]*deta
                 n¹[G] = cs.a¹¹(x_)*n₁[G] + cs.a¹²(x_)*n₂[G]
                 n²[G] = cs.a¹²(x_)*n₁[G] + cs.a²²(x_)*n₂[G]
-                t¹₁ = cs.Γ¹₁₁(x_)*t¹ + cs.Γ¹₁₂(x_)*t²
-                t¹₂ = cs.Γ¹₁₁(x_)*t¹
+                s¹₁ = (cs.Γ¹₁₁(x_)*t¹ + cs.Γ¹₁₂(x_)*t²)/t
+                s¹₂ = (cs.Γ¹₁₂(x_)*t¹ + cs.Γ¹₂₂(x_)*t²)/t
+                s²₁ = (cs.Γ²₁₁(x_)*t¹ + cs.Γ²₁₂(x_)*t²)/t
+                s²₂ = (cs.Γ²₁₂(x_)*t¹ + cs.Γ²₂₂(x_)*t²)/t
+                s₁₁ = cs.a₁₁(x_)*s¹₁ + cs.a₁₂(x_)*s²₁
+                s₁₂ = cs.a₁₁(x_)*s¹₂ + cs.a₁₂(x_)*s²₂
+                s₂₁ = cs.a₁₂(x_)*s¹₁ + cs.a₂₂(x_)*s²₁
+                s₂₂ = cs.a₁₂(x_)*s¹₂ + cs.a₂₂(x_)*s²₂
+                ∂₁s¹ = s¹₁ - cs.Γ¹₁₁(x_)*s¹[G] - cs.Γ¹₁₂(x_)*s²[G]
+                ∂₂s¹ = s¹₂ - cs.Γ¹₁₂(x_)*s¹[G] - cs.Γ¹₂₂(x_)*s²[G]
+                ∂₁s² = s²₁ - cs.Γ²₁₁(x_)*s¹[G] - cs.Γ²₁₂(x_)*s²[G]
+                ∂₂s² = s²₂ - cs.Γ²₁₂(x_)*s¹[G] - cs.Γ²₂₂(x_)*s²[G]
+                ∂₁n₁[G] =   deta*∂₁s² + deta₁*s²[G]
+                ∂₁n₂[G] = - deta*∂₁s¹ - deta₁*s¹[G]
+                ∂₂n₁[G] =   deta*∂₂s² + deta₂*s²[G]
+                ∂₂n₂[G] = - deta*∂₂s¹ - deta₂*s¹[G]
+                ∂₁s₁[G] = s₁₁ + cs.Γ¹₁₁(x_)*s₁[G] + cs.Γ²₁₁(x_)*s₂[G]
+                ∂₁s₂[G] = s₁₂ + cs.Γ¹₁₂(x_)*s₁[G] + cs.Γ²₁₂(x_)*s₂[G]
+                ∂₂s₁[G] = s₂₁ + cs.Γ¹₁₂(x_)*s₁[G] + cs.Γ²₁₂(x_)*s₂[G]
+                ∂₂s₂[G] = s₂₂ + cs.Γ¹₂₂(x_)*s₁[G] + cs.Γ²₂₂(x_)*s₂[G]
                 # det = determinants[G]
                 # println("determinant: $det, 𝐽: $J.")
                 𝑤[G] = J*w
@@ -238,6 +264,14 @@ curvilinearCoordinates = quote
             :s₂=>(2,s₂),
             :s¹=>(2,s¹),
             :s²=>(2,s²),
+            :∂₁n₁=>(2,∂₁n₁),
+            :∂₁n₂=>(2,∂₁n₂),
+            :∂₂n₁=>(2,∂₂n₁),
+            :∂₂n₂=>(2,∂₂n₂),
+            :∂₁s₁=>(2,∂₁s₁),
+            :∂₁s₂=>(2,∂₁s₂),
+            :∂₂s₁=>(2,∂₂s₁),
+            :∂₂s₂=>(2,∂₂s₂),
             :Δ=>(1,Δ),
         ])
     end
@@ -540,7 +574,7 @@ function getMacroBoundaryElements(dimTag::Tuple{Int,Int},dimTagΩ::Tuple{Int,Int
     return elements
 end
 
-function getCurvedElements(nodes::Vector{N},dimTag::Tuple{Int,Int},integrationOrder::Int = -1,cs::Function) where N<:Node
+function getCurvedElements(nodes::Vector{N},dimTag::Tuple{Int,Int},cs::Function,integrationOrder::Int = -1) where N<:Node
     $prequote
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## element type
