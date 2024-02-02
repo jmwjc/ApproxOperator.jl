@@ -92,7 +92,13 @@ coordinatesForEdges = quote
 
     for g in 1:ng
         ξg = localCoord[3*g-2]
-        if abs(ξg) ≈ 1.0 Δ[g] = 1.0 end
+        if ξg ≈ 1.0
+            Δ[g] = 1.0
+        elseif ξg ≈ -1.0
+            Δ[g] = -1.0
+        else
+            Δ[g] = 0.0
+        end
     end
 
     nodeTags = gmsh.model.mesh.getElementEdgeNodes(elementType,tag,true)
@@ -198,6 +204,26 @@ curvilinearCoordinates = quote
             y₂ = coord[2]
             t¹ = (x₂-x₁)/𝐿
             t² = (y₂-y₁)/𝐿
+            t₁(x) = cs.a₁₁(x)*t¹ + cs.a₁₂(x)*t²
+            t₂(x) = cs.a₁₂(x)*t¹ + cs.a₂₂(x)*t²
+            t(x) = (t₁(x)*t¹ + t₂(x)*t²)^0.5
+            s¹_(x) = t¹/t(x)
+            s²_(x) = t²/t(x)
+            s₁_(x) = t₁(x)/t(x)
+            s₂_(x) = t₂(x)/t(x)
+            deta(x) = (cs.a₁₁(x)*cs.a₂₂(x) - cs.a₁₂(x)^2)^0.5
+            n₁_(x) = s²_(x)*deta(x)
+            n₂_(x) =-s¹_(x)*deta(x)
+            n¹_(x) = cs.a¹¹(x)*n₁_(x) + cs.a¹²(x)*n₂_(x)
+            n²_(x) = cs.a¹²(x)*n₁_(x) + cs.a²²(x)*n₂_(x)
+            ∂₁n₁_(x) = gradient(n₁_,x)[1]
+            ∂₂n₁_(x) = gradient(n₁_,x)[2]
+            ∂₁n₂_(x) = gradient(n₂_,x)[1]
+            ∂₂n₂_(x) = gradient(n₂_,x)[2]
+            ∂₁s₁_(x) = gradient(s₁_,x)[1]
+            ∂₂s₁_(x) = gradient(s₁_,x)[2]
+            ∂₁s₂_(x) = gradient(s₂_,x)[1]
+            ∂₂s₂_(x) = gradient(s₂_,x)[2]
             for (j,w) in enumerate(weights)
                 G = ng*(C-1)+j
                 x_ = Vec{3}((x[G],y[G],z[G]))
@@ -207,40 +233,22 @@ curvilinearCoordinates = quote
                 J = ((𝒂₁_[1]*∂x∂ξ[G] + 𝒂₂_[1]*∂y∂ξ[G] + 𝒂₃_[1]*∂z∂ξ[G])^2
                   +  (𝒂₁_[2]*∂x∂ξ[G] + 𝒂₂_[2]*∂y∂ξ[G] + 𝒂₃_[2]*∂z∂ξ[G])^2
                   +  (𝒂₁_[3]*∂x∂ξ[G] + 𝒂₂_[3]*∂y∂ξ[G] + 𝒂₃_[3]*∂z∂ξ[G])^2)^0.5
-                deta = (cs.a₁₁(x_)*cs.a₂₂(x_)-2*cs.a₁₂(x_))^0.5
-                deta₁ = (cs.Γ¹₁₁(x_)+cs.Γ²₁₂(x_))*deta
-                deta₂ = (cs.Γ¹₁₂(x_)+cs.Γ²₂₂(x_))*deta
-                t₁ = cs.a₁₁(x_)*t¹ + cs.a₁₂(x_)*t²
-                t₂ = cs.a₁₂(x_)*t¹ + cs.a₂₂(x_)*t²
-                t = (t¹*t₁+t²*t₂)^0.5
-                s₁[G] = t₁/t
-                s₂[G] = t₂/t
-                s¹[G] = t¹/t
-                s²[G] = t²/t
-                n₁[G] = s²[G]*deta
-                n₂[G] =-s¹[G]*deta
-                n¹[G] = cs.a¹¹(x_)*n₁[G] + cs.a¹²(x_)*n₂[G]
-                n²[G] = cs.a¹²(x_)*n₁[G] + cs.a²²(x_)*n₂[G]
-                s¹₁ = (cs.Γ¹₁₁(x_)*t¹ + cs.Γ¹₁₂(x_)*t²)/t
-                s¹₂ = (cs.Γ¹₁₂(x_)*t¹ + cs.Γ¹₂₂(x_)*t²)/t
-                s²₁ = (cs.Γ²₁₁(x_)*t¹ + cs.Γ²₁₂(x_)*t²)/t
-                s²₂ = (cs.Γ²₁₂(x_)*t¹ + cs.Γ²₂₂(x_)*t²)/t
-                s₁₁ = cs.a₁₁(x_)*s¹₁ + cs.a₁₂(x_)*s²₁
-                s₁₂ = cs.a₁₁(x_)*s¹₂ + cs.a₁₂(x_)*s²₂
-                s₂₁ = cs.a₁₂(x_)*s¹₁ + cs.a₂₂(x_)*s²₁
-                s₂₂ = cs.a₁₂(x_)*s¹₂ + cs.a₂₂(x_)*s²₂
-                ∂₁s¹ = s¹₁ - cs.Γ¹₁₁(x_)*s¹[G] - cs.Γ¹₁₂(x_)*s²[G]
-                ∂₂s¹ = s¹₂ - cs.Γ¹₁₂(x_)*s¹[G] - cs.Γ¹₂₂(x_)*s²[G]
-                ∂₁s² = s²₁ - cs.Γ²₁₁(x_)*s¹[G] - cs.Γ²₁₂(x_)*s²[G]
-                ∂₂s² = s²₂ - cs.Γ²₁₂(x_)*s¹[G] - cs.Γ²₂₂(x_)*s²[G]
-                ∂₁n₁[G] =   deta*∂₁s² + deta₁*s²[G]
-                ∂₁n₂[G] = - deta*∂₁s¹ - deta₁*s¹[G]
-                ∂₂n₁[G] =   deta*∂₂s² + deta₂*s²[G]
-                ∂₂n₂[G] = - deta*∂₂s¹ - deta₂*s¹[G]
-                ∂₁s₁[G] = s₁₁ + cs.Γ¹₁₁(x_)*s₁[G] + cs.Γ²₁₁(x_)*s₂[G]
-                ∂₁s₂[G] = s₁₂ + cs.Γ¹₁₂(x_)*s₁[G] + cs.Γ²₁₂(x_)*s₂[G]
-                ∂₂s₁[G] = s₂₁ + cs.Γ¹₁₂(x_)*s₁[G] + cs.Γ²₁₂(x_)*s₂[G]
-                ∂₂s₂[G] = s₂₂ + cs.Γ¹₂₂(x_)*s₁[G] + cs.Γ²₂₂(x_)*s₂[G]
+                s₁[G] = s₁_(x_)
+                s₂[G] = s₂_(x_)
+                s¹[G] = s¹_(x_)
+                s²[G] = s²_(x_)
+                n₁[G] = n₁_(x_)
+                n₂[G] = n₂_(x_)
+                n¹[G] = n¹_(x_)
+                n²[G] = n²_(x_)
+                ∂₁n₁[G] = ∂₁n₁_(x_)
+                ∂₁n₂[G] = ∂₁n₂_(x_)
+                ∂₂n₁[G] = ∂₂n₁_(x_)
+                ∂₂n₂[G] = ∂₂n₂_(x_)
+                ∂₁s₁[G] = ∂₁s₁_(x_)
+                ∂₁s₂[G] = ∂₁s₂_(x_)
+                ∂₂s₁[G] = ∂₂s₁_(x_)
+                ∂₂s₂[G] = ∂₂s₂_(x_)
                 # det = determinants[G]
                 # println("determinant: $det, 𝐽: $J.")
                 𝑤[G] = J*w
@@ -248,7 +256,13 @@ curvilinearCoordinates = quote
         end
         for g in 1:ng
             ξg = localCoord[3*g-2]
-            if abs(ξg) ≈ 1.0 Δ[g] = 1.0 end
+            if ξg ≈ 1.0
+                Δ[g] = 1.0
+            elseif ξg ≈ -1.0
+                Δ[g] = -1.0
+            else
+                Δ[g] = 0.0
+            end
         end
         data = Dict([
             :w=>(1,weights),
@@ -366,7 +380,7 @@ generateForNeighbor = quote
     end
 end
 
-generateForPiecewise = quote
+generateForMarco = quote
     elements = Vector{type}(undef,ne)
     data𝓒 = Dict{Symbol,Tuple{Int,Vector{Float64}}}()
     ni = get𝑛𝑝(type(𝑿ᵢ[],𝑿ₛ[]))
@@ -384,6 +398,23 @@ generateForPiecewise = quote
                     elements[C] = type(𝓒,𝓖)
                 end
             end
+        end
+    end
+end
+
+generateForPiecewise = quote
+    G = 0
+    s = 0
+    data𝓒 = Dict{Symbol,Tuple{Int,Vector{Float64}}}()
+    ni = get𝑛𝑝(type(𝑿ᵢ[],𝑿ₛ[]))
+    for i in 1:Int(ne/nb)
+        𝓒 = [𝑿ᵢ((𝐼=ni*(i-1)+j,),data𝓒) for j in 1:ni]
+        for j in 1:nb
+            C = nb*(i-1)+j
+            𝓖 = [𝑿ₛ((𝑔 = g, 𝐺 = G+g, 𝐶 = C, 𝑠 = s+(g-1)*ni), data) for g in 1:ng]
+            G += ng
+            s += ng*ni
+            push!(elements,type(𝓒,𝓖))
         end
     end
 end
@@ -587,6 +618,93 @@ function getCurvedElements(nodes::Vector{N},dimTag::Tuple{Int,Int},cs::Function,
         $cal_length_area_volume # length area and volume
         ## generate element
         $generateForFEM
+        ## summary
+        $generateSummary
+    end
+    return elements
+end
+
+function getCurvedElements(nodes::Vector{N},dimTag::Tuple{Int,Int},cs::Function,integration::NTuple{2,Vector{Float64}}) where N<:Node
+    $prequote
+    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
+        ## element type
+        $typeForFEM
+        ## integration rule
+        $integrationByManual
+        ## coordinates
+        $curvilinearCoordinates
+        ## special variables
+        $cal_length_area_volume # length area and volume
+        ## generate element
+        $generateForFEM
+        ## summary
+        $generateSummary
+    end
+    return elements
+end
+
+function getCurvedElements(nodes::Vector{N},dimTag::Tuple{Int,Int},type::DataType,cs::Function,integrationOrder::Int,sp::SpatialPartition) where N<:Node
+    $prequote
+    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
+        ## integration rule
+        $integrationByGmsh
+        ## coordinates
+        $curvilinearCoordinates
+        ## special variables
+        $cal_length_area_volume # length area and volume
+        ## generate element
+        $generateForNeighbor
+        ## summary
+        $generateSummary
+    end
+    return elements
+end
+
+function getCurvedElements(nodes::Vector{N},dimTag::Tuple{Int,Int},type::DataType,cs::Function,integration::NTuple{2,Vector{Float64}},sp::SpatialPartition) where N<:Node
+    $prequote
+    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
+        ## integration rule
+        $integrationByManual
+        ## coordinates
+        $curvilinearCoordinates
+        ## special variables
+        $cal_length_area_volume # length area and volume
+        ## generate element
+        $generateForNeighbor
+        ## summary
+        $generateSummary
+    end
+    return elements
+end
+
+function getCurvedPiecewiseElements(dimTag::Tuple{Int,Int},type::DataType,cs::Function,integrationOrder::Int,nb::Int=1)
+    $prequote
+    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
+        ## integration rule
+        $integrationByGmsh
+        ## coordinates
+        $curvilinearCoordinates
+        ## special variables
+        $cal_length_area_volume # length area and volume
+        ## generate element
+        $generateForPiecewise
+        ## summary
+        $generateSummary
+    end
+    return elements
+end
+
+function getCurvedPiecewiseElements(dimTag::Tuple{Int,Int},type::DataType,cs::Function,integration::NTuple{2,Vector{Float64}},nb::Int=1)
+    $prequote
+    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
+        ## integration rule
+        $integrationByManual
+        ## coordinates
+        $curvilinearCoordinates
+        ## special variables
+        $cal_length_area_volume # length area and volume
+        ## generate element
+        $generateForPiecewise
         ## summary
         $generateSummary
     end
