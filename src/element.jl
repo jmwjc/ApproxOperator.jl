@@ -37,7 +37,7 @@ function Base.push!(aps::Vector{T},sis::Pair{Symbol, Symbol}...) where T<:Abstra
         data = getfield(aps[1].𝓖[1],:data)
         index = getfield(aps[end].𝓖[end],:index)
         if i ≠ :𝑠
-            j = findfirst(keys(index),i)
+            j = findfirst((x)->x==i,keys(index))
             data[s] = (j,zeros(index[i]))
         else
             data[s] = (4,zeros(index[:𝑠]+length(aps[end].𝓒)))

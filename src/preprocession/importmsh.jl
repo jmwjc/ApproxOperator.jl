@@ -711,6 +711,7 @@ function getCurvedPiecewiseElements(dimTag::Tuple{Int,Int},type::DataType,cs::Fu
     return elements
 end
 
+
 # function getMacroCurvedElements(dimTag::Tuple{Int,Int},type::DataType,integrationOrder::Int,n::Int;nₕ::Int=1,nₐ::Int=2)
 #     $prequote
 #     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
@@ -780,3 +781,29 @@ end
 # end
 
 end 
+
+function getElements(dimTag1::Tuple{Int,Int},dimTag2::Tuple{Int,Int},elms::Vector{T}) where T<:AbstractElement
+    elements = AbstractElement[]
+    dim1, tag1 = dimTag1
+    dim2, tag2 = dimTag2
+    elementTypes1, ~, nodeTags1 = gmsh.model.mesh.getElements(dim1,tag1)
+    elementTypes2, ~, nodeTags2 = gmsh.model.mesh.getElements(dim2,tag2)
+    for (elementType1,nodeTag1) in zip(elementTypes1,nodeTags1)
+        for (elementType2,nodeTag2) in zip(elementTypes2,nodeTags2)
+            if elementType1 == elementType2
+                ~, ~, ~, ni = gmsh.model.mesh.getElementProperties(elementType1)
+                ne1 = Int(length(nodeTag1)/ni)
+                ne2 = Int(length(nodeTag2)/ni)
+                for i in 1:ne1
+                    for j in 1:ne2
+                        if nodeTag1[ni*(i-1)+1:ni*i] == nodeTag2[ni*(j-1)+1:ni*j]
+                            push!(elements,elms[j])
+                            continue
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return elements
+end
