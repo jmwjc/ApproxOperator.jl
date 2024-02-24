@@ -4,9 +4,12 @@ authors = ["jcwu <jcwu@hqu.edu.cn> and contributors"]
 version = "0.1.0"
 
 [deps]
+Gmsh = "705231aa-382f-11e9-3f0c-b7cb4346fdeb"
 InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+Tensors = "48a634ad-e948-5137-8d70-aa71f2a747f4"
 
 [compat]
 Revise = "3"

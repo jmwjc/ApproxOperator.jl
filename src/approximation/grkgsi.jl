@@ -1,5 +1,5 @@
 
-struct GRKGradientSmoothing{𝑝,𝑠,𝜙,T}<:AbstractReproducingKernel{𝑠,𝜙,T}
+struct GRKGradientSmoothing{𝑝,𝑠,𝜙,T}<:AbstractReproducingKernel{𝑠,𝜙}
     𝓒::Tuple{Int,Int,Vector{Node{(:𝐼,),1}}}
     𝓒ᵘ::Tuple{Int,Int,Vector{Node{(:𝐼,),1}}}
     𝓒ᵖ::Tuple{Int,Int,Vector{Node{(:𝐼,),1}}}
@@ -112,7 +112,7 @@ function set∇𝝭!(aps::Vector{T}) where T<:GRKGradientSmoothing
     set∇𝝭!.(aps)
 end
 
-struct FRKGradientSmoothing{𝑝,𝑠,𝜙,T}<:AbstractReproducingKernel{𝑠,𝜙,T}
+struct FRKGradientSmoothing{𝑝,𝑠,𝜙,T}<:AbstractReproducingKernel{𝑠,𝜙}
     𝓒::Tuple{Int,Int,Vector{Node{(:𝐼,),1}}}
     𝓒ᵐ::Tuple{Int,Int,Vector{Node{(:𝐼,),1}}}
     𝓒ᶠ::Tuple{Int,Int,Vector{Node{(:𝐼,),1}}}

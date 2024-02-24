@@ -1,5 +1,5 @@
 
-abstract type AbstractReproducingKernel{𝑠,𝜙,T}<:AbstractElement{T} end
+abstract type AbstractReproducingKernel{𝑠,𝜙}<:AbstractElement end
 
 """
 SymMat
@@ -98,6 +98,9 @@ function cholesky!(A::SymMat)
 end
 
 struct RegularGrid<:SpatialPartition
+    x::Vector{Float64}
+    y::Vector{Float64}
+    z::Vector{Float64}
     xmin::Vector{Float64}
     dx::Vector{Float64}
     nx::Vector{Int}
@@ -154,7 +157,7 @@ function RegularGrid(x::Vector{Float64},y::Vector{Float64},z::Vector{Float64};n:
             end
         end
     end
-    return RegularGrid([xmin-1e-12,ymin-1e-12,zmin-1e-12],[dx,dy,dz],Int[nx,ny,nz],cells)
+    return RegularGrid(x,y,z,[xmin-1e-12,ymin-1e-12,zmin-1e-12],[dx,dy,dz],Int[nx,ny,nz],cells)
 end
 
 function (rg::RegularGrid)(x::Float64,y::Float64,z::Float64)
