@@ -132,6 +132,35 @@ function (op::Operator{:∫∫p∇vdxdy})(apu::T,app::S;k::AbstractMatrix{Float6
         end
     end
 end
+function (op::Operator{:∫pnᵢgᵢds})(apu::T,app::S;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+    𝓒u = apu.𝓒
+    𝓒p = app.𝓒
+    𝓖u = apu.𝓖
+    𝓖p = app.𝓖
+    # α = op.α
+    for (ξu,ξp) in zip(𝓖u,𝓖p)
+        Nᵖ = ξp[:𝝭]
+        Nᵘ = ξu[:𝝭]
+        B₁ = ξu[:∂𝝭∂x]
+        B₂ = ξu[:∂𝝭∂y]
+        𝑤 = ξu.𝑤
+        n₁ = ξp.n₁
+        n₂ = ξp.n₂
+        g₁ = ξu.g₁
+        g₂ = ξu.g₂
+        for (i,xᵢ) in enumerate(𝓒p)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒u)
+                J = xⱼ.𝐼
+                k[2*J-1,I] += Nᵘ[j]*n₁*Nᵖ[i]*𝑤
+                k[2*J,I]   += Nᵘ[j]*n₂*Nᵖ[i]*𝑤
+                
+            end
+            f[I] +=(Nᵖ[i]*n₁*g₁+Nᵖ[i]*n₂*g₂)*𝑤
+        end
+    end
+end
+
 
 function (op::Operator{:∫∫qpdxdy})(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
