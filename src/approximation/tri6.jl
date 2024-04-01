@@ -1,3 +1,4 @@
+# FIXME: The shape function order is wrong!
 function set𝝭!(::Element{:Tri6},x::Node)
     𝝭 = x[:𝝭]
     ξ = x.ξ
