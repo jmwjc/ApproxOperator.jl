@@ -68,13 +68,13 @@ function (op::Operator{:∫qkpdΩ})(ap::T;k::AbstractMatrix{Float64}) where T<:A
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     EA = op.EA
     for ξ in 𝓖
-        N = ξ[:𝝭]
+        Bₓ = ξ[:∂𝝭∂x]
         𝑤 = ξ.𝑤
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                k[I,J] += N[i]*EA*N[j]*𝑤
+                k[I,J] +=  Bₓ[i]*EA*Bₓ[j]*𝑤
             end    
         end
     end
