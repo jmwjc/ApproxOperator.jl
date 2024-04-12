@@ -66,7 +66,7 @@ function (op::Operator{:∫γQdΩ})(ap::T;k::AbstractMatrix{Float64}) where T<:A
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
         𝑤 = ξ.𝑤
-        Dˢ = 6/5*h*E/2/(1+ν)
+        Dˢ = 5/6*h*E/2/(1+ν)
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼 
             for (j,xⱼ) in enumerate(𝓒)
@@ -166,9 +166,8 @@ function (op::Operator{:∫θMdΓ})(ap::T;f::AbstractVector{Float64}) where T<:A
         M₂ = M₁₂*n₁+M₂₂*n₂
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
-            f[3*I-2] += 0
-            f[3*I-1] += N[i]*M₁*𝑤
-            f[3*I]   += N[i]*M₂*𝑤
+            f[3*I-1] -= N[i]*M₁*𝑤
+            f[3*I]   -= N[i]*M₂*𝑤
         end
     end
 end
