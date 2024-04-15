@@ -36,7 +36,6 @@ function (op::Operator{:∫κMdΩ})(ap::T;k::AbstractMatrix{Float64}) where T<:A
     ν = op.ν
     h = op.h
     for ξ in 𝓖
-        N = ξ[:𝝭]
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
         𝑤 = ξ.𝑤
@@ -92,6 +91,23 @@ function (op::Operator{:∫wqdΩ})(ap::T;f::AbstractVector{Float64}) where T<:Ab
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
             f[3*I-2] += N[i]*q*𝑤
+        end
+    end
+end
+
+function (op::Operator{:∫∇M-QdΩ})(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        Q₁ = ξ.Q₁
+        Q₂ = ξ.Q₂
+        M₁ᵢᵢ = ξ.M₁ᵢᵢ
+        M₂ᵢᵢ = ξ.M₂ᵢᵢ
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            f[3*I-1] += N[i]*(M₁ᵢᵢ-Q₁)*𝑤
+            f[3*I-2] += N[i]*(M₂ᵢᵢ-Q₂)*𝑤
         end
     end
 end
