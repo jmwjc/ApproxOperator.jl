@@ -24,7 +24,7 @@ for set𝝭 in (:set𝝭!,:set∇𝝭!,:set∇²𝝭!,:set∇̂³𝝭!)
         function $set𝝭(a::T) where T<:AbstractElement
             𝓖 = a.𝓖
             for x in 𝓖
-                $set𝝭(a,x)
+                 $set𝝭(a,x)
             end
         end
         $set𝝭(as::Vector{T}) where T<:AbstractElement = $set𝝭.(as)

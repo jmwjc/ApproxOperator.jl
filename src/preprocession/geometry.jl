@@ -259,6 +259,20 @@ function get𝐴(a::Tri3)
     return 0.5*(x₁*y₂+x₂*y₃+x₃*y₁-x₂*y₁-x₃*y₂-x₁*y₃)
 end
 get𝐽(a::Tri3,::Float64,::Float64) = get𝐴(a)
+function get𝐴(a::Tri6)
+    x₁ = a.x[a.i[1]]
+    x₂ = a.x[a.i[2]]
+    x₃ = a.x[a.i[3]]
+    y₁ = a.y[a.i[1]]
+    y₂ = a.y[a.i[2]]
+    y₃ = a.y[a.i[3]]
+    z₁ = a.z[a.i[1]]
+    z₂ = a.z[a.i[2]]
+    z₃ = a.z[a.i[3]]
+
+    return 0.5*(x₁*y₂+x₂*y₃+x₃*y₁-x₂*y₁-x₃*y₂-x₁*y₃)
+end
+get𝐽(a::Tri6,::Float64,::Float64) = get𝐴(a)
 
 function get𝐿(a::Seg2)
     x₁ = a.x[a.i[1]]

@@ -303,7 +303,11 @@ cal_length_area_volume = quote
     elseif elementType == 2
         𝐴 = [determinants[C*ng]/2 for C in 1:ne]
         push!(data, :𝐴=>(3,𝐴))
+    elseif elementType == 9
+        𝐴 = [determinants[C*ng]/2 for C in 1:ne]
+        push!(data, :𝐴=>(3,𝐴))
     end
+    
 end
 
 typeForFEM = quote
