@@ -95,7 +95,7 @@ function (op::Operator{:∫wqdΩ})(ap::T;f::AbstractVector{Float64}) where T<:Ab
     end
 end
 
-function (op::Operator{:∫∇M-QdΩ})(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
+function (op::Operator{:∫∇MQdΩ})(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         𝑤 = ξ.𝑤
@@ -106,8 +106,8 @@ function (op::Operator{:∫∇M-QdΩ})(ap::T;f::AbstractVector{Float64}) where T
         M₂ᵢᵢ = ξ.M₂ᵢᵢ
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
-            f[3*I-1] += N[i]*(M₁ᵢᵢ-Q₁)*𝑤
-            f[3*I-2] += N[i]*(M₂ᵢᵢ-Q₂)*𝑤
+            f[3*I-1] -= N[i]*(M₁ᵢᵢ-Q₁)*𝑤
+            f[3*I-2] -= N[i]*(M₂ᵢᵢ-Q₂)*𝑤
         end
     end
 end
