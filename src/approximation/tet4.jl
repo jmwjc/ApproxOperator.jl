@@ -1,24 +1,29 @@
 
 function set𝝭!(::Element{:Tri3},x::Node)
     𝝭 = x[:𝝭]
-    𝝭[1] = 1.0-x.ξ-x.η
+    𝝭[1] = 1.0-x.ξ-x.η-x.ζ
     𝝭[2] = x.ξ
     𝝭[3] = x.η
-    
+    𝝭[4] = x.ζ
 end
 function set∇𝝭!(ap::Element{:Tri3},x::Node)
     𝐴 = ap.𝐴
     v₁,v₂,v₃ = ap.𝓒
     x₁ = v₁.x
     y₁ = v₁.y
+    z₁ = v₁.z
     x₂ = v₂.x
     y₂ = v₂.y
+    z₂ = v₂.z
     x₃ = v₃.x
     y₃ = v₃.y
+    z₃ = v₃.z
+   
     𝝭 = x[:𝝭]
-    𝝭[1] = 1.0-x.ξ-x.η
+    𝝭[1] = 1.0-x.ξ-x.η-x.ζ
     𝝭[2] = x.ξ
     𝝭[3] = x.η
+    𝝭[4] = x.ζ
     ∂𝝭∂x = x[:∂𝝭∂x]
     ∂𝝭∂y = x[:∂𝝭∂y]
     ∂𝝭∂x[1] = (y₂-y₃)/2.0/𝐴

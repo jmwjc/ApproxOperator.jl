@@ -305,7 +305,9 @@ cal_length_area_volume = quote
         push!(data, :𝐴=>(3,𝐴))
     elseif elementType == 9
         𝐴 = [determinants[C*ng]/2 for C in 1:ne]
-        push!(data, :𝐴=>(3,𝐴))
+    elseif elementType == 4
+        𝑉 = [determinants[C*ng]/6 for C in 1:ne]
+        push!(data, :𝑉=>(3,𝑉))
     end
     
 end
