@@ -305,6 +305,7 @@ cal_length_area_volume = quote
         push!(data, :𝐴=>(3,𝐴))
     elseif elementType == 9
         𝐴 = [determinants[C*ng]/2 for C in 1:ne]
+        push!(data, :𝐴=>(3,𝐴))
     elseif elementType == 4
         𝑉 = [determinants[C*ng]/6 for C in 1:ne]
         push!(data, :𝑉=>(3,𝑉))
@@ -411,6 +412,7 @@ end
 generateForPiecewise = quote
     G = 0
     s = 0
+    nb=1
     data𝓒 = Dict{Symbol,Tuple{Int,Vector{Float64}}}()
     ni = get𝑛𝑝(type(𝑿ᵢ[],𝑿ₛ[]))
     for i in 1:Int(ne/nb)

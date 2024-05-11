@@ -63,7 +63,7 @@ struct Tet4<:AbstractGeometry
     z::Vector{Float64}
 end
 struct Hex8<:AbstractGeometry
-    i::NTuple{4,Int}
+    i::NTuple{8,Int}
     x::Vector{Float64}
     y::Vector{Float64}
     z::Vector{Float64}
