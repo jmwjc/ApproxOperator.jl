@@ -261,18 +261,18 @@ function (op::Operator{:g₂})(ap::T;k::AbstractMatrix{Float64},f::AbstractVecto
     f[j] = g
 end
 
-function (op::Operator{:∫λᵢgᵢds})(ap1::T,ap2::S;g::AbstractMatrix{Float64},q::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+function (op::Operator{:∫λᵢgᵢds})(ap1::T,ap2::S; g::AbstractMatrix{Float64},q::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     for j in 1:length(ap1.𝓖)
         ξ₁ = ap1.𝓖[j]
         ξ₂ = ap2.𝓖[j]
         𝑤 = ξ₁.𝑤
         N = ξ₁[:𝝭]
         N̄ = ξ₂[:𝝭]
-        g₁ = ξ.g₁
-        g₂ = ξ.g₂
-        n₁₁ = ξ.n₁₁
-        n₂₂ = ξ.n₂₂
-        n₁₂ = ξ.n₁₂
+        g₁ = ξ₁.g₁
+        g₂ = ξ₁.g₂
+        n₁₁ = ξ₁.n₁₁
+        n₂₂ = ξ₁.n₂₂
+        n₁₂ = ξ₁.n₁₂
         for (k,xₖ) in enumerate(ap2.𝓒)
             K = xₖ.𝐼
             for (i,xᵢ) in enumerate(ap1.𝓒)

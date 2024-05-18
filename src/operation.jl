@@ -11,6 +11,7 @@ getproperty(op::Operator,f::Symbol) = getfield(op,:data)[f]
 
 (op::Operator)(aps::Vector{T},gps::Vector{S},k::AbstractMatrix{Float64},g::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement} = op.(aps,gps,k=k,g=g)
 (op::Operator)(aps::Vector{T},gps::Vector{S},k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement} = op.(aps,gps,k=k,f=f)
+(op::Operator)(aps::Vector{T},gps::Vector{S},g::AbstractMatrix{Float64},q::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement} = op.(aps,gps,g=g,q=q)
 (op::Operator)(aps::Vector{T},gps::Vector{S},k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement} = op.(aps,gps,k=k)
 (op::Operator)(aps::Vector{T},k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement = op.(aps,k=k,f=f)
 (op::Operator)(aps::Vector{T},k::AbstractMatrix{Float64}) where T<:AbstractElement = op.(aps,k=k)
