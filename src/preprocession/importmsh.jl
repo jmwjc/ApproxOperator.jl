@@ -27,14 +27,16 @@ end
 
 prequote = quote
     types = Dict([1=>:Seg2, 2=>:Tri3, 3=>:Quad, 4=>:Tet4, 8=>:Seg3, 9=>:Tri6, 10=>:Quad9, 11=>:Tet10, 15=>:Poi1, 16=>Quad8])
-    dim, tag = dimTag
+    dim, tags = dimTag
     elementTypes = Int32[]
     nodeTags = Vector{UInt64}[]
-    for tag_ in tag
-        elementTypes_, ~, nodeTags_ = gmsh.model.mesh.getElements(dim,tag_)
-        push!(elementTypes,elementTypes_)
-        push!(nodeTags,nodeTags_)
+    for tag in tags
+        elementTypes_, ~, nodeTags_ = gmsh.model.mesh.getElements(dim,tag)
+        push!(elementTypes,elementTypes_[1])
+        push!(nodeTags,nodeTags_[1])
     end
+    # println(elementTypes)
+    println(nodeTags)
     elements = AbstractElement[]
 end
 
@@ -441,7 +443,7 @@ end
 
 function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},integrationOrder::Int = -1;normal::Bool=false) where N<:Node
     $prequote
-    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
+    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
         ## element type
         $typeForFEM
         ## integration rule
@@ -461,7 +463,7 @@ end
 
 function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},integration::NTuple{2,Vector{Float64}};normal::Bool=false) where N<:Node
     $prequote
-    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
+    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
         ## element type
         $typeForFEM
         ## integration rule
@@ -481,7 +483,7 @@ end
 
 function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},type::DataType,integrationOrder::Int = -1;normal::Bool=false) where N<:Node
     $prequote
-    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
+    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
         ## integration rule
         $integrationByGmsh
         ## coordinates
@@ -499,7 +501,7 @@ end
 
 function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},type::DataType,integration::NTuple{2,Vector{Float64}};normal::Bool=false) where N<:Node
     $prequote
-    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
+    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
         ## integration rule
         $integrationByManual
         ## coordiantes
@@ -517,7 +519,7 @@ end
 
 function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},type::DataType,integrationOrder::Int,sp::SpatialPartition;normal::Bool=false) where N<:Node
     $prequote
-    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
+    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
         ## integration rule
         $integrationByGmsh
         ## coordinates
@@ -535,7 +537,7 @@ end
 
 function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},type::DataType,integration::NTuple{2,Vector{Float64}},sp::SpatialPartition;normal::Bool=false) where N<:Node
     $prequote
-    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
+    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
         ## integration rule
         $integrationByManual
         ## coordinates
@@ -553,7 +555,7 @@ end
 
 function getMacroElements(dimTag::Pair{Int,Vector{Int}},type::DataType,integrationOrder::Int,n::Int;nₕ::Int=1,nₐ::Int=2)
     $prequote
-    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
+    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
         ## integration rule
         $integrationByGmsh
         ## coordinates
@@ -570,7 +572,7 @@ end
 
 function getMacroElements(dimTag::Pair{Int,Vector{Int}},type::DataType,integration::NTuple{2,Vector{Float64}},n::Int;nₕ::Int=1,nₐ::Int=2)
     $prequote
-    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
+    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
         ## integration rule
         $integrationByManual
         ## coordinates
@@ -587,7 +589,7 @@ end
 
 function getMacroBoundaryElements(dimTag::Pair{Int,Vector{Int}},dimTagΩ::Pair{Int,Vector{Int}},type::DataType,integrationOrder::Int,n::Int;nₕ::Int=1,nₐ::Int=6)
     $prequote
-    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
+    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
         ## integration rule
         $integrationByGmsh
         ## coordinates
@@ -604,7 +606,7 @@ end
 
 function getMacroBoundaryElements(dimTag::Pair{Int,Vector{Int}},dimTagΩ::Pair{Int,Vector{Int}},type::DataType,integration::NTuple{2,Vector{Float64}},n::Int;nₕ::Int=1,nₐ::Int=6)
     $prequote
-    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
+    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
         ## integration rule
         $integrationByManual
         ## coordinates
@@ -621,7 +623,7 @@ end
 
 function getCurvedElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},cs::Function,integrationOrder::Int = -1) where N<:Node
     $prequote
-    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
+    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
         ## element type
         $typeForFEM
         ## integration rule
@@ -640,7 +642,7 @@ end
 
 function getCurvedElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},cs::Function,integration::NTuple{2,Vector{Float64}}) where N<:Node
     $prequote
-    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
+    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
         ## element type
         $typeForFEM
         ## integration rule
@@ -659,7 +661,7 @@ end
 
 function getCurvedElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},type::DataType,cs::Function,integrationOrder::Int,sp::SpatialPartition) where N<:Node
     $prequote
-    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
+    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
         ## integration rule
         $integrationByGmsh
         ## coordinates
@@ -676,7 +678,7 @@ end
 
 function getCurvedElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},type::DataType,cs::Function,integration::NTuple{2,Vector{Float64}},sp::SpatialPartition) where N<:Node
     $prequote
-    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
+    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
         ## integration rule
         $integrationByManual
         ## coordinates
@@ -693,7 +695,7 @@ end
 
 function getCurvedPiecewiseElements(dimTag::Pair{Int,Vector{Int}},type::DataType,cs::Function,integrationOrder::Int,nb::Int=1)
     $prequote
-    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
+    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
         ## integration rule
         $integrationByGmsh
         ## coordinates
@@ -710,7 +712,7 @@ end
 
 function getCurvedPiecewiseElements(dimTag::Pair{Int,Vector{Int}},type::DataType,cs::Function,integration::NTuple{2,Vector{Float64}},nb::Int=1)
     $prequote
-    for (elementType,nodeTag) in zip(elementTypes,nodeTags)
+    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
         ## integration rule
         $integrationByManual
         ## coordinates
