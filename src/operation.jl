@@ -38,10 +38,10 @@ end
 
 function prescribe!(aps::Vector{T},sf::Pair{Symbol,F}) where {T<:AbstractElement,F<:Function}
     s,f = sf
-    data = getfield((aps[1].𝓖)[1],:data)
-    n = length(data[:x][2])
-    haskey(data,s) ? nothing : push!(data,s=>(2,zeros(n)))
     for ap in aps
+        data = getfield((ap.𝓖)[1],:data)
+        n = length(data[:x][2])
+        haskey(data,s) ? nothing : push!(data,s=>(2,zeros(n)))
         prescribe!(ap,sf)
     end
 end
