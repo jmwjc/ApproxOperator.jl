@@ -439,7 +439,7 @@ end
 
 @eval begin
 
-function getElements(nodes::Vector{N},dimTag::Tuple{Int,Int},integrationOrder::Int = -1;normal::Bool=false) where N<:Node
+function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},integrationOrder::Int = -1;normal::Bool=false) where N<:Node
     $prequote
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## element type
@@ -459,7 +459,7 @@ function getElements(nodes::Vector{N},dimTag::Tuple{Int,Int},integrationOrder::I
     return elements
 end
 
-function getElements(nodes::Vector{N},dimTag::Tuple{Int,Int},integration::NTuple{2,Vector{Float64}};normal::Bool=false) where N<:Node
+function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},integration::NTuple{2,Vector{Float64}};normal::Bool=false) where N<:Node
     $prequote
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## element type
@@ -479,7 +479,7 @@ function getElements(nodes::Vector{N},dimTag::Tuple{Int,Int},integration::NTuple
     return elements
 end
 
-function getElements(nodes::Vector{N},dimTag::Tuple{Int,Int},type::DataType,integrationOrder::Int = -1;normal::Bool=false) where N<:Node
+function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},type::DataType,integrationOrder::Int = -1;normal::Bool=false) where N<:Node
     $prequote
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## integration rule
@@ -497,7 +497,7 @@ function getElements(nodes::Vector{N},dimTag::Tuple{Int,Int},type::DataType,inte
     return elements
 end
 
-function getElements(nodes::Vector{N},dimTag::Tuple{Int,Int},type::DataType,integration::NTuple{2,Vector{Float64}};normal::Bool=false) where N<:Node
+function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},type::DataType,integration::NTuple{2,Vector{Float64}};normal::Bool=false) where N<:Node
     $prequote
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## integration rule
@@ -515,7 +515,7 @@ function getElements(nodes::Vector{N},dimTag::Tuple{Int,Int},type::DataType,inte
     return elements
 end
 
-function getElements(nodes::Vector{N},dimTag::Tuple{Int,Int},type::DataType,integrationOrder::Int,sp::SpatialPartition;normal::Bool=false) where N<:Node
+function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},type::DataType,integrationOrder::Int,sp::SpatialPartition;normal::Bool=false) where N<:Node
     $prequote
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## integration rule
@@ -533,7 +533,7 @@ function getElements(nodes::Vector{N},dimTag::Tuple{Int,Int},type::DataType,inte
     return elements
 end
 
-function getElements(nodes::Vector{N},dimTag::Tuple{Int,Int},type::DataType,integration::NTuple{2,Vector{Float64}},sp::SpatialPartition;normal::Bool=false) where N<:Node
+function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},type::DataType,integration::NTuple{2,Vector{Float64}},sp::SpatialPartition;normal::Bool=false) where N<:Node
     $prequote
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## integration rule
@@ -551,7 +551,7 @@ function getElements(nodes::Vector{N},dimTag::Tuple{Int,Int},type::DataType,inte
     return elements
 end
 
-function getMacroElements(dimTag::Tuple{Int,Int},type::DataType,integrationOrder::Int,n::Int;nₕ::Int=1,nₐ::Int=2)
+function getMacroElements(dimTag::Pair{Int,Vector{Int}},type::DataType,integrationOrder::Int,n::Int;nₕ::Int=1,nₐ::Int=2)
     $prequote
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## integration rule
@@ -568,7 +568,7 @@ function getMacroElements(dimTag::Tuple{Int,Int},type::DataType,integrationOrder
     return elements
 end
 
-function getMacroElements(dimTag::Tuple{Int,Int},type::DataType,integration::NTuple{2,Vector{Float64}},n::Int;nₕ::Int=1,nₐ::Int=2)
+function getMacroElements(dimTag::Pair{Int,Vector{Int}},type::DataType,integration::NTuple{2,Vector{Float64}},n::Int;nₕ::Int=1,nₐ::Int=2)
     $prequote
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## integration rule
@@ -585,7 +585,7 @@ function getMacroElements(dimTag::Tuple{Int,Int},type::DataType,integration::NTu
     return elements
 end
 
-function getMacroBoundaryElements(dimTag::Tuple{Int,Int},dimTagΩ::Tuple{Int,Int},type::DataType,integrationOrder::Int,n::Int;nₕ::Int=1,nₐ::Int=6)
+function getMacroBoundaryElements(dimTag::Pair{Int,Vector{Int}},dimTagΩ::Pair{Int,Vector{Int}},type::DataType,integrationOrder::Int,n::Int;nₕ::Int=1,nₐ::Int=6)
     $prequote
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## integration rule
@@ -602,7 +602,7 @@ function getMacroBoundaryElements(dimTag::Tuple{Int,Int},dimTagΩ::Tuple{Int,Int
     return elements
 end
 
-function getMacroBoundaryElements(dimTag::Tuple{Int,Int},dimTagΩ::Tuple{Int,Int},type::DataType,integration::NTuple{2,Vector{Float64}},n::Int;nₕ::Int=1,nₐ::Int=6)
+function getMacroBoundaryElements(dimTag::Pair{Int,Vector{Int}},dimTagΩ::Pair{Int,Vector{Int}},type::DataType,integration::NTuple{2,Vector{Float64}},n::Int;nₕ::Int=1,nₐ::Int=6)
     $prequote
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## integration rule
@@ -619,7 +619,7 @@ function getMacroBoundaryElements(dimTag::Tuple{Int,Int},dimTagΩ::Tuple{Int,Int
     return elements
 end
 
-function getCurvedElements(nodes::Vector{N},dimTag::Tuple{Int,Int},cs::Function,integrationOrder::Int = -1) where N<:Node
+function getCurvedElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},cs::Function,integrationOrder::Int = -1) where N<:Node
     $prequote
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## element type
@@ -638,7 +638,7 @@ function getCurvedElements(nodes::Vector{N},dimTag::Tuple{Int,Int},cs::Function,
     return elements
 end
 
-function getCurvedElements(nodes::Vector{N},dimTag::Tuple{Int,Int},cs::Function,integration::NTuple{2,Vector{Float64}}) where N<:Node
+function getCurvedElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},cs::Function,integration::NTuple{2,Vector{Float64}}) where N<:Node
     $prequote
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## element type
@@ -657,7 +657,7 @@ function getCurvedElements(nodes::Vector{N},dimTag::Tuple{Int,Int},cs::Function,
     return elements
 end
 
-function getCurvedElements(nodes::Vector{N},dimTag::Tuple{Int,Int},type::DataType,cs::Function,integrationOrder::Int,sp::SpatialPartition) where N<:Node
+function getCurvedElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},type::DataType,cs::Function,integrationOrder::Int,sp::SpatialPartition) where N<:Node
     $prequote
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## integration rule
@@ -674,7 +674,7 @@ function getCurvedElements(nodes::Vector{N},dimTag::Tuple{Int,Int},type::DataTyp
     return elements
 end
 
-function getCurvedElements(nodes::Vector{N},dimTag::Tuple{Int,Int},type::DataType,cs::Function,integration::NTuple{2,Vector{Float64}},sp::SpatialPartition) where N<:Node
+function getCurvedElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},type::DataType,cs::Function,integration::NTuple{2,Vector{Float64}},sp::SpatialPartition) where N<:Node
     $prequote
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## integration rule
@@ -691,7 +691,7 @@ function getCurvedElements(nodes::Vector{N},dimTag::Tuple{Int,Int},type::DataTyp
     return elements
 end
 
-function getCurvedPiecewiseElements(dimTag::Tuple{Int,Int},type::DataType,cs::Function,integrationOrder::Int,nb::Int=1)
+function getCurvedPiecewiseElements(dimTag::Pair{Int,Vector{Int}},type::DataType,cs::Function,integrationOrder::Int,nb::Int=1)
     $prequote
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## integration rule
@@ -708,7 +708,7 @@ function getCurvedPiecewiseElements(dimTag::Tuple{Int,Int},type::DataType,cs::Fu
     return elements
 end
 
-function getCurvedPiecewiseElements(dimTag::Tuple{Int,Int},type::DataType,cs::Function,integration::NTuple{2,Vector{Float64}},nb::Int=1)
+function getCurvedPiecewiseElements(dimTag::Pair{Int,Vector{Int}},type::DataType,cs::Function,integration::NTuple{2,Vector{Float64}},nb::Int=1)
     $prequote
     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
         ## integration rule
