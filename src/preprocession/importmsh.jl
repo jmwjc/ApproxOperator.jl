@@ -1,11 +1,11 @@
 
 function getPhysicalGroups()
-    entities = Dict{String,Tuple{Int,Int}}()
+    entities = Dict{String,Pair{Int,Vector{Int}}}()
     dimTags = gmsh.model.getPhysicalGroups()
     for (dim,tag) in dimTags
         name = gmsh.model.getPhysicalName(dim,tag)
         tags = gmsh.model.getEntitiesForPhysicalGroup(dim,tag)
-        entities[name] = (dim,tags[1])
+        entities[name] = dim=>tags
     end
     return entities
 end
@@ -28,7 +28,13 @@ end
 prequote = quote
     types = Dict([1=>:Seg2, 2=>:Tri3, 3=>:Quad, 4=>:Tet4, 8=>:Seg3, 9=>:Tri6, 10=>:Quad9, 11=>:Tet10, 15=>:Poi1, 16=>Quad8])
     dim, tag = dimTag
-    elementTypes, ~, nodeTags = gmsh.model.mesh.getElements(dim,tag)
+    elementTypes = Int32[]
+    nodeTags = Vector{UInt64}[]
+    for tag_ in tag
+        elementTypes_, ~, nodeTags_ = gmsh.model.mesh.getElements(dim,tag_)
+        push!(elementTypes,elementTypes_)
+        push!(nodeTags,nodeTags_)
+    end
     elements = AbstractElement[]
 end
 
