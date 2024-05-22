@@ -35,8 +35,6 @@ prequote = quote
         push!(elementTypes,elementTypes_[1])
         push!(nodeTags,nodeTags_[1])
     end
-    # println(elementTypes)
-    println(nodeTags)
     elements = AbstractElement[]
 end
 
