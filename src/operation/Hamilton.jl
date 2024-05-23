@@ -33,6 +33,28 @@ function (op::Operator{:∫∫q̇mpqkpdx})(ap::T;k::AbstractMatrix{Float64}) whe
         end
     end
 end
+
+function (op::Operator{:∫∫q̇mΨqkΨdx})(a::T;b::S;k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+    𝓒₁ = a.𝓒; 𝓖₁ = a.𝓖
+    𝓒₂ = b.𝓒; 𝓖₂ = b.𝓖
+    ρA = op.ρA
+    EA = op.EA
+    for (ξ₁,ξ₂) in zip(𝓖₁,𝓖₂)
+        Bₓ = ξ₁[:∂𝝭∂x]
+        Bₜ = ξ₁[:∂𝝭∂y]
+        Ψₜ = ξ₂[:∂𝝭∂y]
+        Ψₓ = ξ₂[:∂𝝭∂x]
+        𝑤 = ξ.𝑤
+        for (i,xᵢ) in enumerate(𝓒₁)
+            I = xᵢ.𝐼
+            for (k,xₖ) in enumerate(𝓒₂)
+                K = xₖ.𝐼
+                k[I,K] += (Bₜ[i]*ρA*Ψₜ[k] - Bₓ[i]*EA*Ψₓ[k])*𝑤
+            end
+        end
+    end
+end
+
 # f[I] += -(ρ*A*Bₜ[i])*N[j] + ((N[i]*b) + N[j]*P)*𝑤
 #
 function (op::Operator{:∫𝑃δudx})(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
