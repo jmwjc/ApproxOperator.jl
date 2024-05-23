@@ -36,39 +36,80 @@ prequote = quote
         push!(nodeTags,nodeTags_[1])
     end
     elements = AbstractElement[]
+
+    𝑔 = 0; 𝐺 = 0; 𝐶 = 0;𝑠 = 0;
+    data = Dict{Symbol,Tuple{Int,Vector{Float64}}}()
+    data[:x] = (2,Float64[])
+    data[:y] = (2,Float64[])
+    data[:z] = (2,Float64[])
+    data[:𝑤] = (2,Float64[])
+    if dim == 1
+        data[:𝐿] = (3,Float64[])
+    elseif dim == 2
+        data[:𝐴] = (3,Float64[])
+    else
+        data[:𝑉] = (3,Float64[])
+    end
+
+    data[:w] = (1,Float64[])
+    data[:ξ] = (1,Float64[])
+    if dim > 1
+        data[:η] = (1,Float64[])
+    end
+    if dim > 2
+        data[:γ] = (1,Float64[])
+    end
+    if normal
+        data[:n₁] = (3,Float64[])
+        data[:n₂] = (3,Float64[])
+        data[:s₁] = (3,Float64[])
+        data[:s₂] = (3,Float64[])
+    end
+end
+
+preForEdge = quote
+    data[:w] = (1,Float64[])
+    data[:Δ] = (1,Float64[])
+    data[:ξ] = (2,Float64[])
+    data[:η] = (2,Float64[])
+    data[:n₁] = (3,Float64[])
+    data[:n₂] = (3,Float64[])
+    data[:s₁] = (3,Float64[])
+    data[:s₂] = (3,Float64[])
+    if dim > 1
+        data[:γ] = (2,Float64[])
+        data[:n₃] = (3,Float64[])
+        data[:s₃] = (3,Float64[])
+    end   
+
+    nodeTags = gmsh.model.mesh.getElementEdgeNodes(elementType,tag,true)
+    dimΩ,tagΩ = dimTagΩ
+    tagsΩ = UInt64[]
+    for tagΩ_ in tagΩ
+        ~, tagsΩ_ = gmsh.model.mesh.getElements(dimΩ,tagΩ_)
+        push!(tagsΩ,tagsΩ_[1]...)
+    end
 end
 
 coordinates = quote
     ng = length(weights)
     ne = Int(length(nodeTag)/ni)
 
-    ξ = localCoord[1:3:end]
-    η = localCoord[2:3:end]
-    γ = localCoord[3:3:end]
+    haskey(data,:ξ) ? append!(data[:ξ][2],localCoord[1:3:end]) : nothing
+    haskey(data,:η) ? append!(data[:η][2],localCoord[2:3:end]) : nothing
+    haskey(data,:γ) ? append!(data[:γ][2],localCoord[3:3:end]) : nothing
     jacobians, determinants, coord = gmsh.model.mesh.getJacobians(elementType, localCoord, tag)
     x = coord[1:3:end]
     y = coord[2:3:end]
     z = coord[3:3:end]
-    𝑤 = zeros(length(determinants))
+    append!(data[:x][2],x)
+    append!(data[:y][2],y)
+    append!(data[:z][2],z)
     for i in 1:Int(length(determinants)/ng)
         for (j,w) in enumerate(weights)
             G = ng*(i-1)+j
-            𝑤[G] = determinants[G]*w
+            push!(data[:𝑤][2], determinants[G]*w)
         end
-    end
-    data = Dict([
-        :w=>(1,weights),
-        :x=>(2,x),
-        :y=>(2,y),
-        :z=>(2,z),
-        :𝑤=>(2,𝑤),
-    ])
-    if dim == 3
-        push!(data, :ξ=>(1,ξ), :η=>(1,η), :γ=>(1,γ))
-    elseif dim == 2
-        push!(data, :ξ=>(1,ξ), :η=>(1,η))
-    else
-        push!(data, :ξ=>(1,ξ))
     end
 end
 
@@ -76,41 +117,32 @@ coordinatesForEdges = quote
     ng = length(weights)
     ne = Int(length(nodeTag)/ni)
 
-    ξ = zeros(ne*ng)
-    η = zeros(ne*ng)
-    γ = zeros(ne*ng)
-    n₁ = zeros(ne)
-    n₂ = zeros(ne)
-    s₁ = zeros(ne)
-    s₂ = zeros(ne)
-    Δ = zeros(ng)
     jacobians, determinants, coord = gmsh.model.mesh.getJacobians(elementType, localCoord, tag)
     x = coord[1:3:end]
     y = coord[2:3:end]
     z = coord[3:3:end]
-    𝑤 = zeros(length(determinants))
+    append!(data[:x][2],x)
+    append!(data[:y][2],y)
+    append!(data[:z][2],z)
     for i in 1:Int(length(determinants)/ng)
         for (j,w) in enumerate(weights)
             G = ng*(i-1)+j
-            𝑤[G] = determinants[G]*w
+            push!(data[:𝑤][2], determinants[G]*w)
         end
     end
 
     for g in 1:ng
         ξg = localCoord[3*g-2]
         if ξg ≈ 1.0
-            Δ[g] = 1.0
+            push!(data[:Δ][2], 1.0)
         elseif ξg ≈ -1.0
-            Δ[g] = -1.0
+            push!(data[:Δ][2], -1.0)
         else
-            Δ[g] = 0.0
+            push!(data[:Δ][2], 0.0)
         end
     end
 
-    nodeTags = gmsh.model.mesh.getElementEdgeNodes(elementType,tag,true)
-    dimΩ,tagΩ = dimTagΩ
-    ~, tagsΩ = gmsh.model.mesh.getElements(dimΩ,tagΩ)
-    for (CΩ,tagΩ) in enumerate(tagsΩ[1])
+    for (CΩ,tagΩ) in enumerate(tagsΩ)
         for C in 3*CΩ-2:3*CΩ
             𝐿 = 2*determinants[C*ng]
             coord, = gmsh.model.mesh.getNode(nodeTags[2*C-1])
@@ -119,32 +151,18 @@ coordinatesForEdges = quote
             coord, = gmsh.model.mesh.getNode(nodeTags[2*C])
             x₂ = coord[1]
             y₂ = coord[2]
-            n₁[C] = (y₂-y₁)/𝐿
-            n₂[C] = (x₁-x₂)/𝐿
-            s₁[C] = -n₂[C]
-            s₂[C] =  n₁[C]
+            push!(data[:n₁][2], (y₂-y₁)/𝐿)
+            push!(data[:n₂][2], (x₁-x₂)/𝐿)
+            push!(data[:s₁][2], (x₂-x₁)/𝐿)
+            push!(data[:s₂][2], (y₂-y₁)/𝐿)
             for g in 1:ng
                 G = ng*(C-1)+g
-                ξ[G], η[G], γ[G] = gmsh.model.mesh.getLocalCoordinatesInElement(tagΩ, x[G], y[G], z[G])
+                ξ, η, γ = gmsh.model.mesh.getLocalCoordinatesInElement(tagΩ, x[G], y[G], z[G])
+                push!(data[:ξ][2], ξ)
+                push!(data[:η][2], η)
+                haskey(data,:γ) ? push!(data[:γ][2], γ) : nothing
             end
         end
-    end
-    data = Dict([
-        :w=>(1,weights),
-        :x=>(2,x),
-        :y=>(2,y),
-        :z=>(2,z),
-        :𝑤=>(2,𝑤),
-        :n₁=>(3,n₁),
-        :n₂=>(3,n₂),
-        :s₁=>(3,s₁),
-        :s₂=>(3,s₂),
-        :Δ=>(1,Δ),
-    ])
-    if dim == 2
-        push!(data, :ξ=>(1,ξ), :η=>(1,η), :γ=>(1,γ))
-    else
-        push!(data, :ξ=>(1,ξ), :η=>(1,η))
     end
 end
 
@@ -305,18 +323,17 @@ end
 cal_length_area_volume = quote
     if elementType == 1
         𝐿 = [2*determinants[C*ng] for C in 1:ne]
-        push!(data, :𝐿=>(3,𝐿))
+        append!(data[:𝐿][2],𝐿)
     elseif elementType == 2
         𝐴 = [determinants[C*ng]/2 for C in 1:ne]
-        push!(data, :𝐴=>(3,𝐴))
+        append!(data[:𝐴][2],𝐴)
     elseif elementType == 9
         𝐴 = [determinants[C*ng]/2 for C in 1:ne]
-        push!(data, :𝐴=>(3,𝐴))
+        append!(data[:𝐴][2],𝐴)
     elseif elementType == 4
         𝑉 = [determinants[C*ng]/6 for C in 1:ne]
-        push!(data, :𝑉=>(3,𝑉))
+        append!(data[:𝑉][2],𝑉)
     end
-    
 end
 
 typeForFEM = quote
@@ -327,10 +344,6 @@ cal_normal = quote
     if normal
         nodeTags = gmsh.model.mesh.getElementEdgeNodes(elementType,tag,true)
         if dim == 1
-            n₁ = zeros(ne)
-            n₂ = zeros(ne)
-            s₁ = zeros(ne)
-            s₂ = zeros(ne)
             for C in 1:ne
                 𝐿 = 2*determinants[C*ng]
                 coord, = gmsh.model.mesh.getNode(nodeTags[2*C-1])
@@ -339,12 +352,11 @@ cal_normal = quote
                 coord, = gmsh.model.mesh.getNode(nodeTags[2*C])
                 x₂ = coord[1]
                 y₂ = coord[2]
-                n₁[C] = (y₂-y₁)/𝐿
-                n₂[C] = (x₁-x₂)/𝐿
-                s₁[C] = -n₂[C]
-                s₂[C] =  n₁[C]
+                push!(data[:n₁][2], (y₂-y₁)/𝐿)
+                push!(data[:n₂][2], (x₁-x₂)/𝐿)
+                push!(data[:s₁][2], (x₂-x₁)/𝐿)
+                push!(data[:s₂][2], (y₂-y₁)/𝐿)
             end
-            push!(data,:n₁=>(3,n₁),:n₂=>(3,n₂),:s₁=>(3,s₁),:s₂=>(3,s₂))
         end
     end
 end
@@ -362,35 +374,35 @@ integrationByManual = quote
 end
 
 generateForFEM = quote
-    G = 0
-    s = 0
     for C in 1:ne
+        𝐶 += 1
         𝓒 = nodes[nodeTag[ni*(C-1)+1:ni*C]]
-        𝓖 = [𝑿ₛ((𝑔 = g, 𝐺 = G+g, 𝐶 = C, 𝑠 = s+(g-1)*ni), data) for g in 1:ng]
-        G += ng
-        s += ng*ni
+        𝓖 = [𝑿ₛ((𝑔 = 𝑔+g, 𝐺 = 𝐺+g, 𝐶 = 𝐶, 𝑠 = 𝑠+(g-1)*ni), data) for g in 1:ng]
+        𝐺 += ng
+        𝑠 += ng*ni
         push!(elements,type(𝓒,𝓖))
     end
+    𝑔 += ng
 end
 
 generateForNeighbor = quote
-    G = 0
-    s = 0
     for C in 1:ne
+        𝐶 += 1
         indices = Set{Int}()
         for g in 1:ng
-            xᵢ = x[G+g]
-            yᵢ = y[G+g]
-            zᵢ = z[G+g]
+            xᵢ = x[𝐺+g]
+            yᵢ = y[𝐺+g]
+            zᵢ = z[𝐺+g]
             union!(indices,sp(xᵢ,yᵢ,zᵢ))
         end
         ni = length(indices)
         𝓒 = [nodes[i] for i in indices]
-        𝓖 = [𝑿ₛ((𝑔 = g, 𝐺 = G+g, 𝐶 = C, 𝑠 = s+(g-1)*ni), data) for g in 1:ng]
-        G += ng
-        s += ng*ni
+        𝓖 = [𝑿ₛ((𝑔 = 𝑔+g, 𝐺 = 𝐺+g, 𝐶 = 𝐶, 𝑠 = 𝑠+(g-1)*ni), data) for g in 1:ng]
+        𝐺 += ng
+        𝑠 += ng*ni
         push!(elements,type(𝓒,𝓖))
     end
+    𝑔 += ng
 end
 
 generateForMarco = quote
@@ -416,21 +428,17 @@ generateForMarco = quote
 end
 
 generateForPiecewise = quote
-    G = 0
-    s = 0
-    nb=1
     data𝓒 = Dict{Symbol,Tuple{Int,Vector{Float64}}}()
     ni = get𝑛𝑝(type(𝑿ᵢ[],𝑿ₛ[]))
-    for i in 1:Int(ne/nb)
-        𝓒 = [𝑿ᵢ((𝐼=ni*(i-1)+j,),data𝓒) for j in 1:ni]
-        for j in 1:nb
-            C = nb*(i-1)+j
-            𝓖 = [𝑿ₛ((𝑔 = g, 𝐺 = G+g, 𝐶 = C, 𝑠 = s+(g-1)*ni), data) for g in 1:ng]
-            G += ng
-            s += ng*ni
-            push!(elements,type(𝓒,𝓖))
-        end
+    for C in 1:ne
+        𝐶 += 1
+        𝓒 = [𝑿ᵢ((𝐼=ni*(C-1)+j,),data𝓒) for j in 1:ni]
+        𝓖 = [𝑿ₛ((𝑔 = 𝑔+g, 𝐺 = 𝐺+g, 𝐶 = 𝐶, 𝑠 = 𝑠+(g-1)*ni), data) for g in 1:ng]
+        𝐺 += ng
+        𝑠 += ng*ni
+        push!(elements,type(𝓒,𝓖))
     end
+    𝑔 += ng
 end
 
 generateSummary = quote
@@ -551,7 +559,7 @@ function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},type::DataTy
     return elements
 end
 
-function getMacroElements(dimTag::Pair{Int,Vector{Int}},type::DataType,integrationOrder::Int,n::Int;nₕ::Int=1,nₐ::Int=2)
+function getPiecewiseElements(dimTag::Pair{Int,Vector{Int}},type::DataType,integrationOrder::Int;normal::Bool=false)
     $prequote
     for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
         ## integration rule
@@ -568,7 +576,7 @@ function getMacroElements(dimTag::Pair{Int,Vector{Int}},type::DataType,integrati
     return elements
 end
 
-function getMacroElements(dimTag::Pair{Int,Vector{Int}},type::DataType,integration::NTuple{2,Vector{Float64}},n::Int;nₕ::Int=1,nₐ::Int=2)
+function getPiecewiseElements(dimTag::Pair{Int,Vector{Int}},type::DataType,integration::NTuple{2,Vector{Float64}};normal::Bool=false)
     $prequote
     for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
         ## integration rule
