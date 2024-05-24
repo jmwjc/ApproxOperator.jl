@@ -95,6 +95,7 @@ coordinates = quote
     ng = length(weights)
     ne = Int(length(nodeTag)/ni)
 
+    append!(data[:w],weights)
     haskey(data,:ξ) ? append!(data[:ξ][2],localCoord[1:3:end]) : nothing
     haskey(data,:η) ? append!(data[:η][2],localCoord[2:3:end]) : nothing
     haskey(data,:γ) ? append!(data[:γ][2],localCoord[3:3:end]) : nothing
@@ -117,6 +118,7 @@ coordinatesForEdges = quote
     ng = length(weights)
     ne = Int(length(nodeTag)/ni)
 
+    append!(data[:w],weights)
     jacobians, determinants, coord = gmsh.model.mesh.getJacobians(elementType, localCoord, tag)
     x = coord[1:3:end]
     y = coord[2:3:end]
