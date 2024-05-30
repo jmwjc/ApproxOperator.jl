@@ -392,9 +392,9 @@ generateForNeighbor = quote
         𝐶 += 1
         indices = Set{Int}()
         for g in 1:ng
-            xᵢ = x[𝐺+g]
-            yᵢ = y[𝐺+g]
-            zᵢ = z[𝐺+g]
+            xᵢ = x[ng*(C-1)+g]
+            yᵢ = y[ng*(C-1)+g]
+            zᵢ = z[ng*(C-1)+g]
             union!(indices,sp(xᵢ,yᵢ,zᵢ))
         end
         ni = length(indices)
