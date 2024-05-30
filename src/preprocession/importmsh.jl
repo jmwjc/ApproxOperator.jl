@@ -68,6 +68,13 @@ prequote = quote
 end
 
 preForEdge = quote
+    dimΩ,tagΩ = dimTagΩ
+    tagsΩ = UInt64[]
+    for tagΩ_ in tagΩ
+        ~, tagsΩ_ = gmsh.model.mesh.getElements(dimΩ,tagΩ_)
+        push!(tagsΩ,tagsΩ_[1]...)
+    end
+
     data[:w] = (1,Float64[])
     data[:Δ] = (1,Float64[])
     data[:ξ] = (2,Float64[])
@@ -82,13 +89,6 @@ preForEdge = quote
         data[:s₃] = (3,Float64[])
     end   
 
-    nodeTags = gmsh.model.mesh.getElementEdgeNodes(elementType,tag,true)
-    dimΩ,tagΩ = dimTagΩ
-    tagsΩ = UInt64[]
-    for tagΩ_ in tagΩ
-        ~, tagsΩ_ = gmsh.model.mesh.getElements(dimΩ,tagΩ_)
-        push!(tagsΩ,tagsΩ_[1]...)
-    end
 end
 
 coordinates = quote
@@ -115,6 +115,8 @@ coordinates = quote
 end
 
 coordinatesForEdges = quote
+    nodeTag = gmsh.model.mesh.getElementEdgeNodes(elementType,tag,true)
+
     ng = length(weights)
     ne = Int(length(nodeTag)/ni)
 
@@ -147,10 +149,10 @@ coordinatesForEdges = quote
     for (CΩ,tagΩ) in enumerate(tagsΩ)
         for C in 3*CΩ-2:3*CΩ
             𝐿 = 2*determinants[C*ng]
-            coord, = gmsh.model.mesh.getNode(nodeTags[2*C-1])
+            coord, = gmsh.model.mesh.getNode(nodeTag[2*C-1])
             x₁ = coord[1]
             y₁ = coord[2]
-            coord, = gmsh.model.mesh.getNode(nodeTags[2*C])
+            coord, = gmsh.model.mesh.getNode(nodeTag[2*C])
             x₂ = coord[1]
             y₂ = coord[2]
             push!(data[:n₁][2], (y₂-y₁)/𝐿)
@@ -443,6 +445,22 @@ generateForPiecewise = quote
     𝑔 += ng
 end
 
+generateForPiecewiseBoundary = quote
+    data𝓒 = Dict{Symbol,Tuple{Int,Vector{Float64}}}()
+    ni = get𝑛𝑝(type(𝑿ᵢ[],𝑿ₛ[]))
+    for (CΩ,tagΩ) in enumerate(tagsΩ)
+        for C in 3*CΩ-2:3*CΩ
+            𝐶 += 1
+            𝓒 = [𝑿ᵢ((𝐼=ni*(CΩ-1)+j,),data𝓒) for j in 1:ni]
+            𝓖 = [𝑿ₛ((𝑔 = 𝑔+g, 𝐺 = 𝐺+g, 𝐶 = 𝐶, 𝑠 = 𝑠+(g-1)*ni), data) for g in 1:ng]
+            𝐺 += ng
+            𝑠 += ng*ni
+            push!(elements,type(𝓒,𝓖))
+        end
+    end
+    𝑔 += ng
+end
+
 generateSummary = quote
     println("Info: Generate $ne elements of $type with $ng integration points.")
 end
@@ -595,8 +613,10 @@ function getPiecewiseElements(dimTag::Pair{Int,Vector{Int}},type::DataType,integ
     return elements
 end
 
-function getMacroBoundaryElements(dimTag::Pair{Int,Vector{Int}},dimTagΩ::Pair{Int,Vector{Int}},type::DataType,integrationOrder::Int,n::Int;nₕ::Int=1,nₐ::Int=6)
+function getPiecewiseBoundaryElements(dimTag::Pair{Int,Vector{Int}},dimTagΩ::Pair{Int,Vector{Int}},type::DataType,integrationOrder::Int)
+    normal = false
     $prequote
+    $preForEdge
     for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
         ## integration rule
         $integrationByGmsh
@@ -605,15 +625,17 @@ function getMacroBoundaryElements(dimTag::Pair{Int,Vector{Int}},dimTagΩ::Pair{I
         ## special variables
         $cal_length_area_volume # length area and volume
         ## generate element
-        $generateForPiecewise
+        $generateForPiecewiseBoundary
         ## summary
         $generateSummary
     end
     return elements
 end
 
-function getMacroBoundaryElements(dimTag::Pair{Int,Vector{Int}},dimTagΩ::Pair{Int,Vector{Int}},type::DataType,integration::NTuple{2,Vector{Float64}},n::Int;nₕ::Int=1,nₐ::Int=6)
+function getPiecewiseBoundaryElements(dimTag::Pair{Int,Vector{Int}},dimTagΩ::Pair{Int,Vector{Int}},type::DataType,integration::NTuple{2,Vector{Float64}})
+    normal = false
     $prequote
+    $preForEdge
     for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
         ## integration rule
         $integrationByManual
@@ -806,12 +828,24 @@ end
 
 end 
 
-function getElements(dimTag1::Tuple{Int,Int},dimTag2::Tuple{Int,Int},elms::Vector{T}) where T<:AbstractElement
+function getElements(dimTag1::Pair{Int,Vector{Int}},dimTag2::Pair{Int,Vector{Int}},elms::Vector{T}) where T<:AbstractElement
     elements = AbstractElement[]
     dim1, tag1 = dimTag1
     dim2, tag2 = dimTag2
-    elementTypes1, ~, nodeTags1 = gmsh.model.mesh.getElements(dim1,tag1)
-    elementTypes2, ~, nodeTags2 = gmsh.model.mesh.getElements(dim2,tag2)
+    elementTypes1 = Int32[]
+    elementTypes2 = Int32[]
+    nodeTags1 = Vector{UInt64}[]
+    nodeTags2 = Vector{UInt64}[]
+    for tag in tag1
+        elementTypes_, ~, nodeTags_ = gmsh.model.mesh.getElements(dim1,tag)
+        push!(elementTypes1,elementTypes_[1])
+        push!(nodeTags1,nodeTags_[1])
+    end
+    for tag in tag2
+        elementTypes_, ~, nodeTags_ = gmsh.model.mesh.getElements(dim2,tag)
+        push!(elementTypes2,elementTypes_[1])
+        push!(nodeTags2,nodeTags_[1])
+    end
     for (elementType1,nodeTag1) in zip(elementTypes1,nodeTags1)
         for (elementType2,nodeTag2) in zip(elementTypes2,nodeTags2)
             if elementType1 == elementType2
