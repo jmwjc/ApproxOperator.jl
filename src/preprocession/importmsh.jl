@@ -88,7 +88,17 @@ preForEdge = quote
         data[:n₃] = (3,Float64[])
         data[:s₃] = (3,Float64[])
     end   
+end
 
+preForPiecewise = quote
+    if type <: PiecewiseParametric{𝑝,:Tri3} where 𝑝
+        data[:𝐴] = (3,Float64)
+        data[:D₁₁] = (3,Float64)
+        data[:D₁₂] = (3,Float64)
+        data[:D₂₁] = (3,Float64)
+        data[:D₂₂] = (3,Float64)
+    elseif type <: PiecewiseParametric{𝑝,:Quad} where 𝑝
+    end
 end
 
 coordinates = quote
@@ -328,10 +338,7 @@ cal_length_area_volume = quote
     if elementType == 1
         𝐿 = [2*determinants[C*ng] for C in 1:ne]
         append!(data[:𝐿][2],𝐿)
-    elseif elementType == 2
-        𝐴 = [determinants[C*ng]/2 for C in 1:ne]
-        append!(data[:𝐴][2],𝐴)
-    elseif elementType == 9
+    elseif elementType ∈ (2,9)
         𝐴 = [determinants[C*ng]/2 for C in 1:ne]
         append!(data[:𝐴][2],𝐴)
     elseif elementType == 4
@@ -477,7 +484,7 @@ function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},integrationO
         ## coordinates
         $coordinates
         ## special variables
-        $cal_length_area_volume # length area and volume
+        $cal_length_arsa_volume # length area and volume
         $cal_normal # unit outernal normal
         ## generate element
         $generateForFEM
