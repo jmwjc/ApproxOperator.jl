@@ -43,12 +43,27 @@ prequote = quote
     data[:y] = (2,Float64[])
     data[:z] = (2,Float64[])
     data[:𝑤] = (2,Float64[])
+    data[:𝐽] = (2,Float64[])
     if dim == 1
         data[:𝐿] = (3,Float64[])
+        data[:∂ξ∂x] = (2,Float64[])
     elseif dim == 2
         data[:𝐴] = (3,Float64[])
+        data[:∂ξ∂x] = (2,Float64[])
+        data[:∂ξ∂y] = (2,Float64[])
+        data[:∂η∂x] = (2,Float64[])
+        data[:∂η∂y] = (2,Float64[])
     else
         data[:𝑉] = (3,Float64[])
+        data[:∂ξ∂x] = (2,Float64[])
+        data[:∂ξ∂y] = (2,Float64[])
+        data[:∂ξ∂z] = (2,Float64[])
+        data[:∂η∂x] = (2,Float64[])
+        data[:∂η∂y] = (2,Float64[])
+        data[:∂η∂z] = (2,Float64[])
+        data[:∂γ∂x] = (2,Float64[])
+        data[:∂γ∂y] = (2,Float64[])
+        data[:∂γ∂z] = (2,Float64[])
     end
 
     data[:w] = (1,Float64[])
@@ -88,17 +103,6 @@ preForEdge = quote
         data[:n₃] = (3,Float64[])
         data[:s₃] = (3,Float64[])
     end   
-end
-
-preForPiecewise = quote
-    if type <: PiecewiseParametric{𝑝,:Tri3} where 𝑝
-        data[:𝐴] = (3,Float64)
-        data[:D₁₁] = (3,Float64)
-        data[:D₁₂] = (3,Float64)
-        data[:D₂₁] = (3,Float64)
-        data[:D₂₂] = (3,Float64)
-    elseif type <: PiecewiseParametric{𝑝,:Quad} where 𝑝
-    end
 end
 
 coordinates = quote
@@ -347,6 +351,56 @@ cal_length_area_volume = quote
     end
 end
 
+cal_jacobe = quote
+    append!(data[:𝐽][2],determinants)
+    J = zeros(3,3)
+    ∂ξ∂x = zeros(ne*ng)
+    ∂ξ∂y = zeros(ne*ng)
+    ∂ξ∂z = zeros(ne*ng)
+    ∂η∂x = zeros(ne*ng)
+    ∂η∂y = zeros(ne*ng)
+    ∂η∂z = zeros(ne*ng)
+    ∂γ∂x = zeros(ne*ng)
+    ∂γ∂y = zeros(ne*ng)
+    ∂γ∂z = zeros(ne*ng)
+    for C in 1:ne
+        for g in 1:ng
+            J[1,1] = jacobians[9*(ng*(C-1)+g)-8]
+            J[1,2] = jacobians[9*(ng*(C-1)+g)-7]
+            J[1,3] = jacobians[9*(ng*(C-1)+g)-6]
+            J[2,1] = jacobians[9*(ng*(C-1)+g)-5]
+            J[2,2] = jacobians[9*(ng*(C-1)+g)-4]
+            J[2,3] = jacobians[9*(ng*(C-1)+g)-3]
+            J[3,1] = jacobians[9*(ng*(C-1)+g)-2]
+            J[3,2] = jacobians[9*(ng*(C-1)+g)-1]
+            J[3,3] = jacobians[9*(ng*(C-1)+g)]
+            # println(J)
+            J⁻¹ = inv(J)
+            ∂ξ∂x[ng*(C-1)+g] = J⁻¹[1,1]
+            ∂ξ∂y[ng*(C-1)+g] = J⁻¹[1,2]
+            ∂ξ∂z[ng*(C-1)+g] = J⁻¹[1,3]
+            ∂η∂x[ng*(C-1)+g] = J⁻¹[2,1]
+            ∂η∂y[ng*(C-1)+g] = J⁻¹[2,2]
+            ∂η∂z[ng*(C-1)+g] = J⁻¹[2,3]
+            ∂γ∂x[ng*(C-1)+g] = J⁻¹[3,1]
+            ∂γ∂y[ng*(C-1)+g] = J⁻¹[3,2]
+            ∂γ∂z[ng*(C-1)+g] = J⁻¹[3,3]
+        end
+    end
+    append!(data[:∂ξ∂x][2],∂ξ∂x)
+    if dim >= 2
+        append!(data[:∂ξ∂y][2],∂ξ∂y)
+        append!(data[:∂η∂x][2],∂η∂x)
+        append!(data[:∂η∂y][2],∂η∂y)
+    elseif dim >= 3
+        append!(data[:∂ξ∂z][2],∂ξ∂z)
+        append!(data[:∂η∂z][2],∂η∂z)
+        append!(data[:∂γ∂x][2],∂γ∂x)
+        append!(data[:∂γ∂y][2],∂γ∂y)
+        append!(data[:∂γ∂z][2],∂γ∂z)
+    end
+end
+
 typeForFEM = quote
     type = Element{types[elementType]}
 end
@@ -484,7 +538,7 @@ function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},integrationO
         ## coordinates
         $coordinates
         ## special variables
-        $cal_length_arsa_volume # length area and volume
+        $cal_length_area_volume # length area and volume
         $cal_normal # unit outernal normal
         ## generate element
         $generateForFEM
@@ -594,7 +648,7 @@ function getPiecewiseElements(dimTag::Pair{Int,Vector{Int}},type::DataType,integ
         ## coordinates
         $coordinates
         ## special variables
-        $cal_length_area_volume # length area and volume
+        $cal_jacobe
         ## generate element
         $generateForPiecewise
         ## summary
@@ -611,7 +665,7 @@ function getPiecewiseElements(dimTag::Pair{Int,Vector{Int}},type::DataType,integ
         ## coordinates
         $coordinates
         ## special variables
-        $cal_length_area_volume # length area and volume
+        $cal_jacobe
         ## generate element
         $generateForPiecewise
         ## summary
@@ -630,7 +684,7 @@ function getPiecewiseBoundaryElements(dimTag::Pair{Int,Vector{Int}},dimTagΩ::Pa
         ## coordinates
         $coordinatesForEdges
         ## special variables
-        $cal_length_area_volume # length area and volume
+        $cal_jacobe 
         ## generate element
         $generateForPiecewiseBoundary
         ## summary
@@ -649,7 +703,7 @@ function getPiecewiseBoundaryElements(dimTag::Pair{Int,Vector{Int}},dimTagΩ::Pa
         ## coordinates
         $coordinatesForEdges
         ## special variables
-        $cal_length_area_volume # length area and volume
+        $cal_jacobe 
         ## generate element
         $generateForPiecewise
         ## summary

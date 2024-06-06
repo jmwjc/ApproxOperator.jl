@@ -112,25 +112,52 @@ function (op::Operator{:∫∫εᵈᵢⱼσᵈᵢⱼdxdy})(ap::T;k::AbstractMatr
     end
 end
 
-function (op::Operator{:∫pnᵢgᵢds})(apu::T,app::S;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
-    𝓒u = apu.𝓒
-    𝓒p = app.𝓒
-    𝓖u = apu.𝓖
-    𝓖p = app.𝓖
-    # α = op.α
-    for (ξu,ξp) in zip(𝓖u,𝓖p)
-        Nᵖ = ξp[:𝝭]
-        Nᵘ = ξu[:𝝭]
-        B₁ = ξu[:∂𝝭∂x]
-        B₂ = ξu[:∂𝝭∂y]
-        𝑤 = ξu.𝑤
-        n₁ = ξp.n₁
-        n₂ = ξp.n₂
-        g₁ = ξu.g₁
-        g₂ = ξu.g₂
-        for (i,xᵢ) in enumerate(𝓒p)
+function (op::Operator{:∫∫εᵈᵢⱼσᵈᵢⱼdxdy})(aᵤ::T,aₛ::S;k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+    𝓒ᵤ = aᵤ.𝓒
+    𝓒ₛ = aₛ.𝓒
+    𝓖ᵤ = aᵤ.𝓖
+    𝓖ₛ = aₛ.𝓖
+    E = op.E
+    ν = op.ν
+    Cᵈ = E/(1+ν)
+    for (ξᵤ,ξₛ) in zip(𝓖ᵤ,𝓖ₛ)
+        Bᵤ₁ = ξᵤ[:∂𝝭∂x]
+        Bᵤ₂ = ξᵤ[:∂𝝭∂y]
+        Bₛ₁ = ξₛ[:∂𝝭∂x]
+        Bₛ₂ = ξₛ[:∂𝝭∂y]
+        𝑤 = ξᵤ.𝑤
+        for (i,xᵢ) in enumerate(𝓒ₛ)
             I = xᵢ.𝐼
-            for (j,xⱼ) in enumerate(𝓒u)
+            for (j,xⱼ) in enumerate(𝓒ᵤ)
+                J = xⱼ.𝐼
+                k[2*I-1,2*J-1] += Cᵈ*( 2/3*B₁[i]*B₁[j]+1/2*B₂[i]*B₂[j])*𝑤
+                k[2*I-1,2*J]   += Cᵈ*(-1/3*B₁[i]*B₂[j]+1/2*B₂[i]*B₁[j])*𝑤
+                k[2*I,2*J-1]   += Cᵈ*(-1/3*B₂[i]*B₁[j]+1/2*B₁[i]*B₂[j])*𝑤
+                k[2*I,2*J]     += Cᵈ*( 2/3*B₂[i]*B₂[j]+1/2*B₁[i]*B₁[j])*𝑤
+            end
+        end
+    end
+end
+
+function (op::Operator{:∫pnᵢgᵢds})(aᵤ::T,aₚ::S;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+    𝓒ᵤ = aᵤ.𝓒
+    𝓒ₚ = aₚ.𝓒
+    𝓖ᵤ = aᵤ.𝓖
+    𝓖ₚ = aₚ.𝓖
+    # α = op.α
+    for (ξᵤ,ξₚ) in zip(𝓖ᵤ,𝓖ₚ)
+        Nᵖ = ξₚ[:𝝭]
+        Nᵘ = ξᵤ[:𝝭]
+        B₁ = ξᵤ[:∂𝝭∂x]
+        B₂ = ξᵤ[:∂𝝭∂y]
+        𝑤 = ξᵤ.𝑤
+        n₁ = ξₚ.n₁
+        n₂ = ξₚ.n₂
+        g₁ = ξᵤ.g₁
+        g₂ = ξᵤ.g₂
+        for (i,xᵢ) in enumerate(𝓒ₚ)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒ᵤ)
                 J = xⱼ.𝐼
                 k[2*J-1,I] += Nᵘ[j]*n₁*Nᵖ[i]*𝑤
                 k[2*J,I]   += Nᵘ[j]*n₂*Nᵖ[i]*𝑤
