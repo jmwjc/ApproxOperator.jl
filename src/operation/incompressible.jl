@@ -17,28 +17,6 @@ function (op::Operator{:∫∫qpdxdy})(ap::T;k::AbstractMatrix{Float64}) where T
     end
 end
 
-function (op::Operator{:∫∫qpdxdy})(aₚ::T,aₛ::S;k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
-    𝓒ₚ = aₚ.𝓒
-    𝓒ₛ = aₛ.𝓒
-    𝓖ₚ = aₚ.𝓖
-    𝓖ₛ = aₛ.𝓖
-    E = op.E
-    ν = op.ν
-    K = E/3/(1-2*ν)
-    for (ξₚ,ξₛ) in zip(𝓖ₚ,𝓖ₛ)
-        𝑤 = ξₚ.𝑤
-        Nₚ = ξₚ[:𝝭]
-        Nₛ = ξₛ[:𝝭]
-        for (i,xᵢ) in enumerate(𝓒ₛ)
-            I = xᵢ.𝐼
-            for (j,xⱼ) in enumerate(𝓒ₚ)
-                J = xⱼ.𝐼
-                k[I,J] -= N[i]*N[j]/K*𝑤
-            end
-        end
-    end
-end
-
 function (op::Operator{:∫∫p∇vdxdy})(aᵤ::T,aₚ::S;k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ᵤ = aᵤ.𝓒
     𝓒ₚ = aₚ.𝓒
