@@ -34,7 +34,7 @@ function (op::Operator{:∫∫q̇mpqkpdx})(ap::T;k::AbstractMatrix{Float64}) whe
     end
 end
 
-function (op::Operator{:∫∫q̇mΨqkΨdx})(a::T;b::S;k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+function (op::Operator{:∫∫q̇mΨqkΨdx})(a::T,b::S;k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒₁ = a.𝓒; 𝓖₁ = a.𝓖
     𝓒₂ = b.𝓒; 𝓖₂ = b.𝓖
     ρA = op.ρA
@@ -44,12 +44,12 @@ function (op::Operator{:∫∫q̇mΨqkΨdx})(a::T;b::S;k::AbstractMatrix{Float64
         Bₜ = ξ₁[:∂𝝭∂y]
         Ψₜ = ξ₂[:∂𝝭∂y]
         Ψₓ = ξ₂[:∂𝝭∂x]
-        𝑤 = ξ.𝑤
+        𝑤 = ξ₁.𝑤
         for (i,xᵢ) in enumerate(𝓒₁)
             I = xᵢ.𝐼
-            for (k,xₖ) in enumerate(𝓒₂)
-                K = xₖ.𝐼
-                k[I,K] += (Bₜ[i]*ρA*Ψₜ[k] - Bₓ[i]*EA*Ψₓ[k])*𝑤
+            for (j,xⱼ) in enumerate(𝓒₂)
+                J = xⱼ.𝐼
+                k[I,J] += (Bₜ[i]*ρA*Ψₜ[j] - Bₓ[i]*EA*Ψₓ[j])*𝑤
             end
         end
     end
