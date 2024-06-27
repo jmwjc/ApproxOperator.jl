@@ -26,6 +26,33 @@ function (op::Operator{:L₂})(aps::Vector{T}) where T<:AbstractElement
     end
     return (L₂Norm_Δu²/L₂Norm_ū²)^0.5
 end
+function (op::Operator{:T_error})(ap::T) where T<:AbstractElement
+    ΔT²= 0
+    T² = 0
+    for ξ in ap.𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        Tᵢ = ξ.T
+        Tʰᵢ = 0
+        for (i,xᵢ) in enumerate(ap.𝓒)
+            Tʰᵢ += N[i]*xᵢ.T
+        end
+        ΔT² += (Tʰᵢ -Tᵢ)^2*𝑤
+        T²  += Tᵢ^2*𝑤
+    end
+    return ΔT², T²
+end
+
+function (op::Operator{:T_error})(aps::Vector{T}) where T<:AbstractElement
+    L₂Norm_ΔT²= 0
+    L₂Norm_T² = 0
+    for ap in aps
+        ΔT², T² = op(ap)
+        L₂Norm_ΔT² += ΔT²
+        L₂Norm_T²  += T²
+    end
+    return (L₂Norm_ΔT²/L₂Norm_T²)^0.5
+end
 
 function (op::Operator{:H₁})(ap::T) where T<:AbstractElement
     Δ∇u²= 0
