@@ -278,6 +278,7 @@ function (op::Operator{:Hₑ_up_mix})(apu::T,app::S) where {T<:AbstractElement,S
     W̄²_dil = 0.0
     W̄²_dev = 0.0
     Δu²= 0
+    Δp²= 0
     ū² = 0
     p̄² =0
     p² =0
@@ -340,6 +341,8 @@ function (op::Operator{:Hₑ_up_mix})(apu::T,app::S) where {T<:AbstractElement,S
         # W̄² += (3*p̄*(ε̄₁₁+ε̄₂₂)/2+s̄₁₁*(2/3*ε̄₁₁-1/3*ε̄₂₂)/2+s̄₂₂*(-1/3*ε̄₁₁+2/3*ε̄₂₂)/2+s̄₃₃*(-1/3*ε̄₁₁-1/3*ε̄₂₂)/2+s̄₁₂*ε̄₁₂/2)*𝑤
         Δu² += ((u₁ - ū₁)^2 + (u₂ - ū₂)^2)*𝑤
         ū² += (ū₁^2 + ū₂^2)*𝑤
+        Δp² += ((p - p̄)^2 )*𝑤
+        p̄² += (p̄^2)*𝑤
         # ΔW²_dil += (3*(p-p̄)*(ε₁₁-ε̄₁₁+ε₂₂-ε̄₂₂)/2)*𝑤
         ΔW²_dil +=(3*(p-p̄)^2/2/K)*𝑤
         # ΔW²_dev += ((s₁₁-s̄₁₁)*(2/3*(ε₁₁-ε̄₁₁)-1/3*(ε₂₂-ε̄₂₂))/2+(s₂₂-s̄₂₂)*(-1/3*(ε₁₁-ε̄₁₁)+2/3*(ε₂₂-ε̄₂₂))/2+(s₃₃-s̄₃₃)*(-1/3*(ε₁₁-ε̄₁₁)-1/3*(ε₂₂-ε̄₂₂))/2+(s₁₂-s̄₁₂)*(ε₁₂-ε̄₁₂)/2)*𝑤
@@ -352,12 +355,14 @@ function (op::Operator{:Hₑ_up_mix})(apu::T,app::S) where {T<:AbstractElement,S
         
 
     end
-    return ΔW², W̄², Δu², ū²,ΔW²_dil, ΔW²_dev, W̄²_dil,W̄²_dev
+    return ΔW², W̄², Δu², ū²,ΔW²_dil, ΔW²_dev, W̄²_dil,W̄²_dev,Δp²,p̄²
 end
 
 function (op::Operator{:Hₑ_up_mix})(apsu::Vector{T},apsp::Vector{S}) where {T<:AbstractElement,S<:AbstractElement}
     HₑNorm_ΔW²= 0.0
     HₑNorm_W̄² = 0.0
+    L₂Norm_Δp²= 0.0
+    L₂Norm_p̄² = 0.0
     L₂Norm_Δu²= 0.0
     L₂Norm_ū² = 0.0
     HₑNorm_ΔW²_dil= 0.0
@@ -367,18 +372,21 @@ function (op::Operator{:Hₑ_up_mix})(apsu::Vector{T},apsp::Vector{S}) where {T<
     for (apu,app) in zip(apsu,apsp)
     # for apu in apsu
         # for app in apsp
-            ΔW², W̄², Δu², ū²,ΔW²_dil, ΔW²_dev, W̄²_dil,W̄²_dev = op(apu,app)
+            ΔW², W̄², Δu², ū²,ΔW²_dil, ΔW²_dev, W̄²_dil,W̄²_dev, Δp²,p̄²  = op(apu,app)
             HₑNorm_ΔW² += ΔW²
             HₑNorm_W̄²  += W̄²
             L₂Norm_Δu² += Δu²
             L₂Norm_ū²  += ū²
+            L₂Norm_Δp² += Δp²
+            L₂Norm_p̄²  += p̄²
+            
             HₑNorm_ΔW²_dil += ΔW²_dil
             HₑNorm_ΔW²_dev += ΔW²_dev
             HₑNorm_W̄²_dil  += W̄²_dil
             HₑNorm_W̄²_dev  += W̄²_dev
         # end
     end
-    return (HₑNorm_ΔW²/HₑNorm_W̄²)^0.5, (L₂Norm_Δu²/L₂Norm_ū²)^0.5,(HₑNorm_ΔW²_dil/HₑNorm_W̄²_dil)^0.5,(HₑNorm_ΔW²_dev/HₑNorm_W̄²_dev)^0.5
+    return (HₑNorm_ΔW²/HₑNorm_W̄²)^0.5, (L₂Norm_Δu²/L₂Norm_ū²)^0.5,(HₑNorm_ΔW²_dil/HₑNorm_W̄²_dil)^0.5,(HₑNorm_ΔW²_dev/HₑNorm_W̄²_dev)^0.5,(L₂Norm_Δp²/L₂Norm_p̄²)^0.5
     # return (HₑNorm_ΔW²/HₑNorm_W̄²)^0.5, (L₂Norm_Δu²/L₂Norm_ū²)^0.5
 end    
 function (op::Operator{:Hₑ_Incompressible})(ap::T) where T<:AbstractElement
