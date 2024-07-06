@@ -62,6 +62,34 @@ function (op::Operator{:∫∫qᵢ∇Tⱼdxdy})(aᵤ::T,aₚ::S;k::AbstractMatri
         end
     end
 end
+function (op::Operator{:∫qᵢnᵢgⱼds})(aᵤ::T,aₚ::S;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+    𝓒ᵤ = aᵤ.𝓒 ##heat flux
+    𝓒ₚ = aₚ.𝓒  ##temperatures
+    𝓖ᵤ = aᵤ.𝓖
+    𝓖ₚ = aₚ.𝓖
+    t = op.t
+    for (ξᵤ,ξₚ) in zip(𝓖ᵤ,𝓖ₚ)
+        Nᵤ = ξᵤ[:𝝭]
+        Nₚ = ξₚ[:𝝭]
+        𝑤 = ξᵤ.𝑤
+        n₁ = 1.0
+        n₂ = 1.0
+        g = ξₚ.g
+        # for (i,xᵢ) in enumerate(𝓒ₚ)
+        for (i,xᵢ) in enumerate(𝓒ᵤ)
+            I = xᵢ.𝐼
+            # for (j,xⱼ) in enumerate(𝓒ᵤ)
+            for (j,xⱼ) in enumerate(𝓒ₚ)
+                J = xⱼ.𝐼
+              
+                k[2*I-1,J] -= t*Nᵤ[i]*Nₚ[j]*n₁*𝑤
+                k[2*I,J]   -= t*Nᵤ[i]*Nₚ[j]*n₂*𝑤
+            end
+            f[2*I-1] -= Nᵤ[i]*n₁*g*𝑤
+            f[2*I] -= Nᵤ[i]*n₂*g*𝑤
+        end
+    end
+end
 
 function (op::Operator{:∫∫Tᵢsᵢdxdy})(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
