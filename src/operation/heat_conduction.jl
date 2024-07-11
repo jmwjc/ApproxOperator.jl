@@ -72,9 +72,9 @@ function (op::Operator{:∫pᵢnᵢgⱼds})(aₚ::T,aᵤ::S;k::AbstractMatrix{Fl
         Nₚ = ξₚ[:𝝭]
         𝑤 = ξᵤ.𝑤
         # 𝑤 = ξₚ.𝑤
-        n₁₁ = ξₚ.n₁₁
+        n₁ = ξₚ.n₁
         # n₁₂ = ξₚ.n₁₂
-        n₂₂ = ξₚ.n₂₂
+        n₂ = ξₚ.n₂
         g = ξᵤ.g
         for (i,xᵢ) in enumerate(𝓒ₚ)
         # for (i,xᵢ) in enumerate(𝓒ᵤ)
@@ -82,11 +82,11 @@ function (op::Operator{:∫pᵢnᵢgⱼds})(aₚ::T,aᵤ::S;k::AbstractMatrix{Fl
             for (j,xⱼ) in enumerate(𝓒ᵤ)
             # for (j,xⱼ) in enumerate(𝓒ₚ)
                 J = xⱼ.𝐼
-                k[2*I-1,J] -= Nₚ[i]*Nᵤ[j]*n₁₁*𝑤
-                k[2*I,J]   -= Nₚ[i]*Nᵤ[j]*n₂₂*𝑤
+                k[2*I-1,J] += Nₚ[i]*Nᵤ[j]*n₁*𝑤
+                k[2*I,J]   += Nₚ[i]*Nᵤ[j]*n₂*𝑤
             end
-            f[2*I-1] -= Nₚ[i]*n₁₁*g*𝑤
-            f[2*I] -= Nₚ[i]*n₂₂*g*𝑤
+            f[2*I-1] += Nₚ[i]*n₁*g*𝑤
+            f[2*I] += Nₚ[i]*n₂*g*𝑤
         end
     end
 end
