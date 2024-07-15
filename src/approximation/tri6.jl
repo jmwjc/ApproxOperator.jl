@@ -14,7 +14,7 @@ function set𝝭!(::Element{:Tri6},x::Node)
 end
 
 function set∇𝝭!(ap::Element{:Tri6},x::Node)
-    𝐴 = x.𝐴
+    𝐽 = x.𝐽
     ξ = x.ξ
     η = x.η
     γ = 1.0-ξ-η
@@ -25,12 +25,12 @@ function set∇𝝭!(ap::Element{:Tri6},x::Node)
     y₂ = ap.𝓒[2].y
     y₃ = ap.𝓒[3].y
     
-    J₁₁ = (y₃-y₁)/2.0/𝐴
-    J₂₁ = (y₁-y₂)/2.0/𝐴
-    J₃₁ = (y₂-y₃)/2.0/𝐴
-    J₁₂ = (x₁-x₃)/2.0/𝐴
-    J₂₂ = (x₂-x₁)/2.0/𝐴
-    J₃₂ = (x₃-x₂)/2.0/𝐴
+    J₁₁ = (y₃-y₁)/𝐽
+    J₂₁ = (y₁-y₂)/𝐽
+    J₃₁ = (y₂-y₃)/𝐽
+    J₁₂ = (x₁-x₃)/𝐽
+    J₂₂ = (x₂-x₁)/𝐽
+    J₃₂ = (x₃-x₂)/𝐽
     𝝭 = x[:𝝭]
     𝝭[1] = γ*(2*γ-1)
     𝝭[2] = ξ*(2*ξ-1)
