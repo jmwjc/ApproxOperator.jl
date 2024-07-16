@@ -54,6 +54,37 @@ function (op::Operator{:T_error})(aps::Vector{T}) where T<:AbstractElement
     return (L₂Norm_ΔT²/L₂Norm_T²)^0.5
 end
 
+
+function (op::Operator{:L₂_heat_flux})(ap::T) where T<:AbstractElement
+    Δu²= 0
+    ū² = 0
+    for ξ in ap.𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        ū₁ = ξ.u
+        ū₂ = ξ.v
+        u₁ = 0.
+        u₂ = 0.
+        for (i,xᵢ) in enumerate(ap.𝓒)
+            u₁ += N[i]*xᵢ.d₁
+            u₂ += N[i]*xᵢ.d₂
+        end
+        Δu² += ((u₁ - ū₁)^2 + (u₂ - ū₂)^2)*𝑤
+        ū² += (ū₁^2 + ū₂^2)*𝑤
+    end
+    return Δu², ū²
+end
+
+function (op::Operator{:L₂_heat_flux})(aps::Vector{T}) where T<:AbstractElement
+    L₂Norm_Δu²= 0.0
+    L₂Norm_ū² = 0.0
+    for ap in aps
+      Δu², ū² = op(ap)
+        L₂Norm_Δu² += Δu²
+        L₂Norm_ū²  += ū²
+    end
+    return (L₂Norm_Δu²/L₂Norm_ū²)^0.5
+end
 function (op::Operator{:H₁})(ap::T) where T<:AbstractElement
     Δ∇u²= 0
     ∇ū² = 0
