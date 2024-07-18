@@ -149,6 +149,40 @@ function (op::Operator{:∫θMdΓ})(ap::T;f::AbstractVector{Float64}) where T<:A
     end
 end
 
+function (op::Operator{:∫θM₁dΓ})(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        n₁ = ξ.n₁
+        n₂ = ξ.n₂
+        M₁₁ = ξ.M₁₁
+        M₁₂ = ξ.M₁₂
+        M₁ = M₁₁*n₁+M₁₂*n₂
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            f[3*I-1] -= N[i]*M₁*𝑤
+        end
+    end
+end
+
+function (op::Operator{:∫θM₂dΓ})(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        n₁ = ξ.n₁
+        n₂ = ξ.n₂
+        M₁₂ = ξ.M₁₂
+        M₂₂ = ξ.M₂₂
+        M₂ = M₁₂*n₁+M₂₂*n₂
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            f[3*I]   -= N[i]*M₂*𝑤
+        end
+    end
+end
+
 function (op::Operator{:∫vwdΓ})(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     α = op.α
@@ -263,4 +297,39 @@ function (op::Operator{:∫QQdΩ})(ap::T;k::AbstractMatrix{Float64}) where T<:Ab
             end
         end
     end
+end
+
+
+function (op::Operator{:L₂_ThickPlate})(ap::T) where T<:AbstractElement
+    Δu²= 0
+    ū² = 0
+    for ξ in ap.𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        ū₁ = ξ.u
+        ū₂ = ξ.θ₁
+        ū₃ = ξ.θ₂
+        u₁ = 0
+        u₂ = 0
+        u₃ = 0
+        for (i,xᵢ) in enumerate(ap.𝓒)
+            u₁ += N[i]*xᵢ.d₁
+            u₂ += N[i]*xᵢ.d₂
+            u₃ += N[i]*xᵢ.d₃
+        end
+        Δu² +=((u₁ - ū₁)^2 + (u₂ - ū₂)^2 + (u₃ - ū₃)^2)*𝑤
+        ū²  += (ū₁^2 + ū₂^2 + ū₃^2)*𝑤
+    end
+    return Δu², ū²
+end
+
+function (op::Operator{:L₂_ThickPlate})(aps::Vector{T}) where T<:AbstractElement
+    L₂Norm_Δu²= 0
+    L₂Norm_ū² = 0
+    for ap in aps
+        Δu², ū² = op(ap)
+        L₂Norm_Δu² += Δu²
+        L₂Norm_ū²  += ū²
+    end
+    return (L₂Norm_Δu²/L₂Norm_ū²)^0.5
 end
