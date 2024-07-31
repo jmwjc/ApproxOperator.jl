@@ -138,15 +138,13 @@ function (op::Operator{:∫∫Tᵢsᵢdxdy})(ap::T;f::AbstractVector{Float64}) w
 end
 function (op::Operator{:∫Tᵢhᵢds})(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    t = op.t
     for ξ in 𝓖
         N = ξ[:𝝭]
         𝑤 = ξ.𝑤
         h = ξ.h
-        t = ξ.t
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
-            f[I] += t*N[i]*h*𝑤
+            f[I] += N[i]*h*𝑤
         end
     end
 end
