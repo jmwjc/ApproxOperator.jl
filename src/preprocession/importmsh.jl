@@ -39,41 +39,31 @@ prequote = quote
 
     𝑔 = 0; 𝐺 = 0; 𝐶 = 0;𝑠 = 0;
     data = Dict{Symbol,Tuple{Int,Vector{Float64}}}()
+    data[:w] = (1,Float64[])
+    data[:ξ] = (1,Float64[])
     data[:x] = (2,Float64[])
     data[:y] = (2,Float64[])
     data[:z] = (2,Float64[])
     data[:𝑤] = (2,Float64[])
     data[:𝐽] = (2,Float64[])
-    if dim == 1
-        data[:𝐿] = (3,Float64[])
-        data[:∂ξ∂x] = (2,Float64[])
-    elseif dim == 2
-        data[:𝐴] = (3,Float64[])
-        data[:∂ξ∂x] = (2,Float64[])
+    data[:∂ξ∂x] = (2,Float64[])
+    if dim >= 2
+        data[:η] = (1,Float64[])
+
         data[:∂ξ∂y] = (2,Float64[])
         data[:∂η∂x] = (2,Float64[])
         data[:∂η∂y] = (2,Float64[])
-    else
-        data[:𝑉] = (3,Float64[])
-        data[:∂ξ∂x] = (2,Float64[])
-        data[:∂ξ∂y] = (2,Float64[])
+    end
+    if dim >= 3
+        data[:γ] = (1,Float64[])
+
         data[:∂ξ∂z] = (2,Float64[])
-        data[:∂η∂x] = (2,Float64[])
-        data[:∂η∂y] = (2,Float64[])
         data[:∂η∂z] = (2,Float64[])
         data[:∂γ∂x] = (2,Float64[])
         data[:∂γ∂y] = (2,Float64[])
         data[:∂γ∂z] = (2,Float64[])
     end
 
-    data[:w] = (1,Float64[])
-    data[:ξ] = (1,Float64[])
-    if dim > 1
-        data[:η] = (1,Float64[])
-    end
-    if dim > 2
-        data[:γ] = (1,Float64[])
-    end
     if normal
         data[:n₁] = (3,Float64[])
         data[:n₂] = (3,Float64[])
@@ -201,9 +191,6 @@ curvilinearCoordinates = quote
             for (j,w) in enumerate(weights)
                 G = ng*(i-1)+j
                 x_ = Vec{3}((x[G],y[G],z[G]))
-                # J1 = 𝐽(x_)
-                # J2 = cos(y[G]/25)
-                # println("J1: $J1, J2: $J2")
                 𝑤[G] = determinants[G]*cs.𝐽(x_)*w
             end
         end
@@ -291,8 +278,6 @@ curvilinearCoordinates = quote
                 ∂₁s₂[G] = ∂₁s₂_(x_)
                 ∂₂s₁[G] = ∂₂s₁_(x_)
                 ∂₂s₂[G] = ∂₂s₂_(x_)
-                # det = determinants[G]
-                # println("determinant: $det, 𝐽: $J.")
                 𝑤[G] = J*w
             end
         end
@@ -338,19 +323,6 @@ curvilinearCoordinates = quote
     end
 end
 
-cal_length_area_volume = quote
-    if elementType == 1
-        𝐿 = [2*determinants[C*ng] for C in 1:ne]
-        append!(data[:𝐿][2],𝐿)
-    elseif elementType ∈ (2,9)
-        𝐴 = [determinants[C*ng]/2 for C in 1:ne]
-        append!(data[:𝐴][2],𝐴)
-    elseif elementType == 4
-        𝑉 = [determinants[C*ng]/6 for C in 1:ne]
-        append!(data[:𝑉][2],𝑉)
-    end
-end
-
 cal_jacobe = quote
     append!(data[:𝐽][2],determinants)
     J = zeros(3,3)
@@ -374,7 +346,6 @@ cal_jacobe = quote
             J[3,1] = jacobians[9*(ng*(C-1)+g)-2]
             J[3,2] = jacobians[9*(ng*(C-1)+g)-1]
             J[3,3] = jacobians[9*(ng*(C-1)+g)]
-            # println(J)
             J⁻¹ = inv(J)
             ∂ξ∂x[ng*(C-1)+g] = J⁻¹[1,1]
             ∂ξ∂y[ng*(C-1)+g] = J⁻¹[1,2]
@@ -528,6 +499,44 @@ end
 
 @eval begin
 
+# function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}};
+#                         type::Union{Int,DataType} = -1,
+#                         integration::Union{Int,NTuple{2,Vector{Float64}}} = -1,
+#                         searching::Union{Int,SpatialPartition} = -1,
+#                         coordinate::Union{Int,Function} = -1,
+#                         normal::Bool=false
+#                     ) where N<:Node
+#     $prequote
+#     for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
+#         if isa(type,Int)
+#             type = Element{types[elementType]}
+#         end
+#         ~, ~, order, ni = gmsh.model.mesh.getElementProperties(elementType)
+#         if isa(integration,Int)
+#             integrationOrder = integration < 0 : order : integration
+#             integrationType = "Gauss"*string(integrationOrder)
+#             integration = gmsh.model.mesh.getIntegrationPoints(elementType,integrationType)
+#         end
+#         localCoord, weights = integration
+#         if isa(coordinate,Int)
+#             $coordiantes
+#         else
+#             $curvilinearCoordinates
+#         end
+#         if isa(searching,Int)
+#             if searching == 0
+#                 $
+#             else
+#                 $generateForFEM
+#             end
+#         else
+#             $generateForNeighbor
+#         end
+#         println("Info: Generate $ne elements of $type with $ng integration points.")
+#     end
+#     return elements
+# end
+
 function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},integrationOrder::Int = -1;normal::Bool=false) where N<:Node
     $prequote
     for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
@@ -538,7 +547,7 @@ function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},integrationO
         ## coordinates
         $coordinates
         ## special variables
-        $cal_length_area_volume # length area and volume
+        $cal_jacobe
         $cal_normal # unit outernal normal
         ## generate element
         $generateForFEM
@@ -558,7 +567,7 @@ function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},integration:
         ## coordiantes
         $coordinates
         ## special variables
-        $cal_length_area_volume # length area and volume
+        $cal_jacobe
         $cal_normal # unit outernal normal
         ## generate element
         $generateForFEM
@@ -576,7 +585,7 @@ function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},type::DataTy
         ## coordinates
         $coordinates
         ## special variables
-        $cal_length_area_volume # length area and volume
+        $cal_jacobe
         $cal_normal # unit outernal normal
         ## generate element
         $generateForFEM
@@ -594,7 +603,7 @@ function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},type::DataTy
         ## coordiantes
         $coordinates
         ## special variables
-        $cal_length_area_volume # length area and volume
+        $cal_jacobe
         $cal_normal # unit outernal normal
         ## generate element
         $generateForFEM
@@ -612,7 +621,7 @@ function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},type::DataTy
         ## coordinates
         $coordinates
         ## special variables
-        $cal_length_area_volume # length area and volume
+        $cal_jacobe
         $cal_normal # unit outernal normal
         ## generate element
         $generateForNeighbor
@@ -630,7 +639,7 @@ function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},type::DataTy
         ## coordinates
         $coordinates
         ## special variables
-        $cal_length_area_volume # length area and volume
+        $cal_jacobe
         $cal_normal # unit outernal normal
         ## generate element
         $generateForNeighbor
@@ -647,6 +656,7 @@ function getPiecewiseElements(dimTag::Pair{Int,Vector{Int}},type::DataType,integ
         $integrationByGmsh
         ## coordinates
         $coordinates
+        $cal_jacobe
         ## special variables
         $cal_jacobe
         ## generate element
@@ -722,7 +732,6 @@ function getCurvedElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},cs::Fu
         ## coordinates
         $curvilinearCoordinates
         ## special variables
-        $cal_length_area_volume # length area and volume
         ## generate element
         $generateForFEM
         ## summary
@@ -741,7 +750,6 @@ function getCurvedElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},cs::Fu
         ## coordinates
         $curvilinearCoordinates
         ## special variables
-        $cal_length_area_volume # length area and volume
         ## generate element
         $generateForFEM
         ## summary
@@ -758,7 +766,6 @@ function getCurvedElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},type::
         ## coordinates
         $curvilinearCoordinates
         ## special variables
-        $cal_length_area_volume # length area and volume
         ## generate element
         $generateForNeighbor
         ## summary
@@ -775,7 +782,6 @@ function getCurvedElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},type::
         ## coordinates
         $curvilinearCoordinates
         ## special variables
-        $cal_length_area_volume # length area and volume
         ## generate element
         $generateForNeighbor
         ## summary
@@ -792,7 +798,6 @@ function getCurvedPiecewiseElements(dimTag::Pair{Int,Vector{Int}},type::DataType
         ## coordinates
         $curvilinearCoordinates
         ## special variables
-        $cal_length_area_volume # length area and volume
         ## generate element
         $generateForPiecewise
         ## summary
@@ -809,7 +814,6 @@ function getCurvedPiecewiseElements(dimTag::Pair{Int,Vector{Int}},type::DataType
         ## coordinates
         $curvilinearCoordinates
         ## special variables
-        $cal_length_area_volume # length area and volume
         ## generate element
         $generateForPiecewise
         ## summary
