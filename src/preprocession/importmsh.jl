@@ -26,7 +26,7 @@ function get𝑿ᵢ()
 end
 
 prequote = quote
-    types = Dict([1=>:Seg2, 2=>:Tri3, 3=>:Quad, 4=>:Tet4, 8=>:Seg3, 9=>:Tri6, 10=>:Quad9, 11=>:Tet10, 15=>:Poi1, 16=>Quad8])
+    types = Dict([1=>:Seg2, 2=>:Tri3, 3=>:Quad, 4=>:Tet4, 8=>:Seg3, 9=>:Tri6, 10=>:Quad9, 11=>:Tet10, 15=>:Poi1, 16=>:Quad8])
     dim, tags = dimTag
     elementTypes = Int32[]
     nodeTags = Vector{UInt64}[]
@@ -656,7 +656,6 @@ function getPiecewiseElements(dimTag::Pair{Int,Vector{Int}},type::DataType,integ
         $integrationByGmsh
         ## coordinates
         $coordinates
-        $cal_jacobe
         ## special variables
         $cal_jacobe
         ## generate element
