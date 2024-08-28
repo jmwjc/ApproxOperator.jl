@@ -63,8 +63,6 @@ function ∫∫qᵢpᵢdxdy(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractE
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
                 k[2*I-1,2*J-1] += N[i]*N[j]*𝑤
-                k[2*I-1,2*J]   += 0
-                k[2*I,2*J-1]   += 0
                 k[2*I,2*J]     += N[i]*N[j]*𝑤
             end 
         end
