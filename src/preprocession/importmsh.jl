@@ -75,6 +75,7 @@ end
 preForEdge = quote
     dimΩ,tagΩ = dimTagΩ
     tagsΩ = UInt64[]
+    CΩ = 0
     for tagΩ_ in tagΩ
         ~, tagsΩ_ = gmsh.model.mesh.getElements(dimΩ,tagΩ_)
         push!(tagsΩ,tagsΩ_[1]...)
@@ -149,9 +150,9 @@ coordinatesForEdges = quote
             push!(data[:Δ][2], 0.0)
         end
     end
-
-    for (CΩ,tagΩ) in enumerate(tagsΩ)
-        for C in 3*CΩ-2:3*CΩ
+    for CΩ_ in 1:Int(ne/3)
+        tagΩ = tagsΩ[CΩ+CΩ_]
+        for C in 3*CΩ_-2:3*CΩ_
             𝐿 = 2*determinants[C*ng]
             coord, = gmsh.model.mesh.getNode(nodeTag[2*C-1])
             x₁ = coord[1]
@@ -480,10 +481,11 @@ end
 generateForPiecewiseBoundary = quote
     data𝓒 = Dict{Symbol,Tuple{Int,Vector{Float64}}}()
     ni = get𝑛𝑝(type(𝑿ᵢ[],𝑿ₛ[]))
-    for (CΩ,tagΩ) in enumerate(tagsΩ)
-        for C in 3*CΩ-2:3*CΩ
+    for CΩ_ in 1:Int(ne/3)
+        tagΩ = tagsΩ[CΩ+CΩ_]
+        for C in 3*CΩ_-2:3*CΩ_
             𝐶 += 1
-            𝓒 = [𝑿ᵢ((𝐼=ni*(CΩ-1)+j,),data𝓒) for j in 1:ni]
+            𝓒 = [𝑿ᵢ((𝐼=ni*(CΩ+CΩ_-1)+j,),data𝓒) for j in 1:ni]
             𝓖 = [𝑿ₛ((𝑔 = 𝑔+g, 𝐺 = 𝐺+g, 𝐶 = 𝐶, 𝑠 = 𝑠+(g-1)*ni), data) for g in 1:ng]
             𝐺 += ng
             𝑠 += ng*ni
@@ -491,6 +493,7 @@ generateForPiecewiseBoundary = quote
         end
     end
     𝑔 += ng
+    CΩ += ne/3
 end
 
 generateSummary = quote
