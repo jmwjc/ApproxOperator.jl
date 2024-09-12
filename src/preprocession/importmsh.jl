@@ -469,7 +469,7 @@ generateForPiecewise = quote
     ni = get𝑛𝑝(type(𝑿ᵢ[],𝑿ₛ[]))
     for C in 1:ne
         𝐶 += 1
-        𝓒 = [𝑿ᵢ((𝐼=ni*(C-1)+j,),data𝓒) for j in 1:ni]
+        𝓒 = [𝑿ᵢ((𝐼=ni*(𝐶-1)+j,),data𝓒) for j in 1:ni]
         𝓖 = [𝑿ₛ((𝑔 = 𝑔+g, 𝐺 = 𝐺+g, 𝐶 = 𝐶, 𝑠 = 𝑠+(g-1)*ni), data) for g in 1:ng]
         𝐺 += ng
         𝑠 += ng*ni
