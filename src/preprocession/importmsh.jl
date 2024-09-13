@@ -493,7 +493,7 @@ generateForPiecewiseBoundary = quote
         end
     end
     𝑔 += ng
-    CΩ += ne/3
+    CΩ += Int(ne/3)
 end
 
 generateSummary = quote
