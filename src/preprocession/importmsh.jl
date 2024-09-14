@@ -914,6 +914,7 @@ function getElements(dimTag1::Pair{Int,Vector{Int}},dimTag2::Pair{Int,Vector{Int
         push!(nodeTags2,nodeTags_[1])
     end
     for (elementType1,nodeTag1) in zip(elementTypes1,nodeTags1)
+        j₀ = 0
         for (elementType2,nodeTag2) in zip(elementTypes2,nodeTags2)
             if elementType1 == elementType2
                 ~, ~, ~, ni = gmsh.model.mesh.getElementProperties(elementType1)
@@ -922,11 +923,12 @@ function getElements(dimTag1::Pair{Int,Vector{Int}},dimTag2::Pair{Int,Vector{Int
                 for i in 1:ne1
                     for j in 1:ne2
                         if nodeTag1[ni*(i-1)+1:ni*i] == nodeTag2[ni*(j-1)+1:ni*j]
-                            push!(elements,elms[j])
+                            push!(elements,elms[j₀+j])
                             continue
                         end
                     end
                 end
+                j₀ += ne2
             end
         end
     end
