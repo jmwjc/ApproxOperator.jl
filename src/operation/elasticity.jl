@@ -172,20 +172,25 @@ function ∫σᵢⱼnⱼgᵢds(aₛ::T,aᵤ::S,k::AbstractMatrix{Float64},f::Abs
         N̄ = ξᵤ[:𝝭]
         n₁ = ξᵤ.n₁
         n₂ = ξᵤ.n₂
+        n₁₁ = ξᵤ.n₁₁
+        n₁₂ = ξᵤ.n₁₂
+        n₂₂ = ξᵤ.n₂₂
         g₁ = ξᵤ.g₁
         g₂ = ξᵤ.g₂
         for (i,xᵢ) in enumerate(𝓒ₛ)
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒ᵤ)
                 J = xⱼ.𝐼
-                k[3*I-2,2*J-1] += N[i]*n₁*N̄[j]*𝑤
-                k[3*I-1,2*J]   += N[i]*n₂*N̄[j]*𝑤
-                k[3*I,2*J-1]   += N[i]*n₂*N̄[j]*𝑤
-                k[3*I,2*J]     += N[i]*n₁*N̄[j]*𝑤
+                k[3*I-2,2*J-1] += N[i]*n₁*n₁₁*N̄[j]*𝑤
+                k[3*I-2,2*J]   += N[i]*n₁*n₁₂*N̄[j]*𝑤
+                k[3*I-1,2*J-1] += N[i]*n₂*n₁₂*N̄[j]*𝑤
+                k[3*I-1,2*J]   += N[i]*n₂*n₂₂*N̄[j]*𝑤
+                k[3*I,2*J-1]   += N[i]*(n₁*n₁₂ + n₂*n₁₁)*N̄[j]*𝑤
+                k[3*I,2*J]     += N[i]*(n₁*n₂₂ + n₂*n₁₂)*N̄[j]*𝑤
             end
-            f[3*I-2] += N[i]*n₁*g₁*𝑤
-            f[3*I-1] += N[i]*n₂*g₂*𝑤
-            f[3*I]   += N[i]*(n₁*g₂+n₂*g₁)*𝑤 
+            f[3*I-2] += N[i]*(n₁*n₁₁*g₁ + n₁*n₁₂*g₂)*𝑤
+            f[3*I-1] += N[i]*(n₂*n₁₂*g₁ + n₂*n₂₂*g₂)*𝑤
+            f[3*I]   += N[i]*((n₁*n₁₂+n₂*n₁₁)*g₁ + (n₁*n₂₂+n₂*n₁₂)*g₂)*𝑤 
         end
     end
 end
