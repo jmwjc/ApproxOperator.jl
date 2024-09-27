@@ -22,7 +22,7 @@ function get𝑿ᵢ()
         z[I] = coord[3*i]
     end
     data = Dict([:x=>(1,x),:y=>(1,y),:z=>(1,z)])
-    return [𝑿ᵢ((𝐼=i,),data) for i in 1:nₚ]
+    return [𝑿ᵢ((𝐼=i,), data) for i in 1:nₚ ]
 end
 
 prequote = quote

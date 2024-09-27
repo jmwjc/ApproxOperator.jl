@@ -69,6 +69,27 @@ function ∫∫qᵢpᵢdxdy(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractE
     end
 end
 
+function ∫∫∇𝒑bdxdy(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = a.𝓒;𝓖 = a.𝓖
+    for ξ in 𝓖
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        𝑤 = ξ.𝑤
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[2*I-1,2*J-1] += B₁[i]*B₁[j]*𝑤
+                k[2*I-1,2*J]   += B₁[i]*B₂[j]*𝑤
+                k[2*I,2*J-1]   += B₂[i]*B₁[j]*𝑤
+                k[2*I,2*J]     += B₂[i]*B₂[j]*𝑤
+            end
+            f[2*I-1] += B₁[i]*b*𝑤
+            f[2*I]   += B₂[i]*b*𝑤
+        end
+    end
+end
+
 function ∫∫𝒑∇udxdy(aₚ::T,aᵤ::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ᵤ = aᵤ.𝓒;𝓖ᵤ = aᵤ.𝓖
     𝓒ₚ = aₚ.𝓒;𝓖ₚ = aₚ.𝓖
@@ -409,6 +430,7 @@ function H₁(ap::T) where T<:AbstractElement
             ∂uᵢ∂y += B₂[i]*xᵢ.d
             ∂uᵢ∂z += B₃[i]*xᵢ.d
         end
+        # println(∂uᵢ∂x)
         Δ∇u² += ((∂uᵢ∂x - ∂ūᵢ∂x)^2 + (∂uᵢ∂y - ∂ūᵢ∂y)^2 + (∂uᵢ∂z - ∂ūᵢ∂z)^2)*𝑤
         ∇ū² += (∂ūᵢ∂x^2 + ∂ūᵢ∂y^2 + ∂ūᵢ∂z^2)*𝑤
         Δu² += (uᵢ - ūᵢ)^2*𝑤
