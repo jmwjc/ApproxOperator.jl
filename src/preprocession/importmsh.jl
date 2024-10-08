@@ -75,9 +75,11 @@ end
 preForEdge = quote
     dimΩ,tagΩ = dimTagΩ
     tagsΩ = UInt64[]
+    elementTypesΩ = Int32[]
     CΩ = 0
     for tagΩ_ in tagΩ
-        ~, tagsΩ_ = gmsh.model.mesh.getElements(dimΩ,tagΩ_)
+        elementTypesΩ_, tagsΩ_ = gmsh.model.mesh.getElements(dimΩ,tagΩ_)
+        push!(elementTypesΩ,elementTypesΩ_[1])
         push!(tagsΩ,tagsΩ_[1]...)
     end
 
@@ -120,10 +122,15 @@ coordinates = quote
 end
 
 coordinatesForEdges = quote
-    nodeTag = gmsh.model.mesh.getElementEdgeNodes(elementType,tag,true)
-
     ng = length(weights)
     ne = Int(length(nodeTag)/ni)
+    if elementTypeΩ ∈ (2,9)
+        nb = 3
+    elseif elementTypeΩ ∈ (3,10,16)
+        nb = 4
+    end
+
+    nodeTag = gmsh.model.mesh.getElementEdgeNodes(elementType,tag,true)
 
     append!(data[:w][2],weights)
     jacobians, determinants, coord = gmsh.model.mesh.getJacobians(elementType, localCoord, tag)
@@ -150,9 +157,9 @@ coordinatesForEdges = quote
             push!(data[:Δ][2], 0.0)
         end
     end
-    for CΩ_ in 1:Int(ne/3)
+    for CΩ_ in 1:Int(ne/nb)
         tagΩ = tagsΩ[CΩ+CΩ_]
-        for C in 3*CΩ_-2:3*CΩ_
+        for C in (nb-1)*CΩ_+1:nb*CΩ_
             𝐿 = 2*determinants[C*ng]
             coord, = gmsh.model.mesh.getNode(nodeTag[2*C-1])
             x₁ = coord[1]
@@ -481,9 +488,9 @@ end
 generateForPiecewiseBoundary = quote
     data𝓒 = Dict{Symbol,Tuple{Int,Vector{Float64}}}()
     ni = get𝑛𝑝(type(𝑿ᵢ[],𝑿ₛ[]))
-    for CΩ_ in 1:Int(ne/3)
+    for CΩ_ in 1:Int(ne/nb)
         tagΩ = tagsΩ[CΩ+CΩ_]
-        for C in 3*CΩ_-2:3*CΩ_
+        for C in nb*(CΩ_-1)+1:nb*CΩ_
             𝐶 += 1
             𝓒 = [𝑿ᵢ((𝐼=ni*(CΩ+CΩ_-1)+j,),data𝓒) for j in 1:ni]
             𝓖 = [𝑿ₛ((𝑔 = 𝑔+g, 𝐺 = 𝐺+g, 𝐶 = 𝐶, 𝑠 = 𝑠+(g-1)*ni), data) for g in 1:ng]
@@ -493,7 +500,7 @@ generateForPiecewiseBoundary = quote
         end
     end
     𝑔 += ng
-    CΩ += Int(ne/3)
+    CΩ += Int(ne/nb)
 end
 
 generateSummary = quote
@@ -690,7 +697,7 @@ function getPiecewiseBoundaryElements(dimTag::Pair{Int,Vector{Int}},dimTagΩ::Pa
     normal = false
     $prequote
     $preForEdge
-    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
+    for (elementType,elementTypeΩ,nodeTag,tag) in zip(elementTypes,elementTypesΩ,nodeTags,tags)
         ## integration rule
         $integrationByGmsh
         ## coordinates
@@ -709,7 +716,7 @@ function getPiecewiseBoundaryElements(dimTag::Pair{Int,Vector{Int}},dimTagΩ::Pa
     normal = false
     $prequote
     $preForEdge
-    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
+    for (elementType,elementTypeΩ,nodeTag,tag) in zip(elementTypes,elementTypesΩ,nodeTags,tags)
         ## integration rule
         $integrationByManual
         ## coordinates
@@ -717,7 +724,7 @@ function getPiecewiseBoundaryElements(dimTag::Pair{Int,Vector{Int}},dimTagΩ::Pa
         ## special variables
         $cal_jacobe 
         ## generate element
-        $generateForPiecewise
+        $generateForPiecewiseBoundary
         ## summary
         $generateSummary
     end
