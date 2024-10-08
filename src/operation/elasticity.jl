@@ -162,6 +162,34 @@ function ∫∫σᵢⱼσₖₗdxdy(ap::T,k::AbstractMatrix{Float64}) where T<:A
         end
     end
 end
+function ∫∫σᵢⱼσₖₗdxdy_PlaneStrian(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒;𝓖 = ap.𝓖
+    for ξ in 𝓖
+        N = ξ[:𝝭]
+        𝑤 = ξ.𝑤
+        E = ξ.E
+        ν = ξ.ν
+        C⁻¹ᵢᵢᵢᵢ = (1+ν)*(1-2*ν)/E/(1-ν)
+        C⁻¹ᵢᵢⱼⱼ = (1+ν)*(1-2*ν)/E/ν
+        C⁻¹ᵢⱼᵢⱼ = 2*(1+ν)/E
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[4*I-3,4*J-3] += N[i]*C⁻¹ᵢᵢᵢᵢ*N[j]*𝑤
+                k[4*I-3,4*J-2] += N[i]*C⁻¹ᵢᵢⱼⱼ*N[j]*𝑤
+                k[4*I-2,4*J-3] += N[i]*C⁻¹ᵢᵢⱼⱼ*N[j]*𝑤
+                k[4*I-2,4*J-2] += N[i]*C⁻¹ᵢᵢᵢᵢ*N[j]*𝑤
+               
+                k[4*I-1,4*J-3] += N[i]*C⁻¹ᵢᵢⱼⱼ*N[j]*𝑤
+                k[4*I-1,4*J-2] += N[i]*C⁻¹ᵢᵢⱼⱼ*N[j]*𝑤
+
+                k[4*I,4*J]     += N[i]*C⁻¹ᵢⱼᵢⱼ*N[j]*𝑤
+                
+            end
+        end
+    end
+end
 
 function ∫σᵢⱼnⱼgᵢds(aₛ::T,aᵤ::S,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ₛ = aₛ.𝓒;𝓖ₛ = aₛ.𝓖
@@ -195,6 +223,38 @@ function ∫σᵢⱼnⱼgᵢds(aₛ::T,aᵤ::S,k::AbstractMatrix{Float64},f::Abs
     end
 end
 
+function ∫σᵢⱼnⱼgᵢds_PlaneStrian(aₛ::T,aᵤ::S,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+    𝓒ᵤ = aᵤ.𝓒;𝓖ᵤ = aᵤ.𝓖
+    𝓒ₛ = aₛ.𝓒;𝓖ₛ = aₛ.𝓖
+    for (ξᵤ,ξₛ) in zip(𝓖ᵤ,𝓖ₛ)
+        Nₛ = ξₛ[:𝝭]
+        Nᵤ = ξᵤ[:𝝭]
+        n₁ = ξᵤ.n₁
+        n₂ = ξᵤ.n₂
+        g₁ = ξᵤ.g₁
+        g₂ = ξᵤ.g₂
+        n₁₁ = ξᵤ.n₁₁
+        n₁₂ = ξᵤ.n₁₂
+        n₂₂ = ξᵤ.n₂₂
+        𝑤 = ξᵤ.𝑤
+        for (i,xᵢ) in enumerate(𝓒ₛ)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒ᵤ)
+                J = xⱼ.𝐼
+                k[4*I-3,2*J-1] += Nₛ[i]*Nᵤ[j]*(n₁*n₁₁)*𝑤
+                k[4*I-3,2*J]   += Nₛ[i]*Nᵤ[j]*(n₁*n₁₂)*𝑤
+                k[4*I-2,2*J-1] += Nₛ[i]*Nᵤ[j]*(n₂*n₁₂)*𝑤
+                k[4*I-2,2*J]   += Nₛ[i]*Nᵤ[j]*(n₂*n₂₂)*𝑤
+                k[4*I,2*J-1] += Nₛ[i]*Nᵤ[j]*(n₁*n₁₂+n₂*n₁₁)*𝑤
+                k[4*I,2*J]   += Nₛ[i]*Nᵤ[j]*(n₁*n₂₂+n₂*n₁₂)*𝑤
+              
+            end
+            f[4*I-3] += Nₛ[i]*(( n₁*n₁₁)*g₁+(n₁*n₁₂)*g₂)*𝑤
+            f[4*I-2] += Nₛ[i]*((n₂*n₁₂)*g₁+(n₂*n₂₂)*g₂)*𝑤
+            f[4*I]   += Nₛ[i]*((n₁*n₁₂+n₂*n₁₁)*g₁+(n₁*n₂₂+n₂*n₁₂)*g₂)*𝑤
+        end
+    end
+end
 function ∫σᵢⱼnⱼuᵢds(aₛ::T,aᵤ::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ₛ = aₛ.𝓒;𝓖ₛ = aₛ.𝓖
     𝓒ᵤ = aᵤ.𝓒;𝓖ᵤ = aᵤ.𝓖
@@ -212,6 +272,29 @@ function ∫σᵢⱼnⱼuᵢds(aₛ::T,aᵤ::S,k::AbstractMatrix{Float64}) where
                 k[3*I-1,2*J]   -= N[i]*n₂*N̄[j]*𝑤
                 k[3*I,2*J-1]   -= N[i]*n₂*N̄[j]*𝑤
                 k[3*I,2*J]     -= N[i]*n₁*N̄[j]*𝑤
+            end
+        end
+    end
+end
+function ∫σᵢⱼnⱼuᵢds_PlaneStrian(aₛ::T,aᵤ::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+    𝓒ᵤ = aᵤ.𝓒;𝓖ᵤ = aᵤ.𝓖
+    𝓒ₛ = aₛ.𝓒;𝓖ₛ = aₛ.𝓖
+    for (ξᵤ,ξₛ) in zip(𝓖ᵤ,𝓖ₛ)
+        Nₛ = ξₛ[:𝝭]
+        Nᵤ = ξᵤ[:𝝭]
+        n₁ = ξᵤ.n₁
+        n₂ = ξᵤ.n₂
+        𝑤 = ξᵤ.𝑤
+        for (i,xᵢ) in enumerate(𝓒ₛ)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒ᵤ)
+                J = xⱼ.𝐼
+                k[4*I-3,2*J-1] -= Nₛ[i]*Nᵤ[j]*n₁*𝑤
+                k[4*I-2,2*J] -= Nₛ[i]*Nᵤ[j]*n₂*𝑤
+                k[4*I,2*J-1] -= Nₛ[i]*Nᵤ[j]*n₂*𝑤
+                k[4*I,2*J]   -= Nₛ[i]*Nᵤ[j]*n₁*𝑤
+                
+                
             end
         end
     end
@@ -237,7 +320,26 @@ function ∫∫∇σᵢⱼuᵢdxdy(aₛ::T,aᵤ::S,k::AbstractMatrix{Float64}) w
         end
     end
 end
-
+function ∫∫∇σᵢⱼuᵢdxdy_PlaneStrian(aₛ::T,aᵤ::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+    𝓒ᵤ = aᵤ.𝓒;𝓖ᵤ = aᵤ.𝓖
+    𝓒ₛ = aₛ.𝓒;𝓖ₛ = aₛ.𝓖
+    for (ξᵤ,ξₛ) in zip(𝓖ᵤ,𝓖ₛ)
+        B₁ = ξₛ[:∂𝝭∂x]
+        B₂ = ξₛ[:∂𝝭∂y]
+        Nᵤ = ξᵤ[:𝝭]
+        𝑤 = ξᵤ.𝑤
+        for (i,xᵢ) in enumerate(𝓒ₛ)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒ᵤ)
+                J = xⱼ.𝐼
+                k[4*I-3,2*J-1] += B₁[i]*Nᵤ[j]*𝑤
+                k[4*I-2,2*J]   += B₂[i]*Nᵤ[j]*𝑤
+                k[4*I,2*J-1]   += B₂[i]*Nᵤ[j]*𝑤
+                k[4*I,2*J]     += B₁[i]*Nᵤ[j]*𝑤
+            end
+        end
+    end
+end
 function ∫∫vᵢbᵢdxdy(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -744,6 +846,8 @@ function ∫∫τ∇q∇pdxdy(ap::T,k::AbstractMatrix{Float64},f::AbstractVector
     end
 end
 
+
+
 function ∫∫τ∇sᵢⱼ∇sᵢₖdxdy(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -771,7 +875,6 @@ function ∫∫τ∇sᵢⱼ∇sᵢₖdxdy(ap::T,k::AbstractMatrix{Float64},f::Ab
         end
     end
 end
-
 function ∫∫τ∇sᵢⱼ∇pdxdy(aₛ::T,aₚ::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ₚ = aₚ.𝓒; 𝓖ₚ = aₚ.𝓖
     𝓒ₛ = aₛ.𝓒; 𝓖ₛ = aₛ.𝓖
@@ -793,7 +896,33 @@ function ∫∫τ∇sᵢⱼ∇pdxdy(aₛ::T,aₚ::S,k::AbstractMatrix{Float64}) 
         end
     end
 end
-
+function ∫∫τ∇σᵢⱼ∇σᵢₖdxdy(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        τ = ξ.τ
+        b₁ = ξ.b₁
+        b₂ = ξ.b₂
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[4*I-3,4*J-3] += τ*B₁[i]*B₁[j]*𝑤
+                k[4*I-3,4*J]   += τ*B₁[i]*B₂[j]*𝑤
+                k[4*I-2,4*J-2] += τ*B₂[i]*B₂[j]*𝑤
+                k[4*I-2,4*J]   += τ*B₂[i]*B₁[j]*𝑤
+                k[4*I,4*J-3]   += τ*B₂[i]*B₁[j]*𝑤
+                k[4*I,4*J-2]   += τ*B₁[i]*B₂[j]*𝑤
+                k[4*I,4*J]     += τ*(B₁[i]*B₁[j] + B₂[i]*B₂[j])*𝑤
+            end
+            f[4*I-3] += τ*B₁[i]*b₁*𝑤
+            f[4*I-2] += τ*B₂[i]*b₂*𝑤
+            f[4*I]   += τ*(B₁[i]*b₂ + B₂[i]*b₁)*𝑤
+        end
+    end
+end
 function getσₙ(σ₁₁::Float64,σ₂₂::Float64,σ₁₂::Float64)
     # trace
     t = σ₁₁ + σ₂₂
