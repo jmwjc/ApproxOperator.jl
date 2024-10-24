@@ -22,11 +22,11 @@ function get𝑿ᵢ()
         z[I] = coord[3*i]
     end
     data = Dict([:x=>(1,x),:y=>(1,y),:z=>(1,z)])
-    return [𝑿ᵢ((𝐼=i,),data) for i in 1:nₚ]
+    return [𝑿ᵢ((𝐼=i,), data) for i in 1:nₚ ]
 end
 
 prequote = quote
-    types = Dict([1=>:Seg2, 2=>:Tri3, 3=>:Quad, 4=>:Tet4, 8=>:Seg3, 9=>:Tri6, 10=>:Quad9, 11=>:Tet10, 15=>:Poi1, 16=>Quad8])
+    types = Dict([1=>:Seg2, 2=>:Tri3, 3=>:Quad, 4=>:Tet4, 8=>:Seg3, 9=>:Tri6, 10=>:Quad9, 11=>:Tet10, 15=>:Poi1, 16=>:Quad8])
     dim, tags = dimTag
     elementTypes = Int32[]
     nodeTags = Vector{UInt64}[]
@@ -75,8 +75,11 @@ end
 preForEdge = quote
     dimΩ,tagΩ = dimTagΩ
     tagsΩ = UInt64[]
+    elementTypesΩ = Int32[]
+    CΩ = 0
     for tagΩ_ in tagΩ
-        ~, tagsΩ_ = gmsh.model.mesh.getElements(dimΩ,tagΩ_)
+        elementTypesΩ_, tagsΩ_ = gmsh.model.mesh.getElements(dimΩ,tagΩ_)
+        push!(elementTypesΩ,elementTypesΩ_[1])
         push!(tagsΩ,tagsΩ_[1]...)
     end
 
@@ -119,10 +122,15 @@ coordinates = quote
 end
 
 coordinatesForEdges = quote
-    nodeTag = gmsh.model.mesh.getElementEdgeNodes(elementType,tag,true)
-
     ng = length(weights)
     ne = Int(length(nodeTag)/ni)
+    if elementTypeΩ ∈ (2,9)
+        nb = 3
+    elseif elementTypeΩ ∈ (3,10,16)
+        nb = 4
+    end
+
+    nodeTag = gmsh.model.mesh.getElementEdgeNodes(elementType,tag,true)
 
     append!(data[:w][2],weights)
     jacobians, determinants, coord = gmsh.model.mesh.getJacobians(elementType, localCoord, tag)
@@ -149,9 +157,9 @@ coordinatesForEdges = quote
             push!(data[:Δ][2], 0.0)
         end
     end
-
-    for (CΩ,tagΩ) in enumerate(tagsΩ)
-        for C in 3*CΩ-2:3*CΩ
+    for CΩ_ in 1:Int(ne/nb)
+        tagΩ = tagsΩ[CΩ+CΩ_]
+        for C in (nb-1)*CΩ_+1:nb*CΩ_
             𝐿 = 2*determinants[C*ng]
             coord, = gmsh.model.mesh.getNode(nodeTag[2*C-1])
             x₁ = coord[1]
@@ -468,7 +476,7 @@ generateForPiecewise = quote
     ni = get𝑛𝑝(type(𝑿ᵢ[],𝑿ₛ[]))
     for C in 1:ne
         𝐶 += 1
-        𝓒 = [𝑿ᵢ((𝐼=ni*(C-1)+j,),data𝓒) for j in 1:ni]
+        𝓒 = [𝑿ᵢ((𝐼=ni*(𝐶-1)+j,),data𝓒) for j in 1:ni]
         𝓖 = [𝑿ₛ((𝑔 = 𝑔+g, 𝐺 = 𝐺+g, 𝐶 = 𝐶, 𝑠 = 𝑠+(g-1)*ni), data) for g in 1:ng]
         𝐺 += ng
         𝑠 += ng*ni
@@ -480,10 +488,11 @@ end
 generateForPiecewiseBoundary = quote
     data𝓒 = Dict{Symbol,Tuple{Int,Vector{Float64}}}()
     ni = get𝑛𝑝(type(𝑿ᵢ[],𝑿ₛ[]))
-    for (CΩ,tagΩ) in enumerate(tagsΩ)
-        for C in 3*CΩ-2:3*CΩ
+    for CΩ_ in 1:Int(ne/nb)
+        tagΩ = tagsΩ[CΩ+CΩ_]
+        for C in nb*(CΩ_-1)+1:nb*CΩ_
             𝐶 += 1
-            𝓒 = [𝑿ᵢ((𝐼=ni*(CΩ-1)+j,),data𝓒) for j in 1:ni]
+            𝓒 = [𝑿ᵢ((𝐼=ni*(CΩ+CΩ_-1)+j,),data𝓒) for j in 1:ni]
             𝓖 = [𝑿ₛ((𝑔 = 𝑔+g, 𝐺 = 𝐺+g, 𝐶 = 𝐶, 𝑠 = 𝑠+(g-1)*ni), data) for g in 1:ng]
             𝐺 += ng
             𝑠 += ng*ni
@@ -491,6 +500,7 @@ generateForPiecewiseBoundary = quote
         end
     end
     𝑔 += ng
+    CΩ += Int(ne/nb)
 end
 
 generateSummary = quote
@@ -656,7 +666,6 @@ function getPiecewiseElements(dimTag::Pair{Int,Vector{Int}},type::DataType,integ
         $integrationByGmsh
         ## coordinates
         $coordinates
-        $cal_jacobe
         ## special variables
         $cal_jacobe
         ## generate element
@@ -688,7 +697,7 @@ function getPiecewiseBoundaryElements(dimTag::Pair{Int,Vector{Int}},dimTagΩ::Pa
     normal = false
     $prequote
     $preForEdge
-    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
+    for (elementType,elementTypeΩ,nodeTag,tag) in zip(elementTypes,elementTypesΩ,nodeTags,tags)
         ## integration rule
         $integrationByGmsh
         ## coordinates
@@ -707,7 +716,7 @@ function getPiecewiseBoundaryElements(dimTag::Pair{Int,Vector{Int}},dimTagΩ::Pa
     normal = false
     $prequote
     $preForEdge
-    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
+    for (elementType,elementTypeΩ,nodeTag,tag) in zip(elementTypes,elementTypesΩ,nodeTags,tags)
         ## integration rule
         $integrationByManual
         ## coordinates
@@ -715,7 +724,7 @@ function getPiecewiseBoundaryElements(dimTag::Pair{Int,Vector{Int}},dimTagΩ::Pa
         ## special variables
         $cal_jacobe 
         ## generate element
-        $generateForPiecewise
+        $generateForPiecewiseBoundary
         ## summary
         $generateSummary
     end
@@ -912,6 +921,7 @@ function getElements(dimTag1::Pair{Int,Vector{Int}},dimTag2::Pair{Int,Vector{Int
         push!(nodeTags2,nodeTags_[1])
     end
     for (elementType1,nodeTag1) in zip(elementTypes1,nodeTags1)
+        j₀ = 0
         for (elementType2,nodeTag2) in zip(elementTypes2,nodeTags2)
             if elementType1 == elementType2
                 ~, ~, ~, ni = gmsh.model.mesh.getElementProperties(elementType1)
@@ -920,11 +930,12 @@ function getElements(dimTag1::Pair{Int,Vector{Int}},dimTag2::Pair{Int,Vector{Int
                 for i in 1:ne1
                     for j in 1:ne2
                         if nodeTag1[ni*(i-1)+1:ni*i] == nodeTag2[ni*(j-1)+1:ni*j]
-                            push!(elements,elms[j])
+                            push!(elements,elms[j₀+j])
                             continue
                         end
                     end
                 end
+                j₀ += ne2
             end
         end
     end
