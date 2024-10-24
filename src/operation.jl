@@ -1,46 +1,89 @@
 """
 Operator
 """
-struct Operator{T}
-    data::Dict{Symbol,Float64}
-end
-Operator{T}(d::Pair{Symbol}...) where T = Operator{T}(Dict(d))
 
-
-getproperty(op::Operator,f::Symbol) = getfield(op,:data)[f]
-
-(op::Operator)(aps::Vector{T},gps::Vector{S},k::AbstractMatrix{Float64},g::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement} = op.(aps,gps,k=k,g=g)
-(op::Operator)(aps::Vector{T},gps::Vector{S},k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement} = op.(aps,gps,k=k,f=f)
-(op::Operator)(aps::Vector{T},gps::Vector{S},k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement} = op.(aps,gps,k=k)
-(op::Operator)(aps::Vector{T},k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement = op.(aps,k=k,f=f)
-(op::Operator)(aps::Vector{T},k::AbstractMatrix{Float64}) where T<:AbstractElement = op.(aps,k=k)
-(op::Operator)(aps::Vector{T},f::AbstractVector{Float64}) where T<:AbstractElement = op.(aps,f=f)
-(op::Operator)(aps::Vector{T}) where T<:AbstractElement = op.(aps)
-
-function prescribe!(ap::T,sf::Pair{Symbol,F}) where {T<:AbstractElement,F<:Function}
-    𝓖 = ap.𝓖
-    s,f = sf
-    for ξ in 𝓖
-        𝒙 = (ξ.x,ξ.y,ξ.z)
-        if applicable(f,𝒙...)
-            v = f(𝒙...)
-        elseif applicable(f,𝒙...,ξ.n₁)
-            v = f(𝒙...,ξ.n₁)
-        elseif applicable(f,𝒙...,ξ.n₁,ξ.n₂)
-            v = f(𝒙...,ξ.n₁,ξ.n₂)
-        elseif applicable(f,𝒙...,ξ.n₁,ξ.n₂,ξ.n₃)
-            v = f(𝒙...,ξ.n₁,ξ.n₂,ξ.n₃)
-        end
-        setproperty!(ξ,s,v)
+function (ops::Vector{Pair{F,Vector{T}}})(k::AbstractMatrix,f::AbstractVector) where {F<:Function,T<:AbstractElement}
+    for op in ops
+        op(k,f)
     end
 end
 
-function prescribe!(aps::Vector{T},sf::Pair{Symbol,F}) where {T<:AbstractElement,F<:Function}
-    s,f = sf
-    data = getfield((aps[1].𝓖)[1],:data)
-    n = length(data[:x][2])
-    haskey(data,s) ? nothing : push!(data,s=>(2,zeros(n)))
-    for ap in aps
-        prescribe!(ap,sf)
+function (op::Pair{F,Vector{T}})(k::AbstractMatrix,f::AbstractVector) where {F<:Function,T<:AbstractElement}
+    form, elms = op
+    for elm in elms
+        form(elm,k,f)
+    end
+    return k,f
+end
+
+function (ops::Vector{Pair{F,Vector{T}}})(k::AbstractMatrix) where {F<:Function,T<:AbstractElement}
+    for op in ops
+        op(k)
     end
 end
+
+function (op::Pair{F,Vector{T}})(k::AbstractMatrix) where {F<:Function,T<:AbstractElement}
+    form, elms = op
+    for elm in elms
+        form(elm,k)
+    end
+    return k
+end
+
+function (ops::Vector{Pair{F,Vector{T}}})(f::AbstractVector) where {F<:Function,T<:AbstractElement}
+    for op in ops
+        op(f)
+    end
+end
+
+function (op::Pair{F,Vector{T}})(f::AbstractVector) where {F<:Function,T<:AbstractElement}
+    form, elms = op
+    for elm in elms
+        form(elm,f)
+    end
+    return f
+end
+
+function (ops::Vector{Pair{F,Tuple{Vector{T},Vector{S}}}})(k::AbstractMatrix,f::AbstractVector) where {F<:Function,T<:AbstractElement,S<:AbstractElement}
+    for op in ops
+        op(k,f)
+    end
+end
+
+function (op::Pair{F,Tuple{Vector{T},Vector{S}}})(k::AbstractMatrix,f::AbstractVector) where {F<:Function,T<:AbstractElement,S<:AbstractElement}
+    form, elms = op
+    for (a,b) in zip(elms...)
+        form(a,b,k,f)
+    end
+    return k,f
+end
+
+function (ops::Vector{Pair{F,Tuple{Vector{T},Vector{S}}}})(k::AbstractMatrix) where {F<:Function,T<:AbstractElement,S<:AbstractElement}
+    for op in ops
+        op(k)
+    end
+end
+
+function (op::Pair{F,Tuple{Vector{T},Vector{S}}})(k::AbstractMatrix) where {F<:Function,T<:AbstractElement,S<:AbstractElement}
+    form, elms = op
+    for (a,b) in zip(elms...)
+        form(a,b,k)
+    end
+    return k
+end
+
+function (ops::Vector{Pair{F,Tuple{Vector{T},Vector{S}}}})(f::AbstractVector) where {F<:Function,T<:AbstractElement,S<:AbstractElement}
+    for op in ops
+        op(f)
+    end
+end
+
+function (op::Pair{F,Tuple{Vector{T},Vector{S}}})(f::AbstractVector) where {F<:Function,T<:AbstractElement,S<:AbstractElement}
+    form, elms = op
+    for (a,b) in zip(elms...)
+        form(a,b,f)
+    end
+    return f
+end
+
+

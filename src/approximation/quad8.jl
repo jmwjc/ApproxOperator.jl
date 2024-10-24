@@ -14,6 +14,8 @@ function set𝝭!(::Element{:Quad8},x::Node)
 end
 
 function set∇𝝭!(ap::Element{:Quad8},x::Node)
+    ξ = x.ξ
+    η = x.η
     𝓒 = ap.𝓒
     𝝭 = x[:𝝭]
     𝝭[1] = 0.25*(1.0-ξ)*(1.0-η)*(-ξ-η-1.0)

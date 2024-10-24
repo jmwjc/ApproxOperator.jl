@@ -62,6 +62,12 @@ struct Tet4<:AbstractGeometry
     y::Vector{Float64}
     z::Vector{Float64}
 end
+struct Hex8<:AbstractGeometry
+    i::NTuple{8,Int}
+    x::Vector{Float64}
+    y::Vector{Float64}
+    z::Vector{Float64}
+end
 
 struct UnStructGeo<:AbstractGeometry
     i::Set{Int}
@@ -196,6 +202,20 @@ function (a::Tri6)(ξ::Float64,η::Float64)
            y₁*N₁+y₂*N₂+y₃*N₃+y₄*N₄+y₅*N₅+y₆*N₆,
            z₁*N₁+z₂*N₂+z₃*N₃+z₄*N₄+z₅*N₅+z₆*N₆
 end
+function (a::Tet4)(ξ::Float64,η::Float64,ζ::Float64)
+    
+    x₁ = a.x[a.i[1]];y₁ = a.y[a.i[1]];z₁ = a.z[a.i[1]]
+    x₂ = a.x[a.i[2]];y₂ = a.y[a.i[2]];z₂ = a.z[a.i[2]]
+    x₃ = a.x[a.i[3]];y₃ = a.y[a.i[3]];z₃ = a.z[a.i[3]]
+    x₄ = a.x[a.i[4]];y₄ = a.y[a.i[4]];z₄ = a.z[a.i[4]]
+    N₁ = 1.0-x.ξ-x.η-x.ζ
+    N₂ = x.ξ
+    N₃ = x.η
+    N₄ = x.ζ
+    return x₁*N₁+x₂*N₂+x₃*N₃+x₄*N₄,
+           y₁*N₁+y₂*N₂+y₃*N₃+y₄*N₄,
+           z₁*N₁+z₂*N₂+z₃*N₃+z₄*N₄
+end
 
 function (a::Quad4)(ξ::Float64,η::Float64)
     x₁ = a.x[a.i[1]]
@@ -244,7 +264,36 @@ function (a::Quad8)(ξ::Float64,η::Float64)
             y₁*N₁+y₂*N₂+y₃*N₃+y₄*N₄+y₅*N₅+y₆*N₆+y₇*N₇+y₈*N₈,
             z₁*N₁+z₂*N₂+z₃*N₃+z₄*N₄+z₅*N₅+z₆*N₆+z₇*N₇+z₈*N₈)
 end
-
+function (a::Hex8)(ξ::Float64,η::Float64,ζ::Float64)
+    x₁ = a.x[a.i[1]]
+    y₁ = a.y[a.i[1]]
+    z₁ = a.z[a.i[1]]
+    x₂ = a.x[a.i[2]]
+    y₂ = a.y[a.i[2]]
+    z₂ = a.z[a.i[2]]
+    x₃ = a.x[a.i[3]]
+    y₃ = a.y[a.i[3]]
+    z₃ = a.z[a.i[3]]
+    x₄ = a.x[a.i[4]]
+    y₄ = a.y[a.i[4]]
+    z₄ = a.z[a.i[4]]
+    x₅ = a.x[a.i[5]]
+    y₅ = a.y[a.i[5]]
+    z₅ = a.z[a.i[5]]
+    x₆ = a.x[a.i[6]]
+    y₆ = a.y[a.i[6]]
+    z₆ = a.z[a.i[6]]
+    x₇ = a.x[a.i[7]]
+    y₇ = a.y[a.i[7]]
+    z₇ = a.z[a.i[7]]
+    x₈ = a.x[a.i[8]]
+    y₈ = a.y[a.i[8]]
+    z₈ = a.z[a.i[8]]
+    N₁,N₂,N₃,N₄,N₅,N₆,N₇,N₈ = get𝝭(a,ξ,η,ζ)
+    return (x₁*N₁+x₂*N₂+x₃*N₃+x₄*N₄+x₅*N₅+x₆*N₆+x₇*N₇+x₈*N₈,
+            y₁*N₁+y₂*N₂+y₃*N₃+y₄*N₄+y₅*N₅+y₆*N₆+y₇*N₇+y₈*N₈,
+            z₁*N₁+z₂*N₂+z₃*N₃+z₄*N₄+z₅*N₅+z₆*N₆+z₇*N₇+z₈*N₈)
+end
 function get𝐴(a::Tri3)
     x₁ = a.x[a.i[1]]
     x₂ = a.x[a.i[2]]
@@ -259,6 +308,20 @@ function get𝐴(a::Tri3)
     return 0.5*(x₁*y₂+x₂*y₃+x₃*y₁-x₂*y₁-x₃*y₂-x₁*y₃)
 end
 get𝐽(a::Tri3,::Float64,::Float64) = get𝐴(a)
+function get𝐴(a::Tri6)
+    x₁ = a.x[a.i[1]]
+    x₂ = a.x[a.i[2]]
+    x₃ = a.x[a.i[3]]
+    y₁ = a.y[a.i[1]]
+    y₂ = a.y[a.i[2]]
+    y₃ = a.y[a.i[3]]
+    z₁ = a.z[a.i[1]]
+    z₂ = a.z[a.i[2]]
+    z₃ = a.z[a.i[3]]
+
+    return 0.5*(x₁*y₂+x₂*y₃+x₃*y₁-x₂*y₁-x₃*y₂-x₁*y₃)
+end
+get𝐽(a::Tri6,::Float64,::Float64) = get𝐴(a)
 
 function get𝐿(a::Seg2)
     x₁ = a.x[a.i[1]]
