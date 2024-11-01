@@ -413,6 +413,7 @@ function ∫∫p∇udxdy(aₚ::T,aᵤ::S,k::AbstractMatrix{Float64}) where {T<:A
         B₁ = ξᵤ[:∂𝝭∂x]
         B₂ = ξᵤ[:∂𝝭∂y]
         𝑤 = ξᵤ.𝑤
+        # 𝑤 = ξₚ.𝑤
         for (i,xᵢ) in enumerate(𝓒ₚ)
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒ᵤ)
@@ -452,6 +453,7 @@ function ∫pnᵢuᵢds(aₚ::T,aᵤ::S,k::AbstractMatrix{Float64}) where {T<:Ab
         n₁ = ξᵤ.n₁
         n₂ = ξᵤ.n₂
         𝑤 = ξᵤ.𝑤
+        # 𝑤 = ξₚ.𝑤
         for (i,xᵢ) in enumerate(𝓒ₚ)
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒ᵤ)
@@ -477,6 +479,7 @@ function ∫pnᵢgᵢds(aₚ::T,aᵤ::S,k::AbstractMatrix{Float64},f::AbstractVe
         n₁₂ = ξᵤ.n₁₂
         n₂₂ = ξᵤ.n₂₂
         𝑤 = ξᵤ.𝑤
+        # 𝑤 = ξₚ.𝑤
         for (i,xᵢ) in enumerate(𝓒ₚ)
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒ᵤ)
