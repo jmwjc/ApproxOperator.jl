@@ -9,6 +9,7 @@ struct RV
 end
 
 getindex(r::RV,i::Int) = r.v[r.i+i]
+getindex(r::RV,is::UnitRange{Int}) = [r.v[r.i+i] for i in is]
 function setindex!(r::RV,x::Float64,i::Int)
     r.v[r.i+i] = x
 end

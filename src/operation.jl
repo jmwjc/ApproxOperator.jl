@@ -86,4 +86,13 @@ function (op::Pair{F,Tuple{Vector{T},Vector{S}}})(f::AbstractVector) where {F<:F
     return f
 end
 
+function getDOFs(aps::Vector{T}) where T<:AbstractElement
+    𝐼 = Set{Int}()
+    for ap in aps
+        for xᵢ in ap.𝓒
+            push!(𝐼,xᵢ.𝐼)
+        end
+    end
+    return 𝐼
+end
 

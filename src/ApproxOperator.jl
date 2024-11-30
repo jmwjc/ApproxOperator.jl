@@ -35,6 +35,7 @@ include("approximation/piecewise.jl")
 
 include("operation/heat.jl")
 include("operation/elasticity.jl")
+include("operation/Hamilton.jl")
 # include("operation/thin_shell.jl")
 # include("operation/incompressible.jl")
 # include("operation/heat_conduction.jl")
@@ -60,7 +61,7 @@ export ReproducingKernel, RegularGrid
 export PiecewiseParametric, PiecewisePolynomial
 export set𝝭!, set∇𝝭!, set∇²𝝭!, set∇̂³𝝭!
 # export RKGradientSmoothing, GRKGradientSmoothing
-export getPhysicalGroups, get𝑿ᵢ, getElements, addEdgeElements
+export getPhysicalGroups, get𝑿ᵢ, getElements, addEdgeElements, getDOFs
 export getPiecewiseElements, getPiecewiseBoundaryElements
 export getMacroElements, getMacroBoundaryElements, getCurvedElements, getCurvedPiecewiseElements
 
