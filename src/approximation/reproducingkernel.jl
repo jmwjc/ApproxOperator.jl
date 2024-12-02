@@ -122,6 +122,25 @@ get∂³𝒑∂y³(::ReproducingKernel{:Quartic2D},x::NTuple{3,Float64}) =
     0., 0., 0., 0., 0., 0., 0., 0., 0., 6., 0., 0., 0., 6.0*x[1], 24.0*x[2]
 )
 
+
+get𝑛𝒑(  ::ReproducingKernel{:Linear3D}) = 4
+get𝒑(   ::ReproducingKernel{:Linear3D},x::NTuple{3,Float64}) = (1.,x[1],x[2],x[3])
+get∂𝒑∂x(::ReproducingKernel{:Linear3D},x::NTuple{3,Float64}) = (0.,1.,0.,0.)
+get∂𝒑∂y(::ReproducingKernel{:Linear3D},x::NTuple{3,Float64}) = (0.,0.,1.,0.)
+get∂𝒑∂z(::ReproducingKernel{:Linear3D},x::NTuple{3,Float64}) = (0.,0.,0.,1.)
+
+get𝑛𝒑(      ::ReproducingKernel{:Quadratic3D}) = 10
+get𝒑(       ::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (1.,x[1],x[2],x[3],x[1]^2,x[1]*x[2],x[1]*x[3],x[2]^2,x[2]*x[3],x[3]^2)
+get∂𝒑∂x(    ::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (0.,1.,0.,0.,2*x[1],x[2],x[3],0.,0.,0.)
+get∂𝒑∂y(    ::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (0.,0.,1.,0.,0.,x[1],0.,2*x[2],x[3],0.)
+get∂𝒑∂z(    ::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (0.,0.,0.,1.,0.,0.,x[2],0.,x[2],2*x[3])
+get∂²𝒑∂x²(  ::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (0.,0.,0.,0.,2.,0.,0.,0.,0.,0.)
+get∂²𝒑∂x∂y( ::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (0.,0.,0.,0.,0.,1.,0.,0.,0.,0.)
+get∂²𝒑∂x∂z( ::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (0.,0.,0.,0.,0.,0.,1.,0.,0.,0.)
+get∂²𝒑∂y²(  ::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (0.,0.,0.,0.,0.,0.,0.,2.,0.,0.)
+get∂²𝒑∂x∂z( ::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (0.,0.,0.,0.,0.,0.,0.,0.,1.,0.)
+get∂³𝒑∂z³(  ::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (0.,0.,0.,0.,0.,0.,0.,0.,0.,2.)
+
 function cal𝗠!(ap::AbstractReproducingKernel,x::Node)
     𝓒 = ap.𝓒
     𝗠 = get𝗠(ap,:𝗠)
