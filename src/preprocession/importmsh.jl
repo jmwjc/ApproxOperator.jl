@@ -26,7 +26,7 @@ function get𝑿ᵢ()
 end
 
 prequote = quote
-    types = Dict([1=>:Seg2, 2=>:Tri3, 3=>:Quad, 4=>:Tet4, 8=>:Seg3, 9=>:Tri6, 10=>:Quad9, 11=>:Tet10, 15=>:Poi1, 16=>:Quad8])
+    types = Dict([1=>:Seg2, 2=>:Tri3, 3=>:Quad, 4=>:Tet4, 5=>:Hex8, 8=>:Seg3, 9=>:Tri6, 10=>:Quad9, 11=>:Tet10, 12=>:Hex27, 15=>:Poi1, 16=>:Quad8])
     dim, tags = dimTag
     elementTypes = Int32[]
     nodeTags = Vector{UInt64}[]
@@ -47,12 +47,22 @@ prequote = quote
     data[:𝑤] = (2,Float64[])
     data[:𝐽] = (2,Float64[])
     data[:∂ξ∂x] = (2,Float64[])
+    if normal
+        data[:n₁] = (3,Float64[])
+        data[:n₂] = (3,Float64[])
+        data[:s₁] = (3,Float64[])
+        data[:s₂] = (3,Float64[])
+    end
     if dim >= 2
         data[:η] = (1,Float64[])
 
         data[:∂ξ∂y] = (2,Float64[])
         data[:∂η∂x] = (2,Float64[])
         data[:∂η∂y] = (2,Float64[])
+        if normal
+            data[:n₃] = (3,Float64[])
+            data[:s₃] = (3,Float64[])
+        end
     end
     if dim >= 3
         data[:γ] = (1,Float64[])
@@ -62,13 +72,6 @@ prequote = quote
         data[:∂γ∂x] = (2,Float64[])
         data[:∂γ∂y] = (2,Float64[])
         data[:∂γ∂z] = (2,Float64[])
-    end
-
-    if normal
-        data[:n₁] = (3,Float64[])
-        data[:n₂] = (3,Float64[])
-        data[:s₁] = (3,Float64[])
-        data[:s₂] = (3,Float64[])
     end
 end
 
@@ -400,6 +403,35 @@ cal_normal = quote
                 push!(data[:n₂][2], (x₁-x₂)/𝐿)
                 push!(data[:s₁][2], (x₂-x₁)/𝐿)
                 push!(data[:s₂][2], (y₂-y₁)/𝐿)
+            end
+        end
+        if dim == 2
+            nₙ = Int(length(nodeTags)/ne)
+            for C in 1:ne
+                𝐽 = determinants[C*ng]
+                n₁ = 0.0
+                n₂ = 0.0
+                n₃ = 0.0
+                for i in 1:2:nₙ
+                    coord, = gmsh.model.mesh.getNode(nodeTags[nₙ*(C-1)+i])
+                    x₁ = coord[1]
+                    y₁ = coord[2]
+                    z₁ = coord[3]
+                    coord, = gmsh.model.mesh.getNode(nodeTags[nₙ*(C-1)+i+1])
+                    x₂ = coord[1]
+                    y₂ = coord[2]
+                    z₂ = coord[3]
+
+                    n₁ += y₁*z₂-y₂*z₁
+                    n₂ += z₁*x₂-z₂*x₁
+                    n₃ += x₁*y₂-x₂*y₁
+                end
+                if elementType == 3
+                    𝐽 *= 8
+                end
+                push!(data[:n₁][2], n₁/𝐽)
+                push!(data[:n₂][2], n₂/𝐽)
+                push!(data[:n₃][2], n₃/𝐽)
             end
         end
     end
