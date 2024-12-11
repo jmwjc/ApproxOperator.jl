@@ -32,6 +32,7 @@ for set𝝭 in (:set𝝭!,:set∇𝝭!,:set∇²𝝭!,:set∇̂³𝝭!)
     end
 end
 
+
 function count(aps::Vector{T},i::Symbol) where T<:AbstractElement
     index = getfield(aps[end].𝓖[end],:index)
     return i ≠ :𝑠 ? index[i] : index[i]+length(aps[end].𝓒)
