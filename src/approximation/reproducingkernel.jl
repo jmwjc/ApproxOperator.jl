@@ -138,7 +138,7 @@ get∂²𝒑∂x²(  ::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (
 get∂²𝒑∂x∂y( ::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (0.,0.,0.,0.,0.,1.,0.,0.,0.,0.)
 get∂²𝒑∂x∂z( ::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (0.,0.,0.,0.,0.,0.,1.,0.,0.,0.)
 get∂²𝒑∂y²(  ::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (0.,0.,0.,0.,0.,0.,0.,2.,0.,0.)
-get∂²𝒑∂x∂z( ::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (0.,0.,0.,0.,0.,0.,0.,0.,1.,0.)
+get∂²𝒑∂y∂z( ::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (0.,0.,0.,0.,0.,0.,0.,0.,1.,0.)
 get∂³𝒑∂z³(  ::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (0.,0.,0.,0.,0.,0.,0.,0.,0.,2.)
 
 function cal𝗠!(ap::AbstractReproducingKernel,x::Node)
