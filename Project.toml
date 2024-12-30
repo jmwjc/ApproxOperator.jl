@@ -4,6 +4,7 @@ authors = ["jcwu <jcwu@hqu.edu.cn> and contributors"]
 version = "0.1.0"
 
 [deps]
+FLoops = "cc61a311-1640-44b5-9fba-1b764f453329"
 Gmsh = "705231aa-382f-11e9-3f0c-b7cb4346fdeb"
 InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
