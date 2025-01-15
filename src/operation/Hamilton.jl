@@ -64,7 +64,7 @@ function stabilization_bar_LSG(ap::T,k::AbstractMatrix{Float64}) where T<:Abstra
     for ξ in 𝓖
         ρA = ξ.ρA
         EA = ξ.EA
-        α = ξ.α
+        Β = ξ.Β
         Bₓₓ = ξ[:∂²𝝭∂x²]
         Bₜₜ = ξ[:∂²𝝭∂y²]
         𝑤 = ξ.𝑤
@@ -72,7 +72,7 @@ function stabilization_bar_LSG(ap::T,k::AbstractMatrix{Float64}) where T<:Abstra
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                k[I,J] += α*(ρA*Bₜₜ[i] - EA*Bₓₓ[i])*(ρA*Bₜₜ[j] - EA*Bₓₓ[j])*𝑤
+                k[I,J] += Β*(ρA*Bₜₜ[i] - EA*Bₓₓ[i])*(ρA*Bₜₜ[j] - EA*Bₓₓ[j])*𝑤
             end
         end
     end
