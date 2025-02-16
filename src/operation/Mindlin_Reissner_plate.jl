@@ -309,29 +309,81 @@ function (op::Operator{:L₂_ThickPlate})(ap::T) where T<:AbstractElement
         ū₁ = ξ.u
         ū₂ = ξ.θ₁
         ū₃ = ξ.θ₂
-        # ū₄ = ξ.Q₁
-        # ū₅ = ξ.Q₂
         u₁ = 0
         u₂ = 0
         u₃ = 0
-        # u₄ = 0
-        # u₅ = 0
         for (i,xᵢ) in enumerate(ap.𝓒)
             u₁ += N[i]*xᵢ.d₁
             u₂ += N[i]*xᵢ.d₂
             u₃ += N[i]*xᵢ.d₃
-            # u₄ += N[i]*xᵢ.q₁
-            # u₅ += N[i]*xᵢ.q₂
         end
         Δu² +=((u₁ - ū₁)^2 + (u₂ - ū₂)^2 + (u₃ - ū₃)^2)*𝑤
         ū²  += (ū₁^2 + ū₂^2 + ū₃^2)*𝑤
-        # Δu² +=((u₄ - ū₄)^2 + (u₅ - ū₅)^2)*𝑤
-        # ū²  += (ū₄^2 + ū₅^2 )*𝑤
     end
     return Δu², ū²
 end
 
 function (op::Operator{:L₂_ThickPlate})(aps::Vector{T}) where T<:AbstractElement
+    L₂Norm_Δu²= 0
+    L₂Norm_ū² = 0
+    for ap in aps
+        Δu², ū² = op(ap)
+        L₂Norm_Δu² += Δu²
+        L₂Norm_ū²  += ū²
+    end
+    return (L₂Norm_Δu²/L₂Norm_ū²)^0.5
+end
+
+
+function (op::Operator{:L₂_ThickPlate_Q})(ap::T) where T<:AbstractElement
+    Δu²= 0
+    ū² = 0
+    for ξ in ap.𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        ū₁ = ξ.Q₁
+        ū₂ = ξ.Q₂
+        u₁ = 0
+        u₂ = 0
+        for (i,xᵢ) in enumerate(ap.𝓒)
+            u₁ += N[i]*xᵢ.q₁
+            u₂ += N[i]*xᵢ.q₂
+        end
+        Δu² +=((u₁ - ū₁)^2 + (u₂ - ū₂)^2)*𝑤
+        ū²  += (ū₁^2 + ū₂^2 )*𝑤
+    end
+    return Δu², ū²
+end
+
+function (op::Operator{:L₂_ThickPlate_Q})(aps::Vector{T}) where T<:AbstractElement
+    L₂Norm_Δu²= 0
+    L₂Norm_ū² = 0
+    for ap in aps
+        Δu², ū² = op(ap)
+        L₂Norm_Δu² += Δu²
+        L₂Norm_ū²  += ū²
+    end
+    return (L₂Norm_Δu²/L₂Norm_ū²)^0.5
+end
+
+function (op::Operator{:L₂_ThickPlate_w})(ap::T) where T<:AbstractElement
+    Δu²= 0
+    ū² = 0
+    for ξ in ap.𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        ū₁ = ξ.u
+        u₁ = 0
+        for (i,xᵢ) in enumerate(ap.𝓒)
+            u₁ += N[i]*xᵢ.d₁
+        end
+        Δu² +=(u₁ - ū₁)^2*𝑤
+        ū²  += ū₁^2*𝑤
+    end
+    return Δu², ū²
+end
+
+function (op::Operator{:L₂_ThickPlate_w})(aps::Vector{T}) where T<:AbstractElement
     L₂Norm_Δu²= 0
     L₂Norm_ū² = 0
     for ap in aps
