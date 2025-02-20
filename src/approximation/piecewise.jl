@@ -23,6 +23,15 @@ get𝑛𝑝(::PiecewisePolynomial{:Quadratic2D}) = 6
 get𝑛𝑝(::PiecewiseParametric{:Quadratic2D}) = 6
 get𝑛𝑝(::PiecewisePolynomial{:Cubic2D}) = 10
 get𝑛𝑝(::PiecewiseParametric{:Cubic2D}) = 10
+
+
+get𝑛𝑝(::PiecewisePolynomial{:Linear3D}) = 4
+get𝑛𝑝(::PiecewiseParametric{:Linear3D}) = 4
+get𝑛𝑝(::PiecewisePolynomial{:Quadratic3D}) = 10
+get𝑛𝑝(::PiecewiseParametric{:Quadratic3D}) = 10
+get𝑛𝑝(::PiecewisePolynomial{:Cubic3D}) = 16
+get𝑛𝑝(::PiecewiseParametric{:Cubic3D}) = 16
+
 get𝑛𝑝(::PiecewisePolynomial{:4}) = 15
 get𝑛𝑝(::PiecewisePolynomial{:5}) = 21
 get𝑛𝑝(::PiecewisePolynomial{:6}) = 28
@@ -579,6 +588,37 @@ function set∇𝝭!(::PiecewisePolynomial{:Sextic2D},𝒙::Node)
     ∂𝝭∂y[28] = 6*y^5
 end
 
+
+function set𝝭!(::PiecewisePolynomial{:Linear3D},𝒙::Node)
+    𝝭 = 𝒙[:𝝭]
+    𝝭[1] = 1.0
+    𝝭[2] = 𝒙.x
+    𝝭[3] = 𝒙.y
+    𝝭[4] = 𝒙.z
+end
+
+function set∇𝝭!(::PiecewisePolynomial{:Linear3D},𝒙::Node)
+    𝝭 = 𝒙[:𝝭]
+    𝝭[1] = 1.0
+    𝝭[2] = 𝒙.x
+    𝝭[3] = 𝒙.y
+    𝝭[4] = 𝒙.z
+    ∂𝝭∂x = 𝒙[:∂𝝭∂x]
+    ∂𝝭∂y = 𝒙[:∂𝝭∂y]
+    ∂𝝭∂z = 𝒙[:∂𝝭∂z]
+    ∂𝝭∂x[1] = 0.0
+    ∂𝝭∂x[2] = 1.0
+    ∂𝝭∂x[3] = 0.0
+    ∂𝝭∂x[4] = 0.0
+    ∂𝝭∂y[1] = 0.0
+    ∂𝝭∂y[2] = 0.0
+    ∂𝝭∂y[3] = 1.0
+    ∂𝝭∂y[4] = 0.0
+    ∂𝝭∂y[1] = 0.0
+    ∂𝝭∂y[2] = 0.0
+    ∂𝝭∂y[3] = 0.0
+    ∂𝝭∂y[4] = 1.0
+end
 function set𝝭!(::PiecewiseParametric{:Linear2D,:Tri3},𝒙::Node)
     𝝭 = 𝒙[:𝝭]
     𝝭[1] = 1.0
