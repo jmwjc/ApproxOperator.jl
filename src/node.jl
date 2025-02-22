@@ -85,4 +85,6 @@ function printinfo(p::Node{S}) where S
     return shapes
 end
 
+
 Base.show(io::IO,::MIME"text/plain",p::Node) = printinfo(p)
+Base.show(io::IO,p::Node) = printinfo(p)

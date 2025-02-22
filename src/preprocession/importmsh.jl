@@ -26,7 +26,8 @@ function get𝑿ᵢ()
 end
 
 prequote = quote
-    types = Dict([1=>:Seg2, 2=>:Tri3, 3=>:Quad, 4=>:Tet4, 8=>:Seg3, 9=>:Tri6, 10=>:Quad9, 11=>:Tet10, 15=>:Poi1, 16=>:Quad8])
+   
+    types = Dict([1=>:Seg2, 2=>:Tri3, 3=>:Quad, 4=>:Tet4, 5=>:Hex8, 8=>:Seg3, 9=>:Tri6, 10=>:Quad9, 11=>:Tet10, 12=>:Hex27, 15=>:Poi1, 16=>:Quad8])
     dim, tags = dimTag
     elementTypes = Int32[]
     nodeTags = Vector{UInt64}[]
@@ -47,12 +48,22 @@ prequote = quote
     data[:𝑤] = (2,Float64[])
     data[:𝐽] = (2,Float64[])
     data[:∂ξ∂x] = (2,Float64[])
+    if normal
+        data[:n₁] = (3,Float64[])
+        data[:n₂] = (3,Float64[])
+        data[:s₁] = (3,Float64[])
+        data[:s₂] = (3,Float64[])
+    end
     if dim >= 2
         data[:η] = (1,Float64[])
 
         data[:∂ξ∂y] = (2,Float64[])
         data[:∂η∂x] = (2,Float64[])
         data[:∂η∂y] = (2,Float64[])
+        if normal
+            data[:n₃] = (3,Float64[])
+            data[:s₃] = (3,Float64[])
+        end
     end
     if dim >= 3
         data[:γ] = (1,Float64[])
@@ -120,17 +131,86 @@ coordinates = quote
         end
     end
 end
+coordinatesForFaces = quote
+    ng = length(weights)
+    ne = Int(length(nodeTag)/ni)
+    if elementTypeΩ ∈ (4)
+        face_type = 2
+        nb = 4  # Number of faces per element
+        nf = 3  # Nodes per face
+    elseif elementTypeΩ ∈ (5)
+        face_type = 3
+        nb = 6  # Number of faces per element
+        nf = 4  # Nodes per face
+    end
+    nodeTag = gmsh.model.mesh.getElementFaceNodes(face_type,tag,true)
+    nef = Int(length(nodeTag)/nf)
 
+    append!(data[:w][2], weights)
+    jacobians, determinants, coord = gmsh.model.mesh.getJacobians(elementType, localCoord, tag)
+    x = coord[1:3:end]
+    y = coord[2:3:end]
+    z = coord[3:3:end]
+    append!(data[:x][2],x)
+    append!(data[:y][2],y)
+    append!(data[:z][2],z)
+    for i in 1:Int(length(determinants)/ng)
+        for (j,w) in enumerate(weights)
+            G = ng*(i-1)+j
+            push!(data[:𝑤][2], determinants[G]*w)
+        end
+    end
+
+    for g in 1:ng
+        ξg = localCoord[3*g-2]
+        if ξg ≈ 1.0
+            push!(data[:Δ][2], 1.0)
+        elseif ξg ≈ -1.0
+            push!(data[:Δ][2], -1.0)
+        else
+            push!(data[:Δ][2], 0.0)
+        end
+    end
+    for CΩ_ in 1:Int(nef/nb)
+        tagΩ = tagsΩ[CΩ+CΩ_]
+        for C in (nb-1)*CΩ_+1:nb*CΩ_
+            face_nodes = nodeTag[((C-1)*nf+1):(C*nf)]
+
+            coords = [gmsh.model.mesh.getNode(n)[1] for n in face_nodes]
+
+            v1 = coords[2] - coords[1]
+            v2 = coords[3] - coords[1]
+            normal = cross(v1, v2)
+            norm_val = norm(normal)
+            normal ./= norm_val
+            
+            
+            push!(data[:n₁][2], normal[1])
+            push!(data[:n₂][2], normal[2])
+            push!(data[:n₃][2], normal[3])
+
+            
+            for g in 1:ng
+                G = ng*(C-1)+g
+                ξ, η, γ, ζ = gmsh.model.mesh.getLocalCoordinatesInElement(tagΩ, x[G], y[G], z[G])  
+                push!(data[:ξ][2], ξ)
+                push!(data[:η][2], η)
+                push!(data[:ζ][2], ζ)  
+                haskey(data,:γ) ? push!(data[:γ][2], γ) : nothing
+            end
+        end
+    end
+end
 coordinatesForEdges = quote
     ng = length(weights)
     ne = Int(length(nodeTag)/ni)
     if elementTypeΩ ∈ (2,9)
         nb = 3
-    elseif elementTypeΩ ∈ (3,10,16)
+    elseif elementTypeΩ ∈ (3,4,10,16)
         nb = 4
     end
-
     nodeTag = gmsh.model.mesh.getElementEdgeNodes(elementType,tag,true)
+   
 
     append!(data[:w][2],weights)
     jacobians, determinants, coord = gmsh.model.mesh.getJacobians(elementType, localCoord, tag)
@@ -157,6 +237,8 @@ coordinatesForEdges = quote
             push!(data[:Δ][2], 0.0)
         end
     end
+
+
     for CΩ_ in 1:Int(ne/nb)
         tagΩ = tagsΩ[CΩ+CΩ_]
         for C in (nb-1)*CΩ_+1:nb*CΩ_
@@ -164,13 +246,16 @@ coordinatesForEdges = quote
             coord, = gmsh.model.mesh.getNode(nodeTag[2*C-1])
             x₁ = coord[1]
             y₁ = coord[2]
+           
             coord, = gmsh.model.mesh.getNode(nodeTag[2*C])
             x₂ = coord[1]
             y₂ = coord[2]
+            
             push!(data[:n₁][2], (y₂-y₁)/𝐿)
             push!(data[:n₂][2], (x₁-x₂)/𝐿)
             push!(data[:s₁][2], (x₂-x₁)/𝐿)
             push!(data[:s₂][2], (y₂-y₁)/𝐿)
+           
             for g in 1:ng
                 G = ng*(C-1)+g
                 ξ, η, γ = gmsh.model.mesh.getLocalCoordinatesInElement(tagΩ, x[G], y[G], z[G])
@@ -182,6 +267,8 @@ coordinatesForEdges = quote
     end
 end
 
+
+      
 curvilinearCoordinates = quote
     ng = length(weights)
     ne = Int(length(nodeTag)/ni)
@@ -400,6 +487,35 @@ cal_normal = quote
                 push!(data[:n₂][2], (x₁-x₂)/𝐿)
                 push!(data[:s₁][2], (x₂-x₁)/𝐿)
                 push!(data[:s₂][2], (y₂-y₁)/𝐿)
+            end
+        end
+        if dim == 2
+            nₙ = Int(length(nodeTags)/ne)
+            for C in 1:ne
+                𝐽 = determinants[C*ng]
+                n₁ = 0.0
+                n₂ = 0.0
+                n₃ = 0.0
+                for i in 1:2:nₙ
+                    coord, = gmsh.model.mesh.getNode(nodeTags[nₙ*(C-1)+i])
+                    x₁ = coord[1]
+                    y₁ = coord[2]
+                    z₁ = coord[3]
+                    coord, = gmsh.model.mesh.getNode(nodeTags[nₙ*(C-1)+i+1])
+                    x₂ = coord[1]
+                    y₂ = coord[2]
+                    z₂ = coord[3]
+
+                    n₁ += y₁*z₂-y₂*z₁
+                    n₂ += z₁*x₂-z₂*x₁
+                    n₃ += x₁*y₂-x₂*y₁
+                end
+                if elementType == 3
+                    𝐽 *= 8
+                end
+                push!(data[:n₁][2], n₁/𝐽)
+                push!(data[:n₂][2], n₂/𝐽)
+                push!(data[:n₃][2], n₃/𝐽)
             end
         end
     end
@@ -702,6 +818,26 @@ function getPiecewiseBoundaryElements(dimTag::Pair{Int,Vector{Int}},dimTagΩ::Pa
         $integrationByGmsh
         ## coordinates
         $coordinatesForEdges
+        ## special variables
+        $cal_jacobe 
+        ## generate element
+        $generateForPiecewiseBoundary
+        ## summary
+        $generateSummary
+    end
+    return elements
+end
+
+
+function getPiecewiseBoundaryElements(dimTag::Pair{Int,Vector{Int}},dimTagΩ::Pair{Int,Vector{Int}},type::DataType,integrationOrder::Int,Dim::Int)
+    normal = false
+    $prequote
+    $preForEdge
+    for (elementType,elementTypeΩ,nodeTag,tag) in zip(elementTypes,elementTypesΩ,nodeTags,tags)
+        ## integration rule
+        $integrationByGmsh
+        ## coordinates
+        $coordinatesForFaces
         ## special variables
         $cal_jacobe 
         ## generate element
