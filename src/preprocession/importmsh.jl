@@ -1,4 +1,5 @@
 
+
 function getPhysicalGroups()
     entities = Dict{String,Pair{Int,Vector{Int}}}()
     dimTags = gmsh.model.getPhysicalGroups()
@@ -132,6 +133,7 @@ coordinates = quote
     end
 end
 coordinatesForFaces = quote
+    using LinearAlgebra
     ng = length(weights)
     ne = Int(length(nodeTag)/ni)
     if elementTypeΩ ∈ (4)
@@ -143,10 +145,11 @@ coordinatesForFaces = quote
         nb = 6  # Number of faces per element
         nf = 4  # Nodes per face
     end
-    nodeTag = gmsh.model.mesh.getElementFaceNodes(face_type,tag,true)
+    nodeTag = gmsh.model.mesh.getElementFaceNodes(elementType,nf,tag,true)
     nef = Int(length(nodeTag)/nf)
-
     append!(data[:w][2], weights)
+
+    # Get face Jacobians using face element type
     jacobians, determinants, coord = gmsh.model.mesh.getJacobians(elementType, localCoord, tag)
     x = coord[1:3:end]
     y = coord[2:3:end]
@@ -154,6 +157,8 @@ coordinatesForFaces = quote
     append!(data[:x][2],x)
     append!(data[:y][2],y)
     append!(data[:z][2],z)
+
+    # Calculate weighted determinants
     for i in 1:Int(length(determinants)/ng)
         for (j,w) in enumerate(weights)
             G = ng*(i-1)+j
@@ -162,26 +167,33 @@ coordinatesForFaces = quote
     end
 
     for g in 1:ng
-        ξg = localCoord[3*g-2]
-        if ξg ≈ 1.0
-            push!(data[:Δ][2], 1.0)
-        elseif ξg ≈ -1.0
-            push!(data[:Δ][2], -1.0)
-        else
-            push!(data[:Δ][2], 0.0)
-        end
+        u = localCoord[2g-1]  # Surface parametric coordinates
+        v = localCoord[2g]
+        # Example boundary detection (modify according to your needs)
+        Δ = ifelse(u ≈ 1.0 || v ≈ 1.0 || u+v ≈ 1.0, 1.0, 0.0)
+        push!(data[:Δ][2], Δ)
     end
-    for CΩ_ in 1:Int(nef/nb)
+    # Face normal calculation
+    for CΩ_ in 1:Int(ne/nb)
         tagΩ = tagsΩ[CΩ+CΩ_]
-        for C in (nb-1)*CΩ_+1:nb*CΩ_
+        for C in nb*(CΩ_-1)+1:nb*CΩ_
             face_nodes = nodeTag[((C-1)*nf+1):(C*nf)]
 
-            coords = [gmsh.model.mesh.getNode(n)[1] for n in face_nodes]
+            # coords = [gmsh.model.mesh.getNode(n)[1] for n in face_nodes]
 
-            v1 = coords[2] - coords[1]
-            v2 = coords[3] - coords[1]
-            normal = cross(v1, v2)
-            norm_val = norm(normal)
+            # v1 = coords[2] - coords[1]
+            # v2 = coords[3] - coords[1]
+
+            
+           
+            coord1, = gmsh.model.mesh.getNode(face_nodes[1])
+            coord2, = gmsh.model.mesh.getNode(face_nodes[2])
+            coord3, = gmsh.model.mesh.getNode(face_nodes[3])
+            v1 = [coord2[1]-coord1[1], coord2[2]-coord1[2], coord2[3]-coord1[3]]  # 边向量1
+            v2 = [coord3[1]-coord1[1], coord3[2]-coord1[2], coord3[3]-coord1[3]]  # 边向量2
+            
+            normal =  LinearAlgebra.cross(v1,v2)
+            norm_val = LinearAlgebra.norm(normal)
             normal ./= norm_val
             
             
@@ -189,7 +201,7 @@ coordinatesForFaces = quote
             push!(data[:n₂][2], normal[2])
             push!(data[:n₃][2], normal[3])
 
-            
+              # Get local coordinates in parent volume element
             for g in 1:ng
                 G = ng*(C-1)+g
                 ξ, η, γ, ζ = gmsh.model.mesh.getLocalCoordinatesInElement(tagΩ, x[G], y[G], z[G])  
