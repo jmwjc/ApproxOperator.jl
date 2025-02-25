@@ -133,7 +133,7 @@ coordinates = quote
     end
 end
 coordinatesForFaces = quote
-    using LinearAlgebra
+    
     ng = length(weights)
     ne = Int(length(nodeTag)/ni)
     if elementTypeΩ ∈ (4)
@@ -192,9 +192,20 @@ coordinatesForFaces = quote
             v1 = [coord2[1]-coord1[1], coord2[2]-coord1[2], coord2[3]-coord1[3]]  # 边向量1
             v2 = [coord3[1]-coord1[1], coord3[2]-coord1[2], coord3[3]-coord1[3]]  # 边向量2
             
-            normal =  LinearAlgebra.cross(v1,v2)
-            norm_val = LinearAlgebra.norm(normal)
-            normal ./= norm_val
+        
+            # 手动计算叉积（法向量）
+            n = [
+                v1[2] * v2[3] - v1[3] * v2[2],  # x 分量
+                v1[3] * v2[1] - v1[1] * v2[3],  # y 分量
+                v1[1] * v2[2] - v1[2] * v2[1]   # z 分量
+            ]
+        
+            # 归一化（单位法向量）
+            n_length = sqrt(n[1]^2 + n[2]^2 + n[3]^2)
+            normal = [n[1] / n_length, n[2] / n_length, n[3] / n_length]
+            # normal =  cross(v1,v2)
+            # norm_val = norm(normal)
+            # normal ./= norm_val
             
             
             push!(data[:n₁][2], normal[1])
@@ -204,10 +215,9 @@ coordinatesForFaces = quote
               # Get local coordinates in parent volume element
             for g in 1:ng
                 G = ng*(C-1)+g
-                ξ, η, γ, ζ = gmsh.model.mesh.getLocalCoordinatesInElement(tagΩ, x[G], y[G], z[G])  
+                ξ, η, γ = gmsh.model.mesh.getLocalCoordinatesInElement(tagΩ, x[G], y[G], z[G])  
                 push!(data[:ξ][2], ξ)
                 push!(data[:η][2], η)
-                push!(data[:ζ][2], ζ)  
                 haskey(data,:γ) ? push!(data[:γ][2], γ) : nothing
             end
         end
@@ -253,7 +263,8 @@ coordinatesForEdges = quote
 
     for CΩ_ in 1:Int(ne/nb)
         tagΩ = tagsΩ[CΩ+CΩ_]
-        for C in (nb-1)*CΩ_+1:nb*CΩ_
+        # for C in (nb-1)*CΩ_+1:nb*CΩ_
+        for C in nb*(CΩ_-1)+1:nb*CΩ_
             𝐿 = 2*determinants[C*ng]
             coord, = gmsh.model.mesh.getNode(nodeTag[2*C-1])
             x₁ = coord[1]
