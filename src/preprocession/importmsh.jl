@@ -134,8 +134,6 @@ coordinates = quote
 end
 coordinatesForFaces = quote
     
-    ng = length(weights)
-    ne = Int(length(nodeTag)/ni)
     if elementTypeΩ ∈ (4)
         face_type = 2
         nb = 4  # Number of faces per element
@@ -145,8 +143,20 @@ coordinatesForFaces = quote
         nb = 6  # Number of faces per element
         nf = 4  # Nodes per face
     end
-    nodeTag = gmsh.model.mesh.getElementFaceNodes(elementType,nf,tag,true)
-    nef = Int(length(nodeTag)/nf)
+
+    ng = length(weights)
+    ne = Int(length(nodeTag)/ni)
+    # nodeTag = gmsh.model.mesh.getElementFaceNodes(elementTypeΩ,nf,tagΩ,true)
+   
+    println(ng)
+    println(ne)
+    println(nb)
+    println(ni)
+    println(length(tagsΩ))
+    println(length(tagΩ))
+    
+    println(length(tags))
+    println(length(tag))
     append!(data[:w][2], weights)
 
     # Get face Jacobians using face element type
@@ -166,17 +176,30 @@ coordinatesForFaces = quote
         end
     end
 
+    # for g in 1:ng
+    #     u = localCoord[2g-1]  # Surface parametric coordinates
+    #     v = localCoord[2g]
+    #     # Example boundary detection (modify according to your needs)
+    #     Δ = ifelse(u ≈ 1.0 || v ≈ 1.0 || u+v ≈ 1.0, 1.0, 0.0)
+    #     push!(data[:Δ][2], Δ)
+    # end
+    
     for g in 1:ng
-        u = localCoord[2g-1]  # Surface parametric coordinates
-        v = localCoord[2g]
-        # Example boundary detection (modify according to your needs)
-        Δ = ifelse(u ≈ 1.0 || v ≈ 1.0 || u+v ≈ 1.0, 1.0, 0.0)
-        push!(data[:Δ][2], Δ)
+        ξg = localCoord[3*g-2]
+        if ξg ≈ 1.0
+            push!(data[:Δ][2], 1.0)
+        elseif ξg ≈ -1.0
+            push!(data[:Δ][2], -1.0)
+        else
+            push!(data[:Δ][2], 0.0)
+        end
     end
     # Face normal calculation
-    for CΩ_ in 1:Int(ne/nb)
-        tagΩ = tagsΩ[CΩ+CΩ_]
-        for C in nb*(CΩ_-1)+1:nb*CΩ_
+    for CΩ in 1:Int(ne/nb)
+    # for (CΩ,tagΩ) in enumerate(tagsΩ)
+        tagΩ = tagsΩ[CΩ]
+        for C in nb*(CΩ-1)+1:nb*CΩ
+        
             face_nodes = nodeTag[((C-1)*nf+1):(C*nf)]
 
             # coords = [gmsh.model.mesh.getNode(n)[1] for n in face_nodes]
@@ -231,9 +254,8 @@ coordinatesForEdges = quote
     elseif elementTypeΩ ∈ (3,4,10,16)
         nb = 4
     end
-    nodeTag = gmsh.model.mesh.getElementEdgeNodes(elementType,tag,true)
-   
-
+    # nodeTag = gmsh.model.mesh.getElementEdgeNodes(elementType,tag,true)
+    
     append!(data[:w][2],weights)
     jacobians, determinants, coord = gmsh.model.mesh.getJacobians(elementType, localCoord, tag)
     x = coord[1:3:end]
@@ -242,6 +264,7 @@ coordinatesForEdges = quote
     append!(data[:x][2],x)
     append!(data[:y][2],y)
     append!(data[:z][2],z)
+
     for i in 1:Int(length(determinants)/ng)
         for (j,w) in enumerate(weights)
             G = ng*(i-1)+j
@@ -260,11 +283,20 @@ coordinatesForEdges = quote
         end
     end
 
+    # for g in 1:ng
+    #     u = localCoord[2g-1]  # Surface parametric coordinates
+    #     v = localCoord[2g]
+    #     # Example boundary detection (modify according to your needs)
+    #     Δ = ifelse(u ≈ 1.0 || v ≈ 1.0 || u+v ≈ 1.0, 1.0, 0.0)
+    #     push!(data[:Δ][2], Δ)
+    # end
 
-    for CΩ_ in 1:Int(ne/nb)
-        tagΩ = tagsΩ[CΩ+CΩ_]
-        # for C in (nb-1)*CΩ_+1:nb*CΩ_
-        for C in nb*(CΩ_-1)+1:nb*CΩ_
+    # for CΩ_ in 1:Int(ne/nb)
+    #     tagΩ = tagsΩ[CΩ+CΩ_]
+      
+    for (CΩ,tagΩ) in enumerate(tagsΩ)  
+        # for C in nb*(CΩ_-1)+1:nb*CΩ_
+            for C in nb*(CΩ-1)+1:nb*CΩ
             𝐿 = 2*determinants[C*ng]
             coord, = gmsh.model.mesh.getNode(nodeTag[2*C-1])
             x₁ = coord[1]
