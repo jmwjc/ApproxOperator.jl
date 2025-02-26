@@ -22,7 +22,16 @@ function get𝑿ᵢ()
         z[I] = coord[3*i]
     end
     data = Dict([:x=>(1,x),:y=>(1,y),:z=>(1,z)])
+    # nodes = 𝑿ᵢ[]
+    # 𝑿ᵢ((𝐼=1,), data)
+    # println(nodes)
+    # push!(nodes, 𝑿ᵢ((𝐼=1,), data))
+    # for i in 1:nₚ
+    #     push!(nodes, 𝑿ᵢ((𝐼=i,), data_))
+    # end
+    # [𝑿ᵢ((𝐼=i,), data) for i in 1:nₚ]
     return [𝑿ᵢ((𝐼=i,), data) for i in 1:nₚ ]
+    # return nodes
 end
 
 prequote = quote
@@ -972,4 +981,126 @@ function getElements(dimTag1::Pair{Int,Vector{Int}},dimTag2::Pair{Int,Vector{Int
         end
     end
     return elements
+end
+
+function Seg2toTri3(seg2::Vector{T},tri3::Vector{S}) where {T,S<:AbstractElement}
+    elms = Element{:Tri3}[]
+    data = Dict{Symbol,Tuple{Int,Vector{Float64}}}()
+    data_seg2 = getfield(seg2[1].𝓖[1],:data)
+    nᵢ = length(data_seg2[:w][2])
+    data[:w] = data_seg2[:w]
+    data[:x] = data_seg2[:x]
+    data[:y] = data_seg2[:y]
+    data[:z] = data_seg2[:z]
+    data[:𝑤] = data_seg2[:𝑤]
+    data[:𝐽] = (3,Float64[])
+    data[:ξ] = (2,Float64[])
+    data[:η] = (2,Float64[])
+
+    data[:n₁] = (3,Float64[])
+    data[:n₂] = (3,Float64[])
+    G = 0;C = 1;s = 0;
+    for elm_seg2 in seg2
+        𝓒_seg2 = elm_seg2.𝓒
+        𝓖_seg2 = elm_seg2.𝓖
+        for elm_tri3 in tri3
+            𝓒_tri3 = elm_tri3.𝓒
+            indices = indexin(𝓒_seg2,𝓒_tri3)
+            if nothing ∉ indices
+                x₁ = 𝓒_seg2[1].x
+                y₁ = 𝓒_seg2[1].y
+                x₂ = 𝓒_seg2[2].x
+                y₂ = 𝓒_seg2[2].y
+                𝐿 = 2*elm_seg2.𝐽
+                push!(data[:𝐽][2],elm_tri3.𝐽)
+                push!(data[:n₁][2],(y₂-y₁)/𝐿)
+                push!(data[:n₂][2],(x₁-x₂)/𝐿)
+                if indices == [2,3]
+                    for ξ in 𝓖_seg2
+                        push!(data[:ξ][2],0.5*(1-ξ.ξ))
+                        push!(data[:η][2],0.5*(1+ξ.ξ))
+                    end
+                end
+                if indices == [3,1]
+                    for ξ in 𝓖_seg2
+                        push!(data[:ξ][2],0.0)
+                        push!(data[:η][2],0.5*(1-ξ.ξ))
+                    end
+                end
+                if indices == [1,2]
+                    for ξ in 𝓖_seg2
+                        push!(data[:ξ][2],0.5*(1+ξ.ξ))
+                        push!(data[:η][2],0.0)
+                    end
+                end
+                𝓖 = [𝑿ₛ((𝑔=g,𝐺=G+g,𝐶=C,𝑠=s+3*(g-1)),data) for g in 1:nᵢ]
+                push!(elms, Element{:Tri3}(𝓒_tri3,𝓖))
+                G += nᵢ
+                C += 1
+                s += 3*nᵢ
+            end
+        end
+    end
+    return elms
+end
+
+function Seg3toTri6(seg3::Vector{T},tri6::Vector{S}) where {T,S<:AbstractElement}
+    elms = Element{:Tri6}[]
+    data = Dict{Symbol,Tuple{Int,Vector{Float64}}}()
+    data_seg3 = getfield(seg3[1].𝓖[1],:data)
+    nᵢ = length(data_seg3[:w][2])
+    data[:w] = data_seg3[:w]
+    data[:x] = data_seg3[:x]
+    data[:y] = data_seg3[:y]
+    data[:z] = data_seg3[:z]
+    data[:𝑤] = data_seg3[:𝑤]
+    data[:𝐽] = (3,Float64[])
+    data[:ξ] = (2,Float64[])
+    data[:η] = (2,Float64[])
+
+    data[:n₁] = (3,Float64[])
+    data[:n₂] = (3,Float64[])
+    G = 0;C = 1;s = 0;
+    for elm_seg3 in seg3
+        𝓒_seg3 = elm_seg3.𝓒
+        𝓖_seg3 = elm_seg3.𝓖
+        for elm_tri6 in tri6
+            𝓒_tri6 = elm_tri6.𝓒
+            indices = indexin(𝓒_seg3,𝓒_tri6)
+            if nothing ∉ indices
+                x₁ = 𝓒_seg3[1].x
+                y₁ = 𝓒_seg3[1].y
+                x₂ = 𝓒_seg3[2].x
+                y₂ = 𝓒_seg3[2].y
+                𝐿 = 2*elm_seg3.𝐽
+                push!(data[:𝐽][2],elm_tri6.𝐽)
+                push!(data[:n₁][2],(y₂-y₁)/𝐿)
+                push!(data[:n₂][2],(x₁-x₂)/𝐿)
+                if indices == [2,3,5]
+                    for ξ in 𝓖_seg3
+                        push!(data[:ξ][2],0.5*(1-ξ.ξ))
+                        push!(data[:η][2],0.5*(1+ξ.ξ))
+                    end
+                end
+                if indices == [3,1,6]
+                    for ξ in 𝓖_seg3
+                        push!(data[:ξ][2],0.0)
+                        push!(data[:η][2],0.5*(1-ξ.ξ))
+                    end
+                end
+                if indices == [1,2,4]
+                    for ξ in 𝓖_seg3
+                        push!(data[:ξ][2],0.5*(1+ξ.ξ))
+                        push!(data[:η][2],0.0)
+                    end
+                end
+                𝓖 = [𝑿ₛ((𝑔=g,𝐺=G+g,𝐶=C,𝑠=s+6*(g-1)),data) for g in 1:nᵢ]
+                push!(elms, Element{:Tri6}(𝓒_tri6,𝓖))
+                G += nᵢ
+                C += 1
+                s += 6*nᵢ
+            end
+        end
+    end
+    return elms
 end

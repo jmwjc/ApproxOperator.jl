@@ -60,8 +60,12 @@ function push!(p::Node{T},svs::Pair{Symbol,Vector{Float64}}...;index::Symbol=:ğ
 end
 
 function Base.getproperty(ps::Vector{N},s::Symbol) where N<:Node
-    data = getfield(ps[1],:data)
-    return data[s][2]
+    if s != :ref
+        data = getfield(ps[1],:data)
+        return data[s][2]
+    else
+        return getfield(ps,s)
+    end
 end
 
 function printinfo(p::Node{S}) where S
