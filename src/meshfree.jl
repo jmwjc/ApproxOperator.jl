@@ -168,5 +168,10 @@ function (rg::RegularGrid)(x::Float64,y::Float64,z::Float64)
     ix > rg.nx[1]-1 ? ix = rg.nx[1]-1 : nothing
     iy > rg.nx[2]-1 ? iy = rg.nx[2]-1 : nothing
     iz > rg.nx[3]-1 ? iz = rg.nx[3]-1 : nothing
+
+    ix < 0 ? ix = 0 : nothing
+    iy < 0 ? iy = 0 : nothing
+    iz < 0 ? iz = 0 : nothing
+
     return rg.cells[rg.nx[1]*rg.nx[2]*iz + rg.nx[1]*iy + ix + 1]
 end
