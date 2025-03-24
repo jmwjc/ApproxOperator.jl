@@ -133,7 +133,6 @@ coordinates = quote
     end
 end
 coordinatesForFaces = quote
-    
     if elementTypeΩ ∈ (4)
         face_type = 2
         nb = 4  # Number of faces per element
@@ -146,9 +145,7 @@ coordinatesForFaces = quote
 
     ng = length(weights)
     ne = Int(length(nodeTag)/ni)
-    println(elementTypeΩ)
-    println(elementType)
-    nodeTag = gmsh.model.mesh.getElementFaceNodes(elementTypeΩ,nf,tagΩ_,true)
+    # nodeTag = gmsh.model.mesh.getElementFaceNodes(elementTypeΩ,nf,tagΩ_,true)
    
     append!(data[:w][2], weights)
 
@@ -177,31 +174,26 @@ coordinatesForFaces = quote
     #     push!(data[:Δ][2], Δ)
     # end
     
+    tolerance = 1e-6
     for g in 1:ng
         ξg = localCoord[3*g-2]
-        if ξg ≈ 1.0
+        ηg = localCoord[3*g-1]
+        if abs(ξg - 1.0) < tolerance && abs(ηg - 0.0) < tolerance
             push!(data[:Δ][2], 1.0)
-        elseif ξg ≈ -1.0
+        elseif abs(ξg + 1.0) < tolerance && abs(ηg - 0.0) < tolerance
             push!(data[:Δ][2], -1.0)
         else
             push!(data[:Δ][2], 0.0)
         end
     end
+
     # Face normal calculation
     for CΩ_ in 1:Int(ne/nb)
-    # for (CΩ,tagΩ) in enumerate(tagsΩ)
         tagΩ = tagsΩ[CΩ+CΩ_]
         for C in nb*(CΩ_-1)+1:nb*CΩ_
-        
-            face_nodes = nodeTag[((C-1)*nf+1):(C*nf)]
+        @assert length(nodeTag) >= C*nf "nodeTag 长度不足"
+            face_nodes = nodeTag[(C-1)*nf+1:C*nf]
 
-            # coords = [gmsh.model.mesh.getNode(n)[1] for n in face_nodes]
-
-            # v1 = coords[2] - coords[1]
-            # v2 = coords[3] - coords[1]
-
-            
-           
             coord1, = gmsh.model.mesh.getNode(face_nodes[1])
             coord2, = gmsh.model.mesh.getNode(face_nodes[2])
             coord3, = gmsh.model.mesh.getNode(face_nodes[3])
@@ -219,11 +211,16 @@ coordinatesForFaces = quote
             # 归一化（单位法向量）
             n_length = sqrt(n[1]^2 + n[2]^2 + n[3]^2)
             normal = [n[1] / n_length, n[2] / n_length, n[3] / n_length]
-            # normal =  cross(v1,v2)
-            # norm_val = norm(normal)
-            # normal ./= norm_val
             
-            
+            # normals = gmsh.model.mesh.getNormals(face_type, face_nodes)
+           
+            # append!(data[:n₁][2], normals[1:3:end])
+            # append!(data[:n₂][2], normals[2:3:end])
+            # append!(data[:n₃][2], normals[3:3:end])
+
+            # push!(data[:n₁][2], normals[1:3:end])
+            # push!(data[:n₂][2], normals[2:3:end])
+            # push!(data[:n₃][2], normals[3:3:end])
             push!(data[:n₁][2], normal[1])
             push!(data[:n₂][2], normal[2])
             push!(data[:n₃][2], normal[3])
@@ -234,7 +231,8 @@ coordinatesForFaces = quote
                 ξ, η, γ = gmsh.model.mesh.getLocalCoordinatesInElement(tagΩ, x[G], y[G], z[G])  
                 push!(data[:ξ][2], ξ)
                 push!(data[:η][2], η)
-                haskey(data,:γ) ? push!(data[:γ][2], γ) : nothing
+                push!(data[:γ][2], γ)
+                # haskey(data,:γ) ? push!(data[:γ][2], γ) : nothing
             end
         end
     end
@@ -275,14 +273,6 @@ coordinatesForEdges = quote
             push!(data[:Δ][2], 0.0)
         end
     end
-
-    # for g in 1:ng
-    #     u = localCoord[2g-1]  # Surface parametric coordinates
-    #     v = localCoord[2g]
-    #     # Example boundary detection (modify according to your needs)
-    #     Δ = ifelse(u ≈ 1.0 || v ≈ 1.0 || u+v ≈ 1.0, 1.0, 0.0)
-    #     push!(data[:Δ][2], Δ)
-    # end
 
     for CΩ_ in 1:Int(ne/nb)
         tagΩ = tagsΩ[CΩ+CΩ_]
