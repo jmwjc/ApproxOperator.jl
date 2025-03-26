@@ -59,6 +59,29 @@ function ∫∫∇q∇pdxdt(a₁::T,a₂::S,k::AbstractMatrix{Float64}) where {T
     end
 end
 
+function ∫q∇𝑛pds(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒;𝓖 = ap.𝓖
+    for ξ in 𝓖
+        N = ξ[:𝝭]
+        Bₓ = ξ[:∂𝝭∂x]
+        Bₜ = ξ[:∂𝝭∂y]
+        𝑤 = ξ.𝑤
+        nₓ = ξ.n₁
+        nₜ = ξ.n₂
+        ρA = ξ.ρA
+        EA = ξ.EA
+        g = ξ.g
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I,J] -= (-N[i]*ρA*Bₜ[j]*nₜ + N[i]*EA*Bₓ[j]*nₓ)*𝑤
+            end
+            # f[I] -= (-ρA*Bₜ[i]*nₜ + EA*Bₓ[i]*nₓ)*g*𝑤
+        end
+    end
+end
+
 function stabilization_bar_LSG(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
