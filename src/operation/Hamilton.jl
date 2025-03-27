@@ -101,29 +101,37 @@ function stabilization_bar_LSG(ap::T,k::AbstractMatrix{Float64}) where T<:Abstra
     end
 end
 
-function fₕ(ap::T,f₁::AbstractVector{Float64},f₂::AbstractVector{Float64}) where T<:AbstractElement
+function truncation_error(ap::T,fₓ::AbstractVector{Float64},fₜ::AbstractVector{Float64},fₓₓ::AbstractVector{Float64},fₜₜ::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         c = ξ.c
         Bₓ = ξ[:∂𝝭∂x]
         Bₜ = ξ[:∂𝝭∂y]
         𝑤 = ξ.𝑤
+        x = ξ.x
+        t = ξ.y
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
-            f₁[I] += Bₓ[i]*𝑤
-            f₂[I] += Bₜ[i]/c*𝑤
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                fₓ[I] += Bₓ[i]*Bₓ[j]*(xⱼ.x-xᵢ.x - c*(xⱼ.y-xᵢ.y))*𝑤
+                fₜ[I] += Bₜ[i]*Bₜ[j]*(xⱼ.x-xᵢ.x - c*(xⱼ.y-xᵢ.y))*𝑤
+                fₓₓ[I] += Bₓ[i]*Bₓ[j]*(xⱼ.x-xᵢ.x - c*(xⱼ.y-xᵢ.y))^2*𝑤
+                fₜₜ[I] += Bₜ[i]*Bₜ[j]*(xⱼ.x-xᵢ.x - c*(xⱼ.y-xᵢ.y))^2*𝑤
+            end
         end
     end
-    return f₁, f₂
 end
 
-function fₕ(aps::Vector{T},nₚ::Int) where T<:AbstractElement
-    f₁ = zeros(nₚ)
-    f₂ = zeros(nₚ)
+function truncation_error(aps::Vector{T},nₚ::Int) where T<:AbstractElement
+    fₓ = zeros(nₚ)
+    fₜ = zeros(nₚ)
+    fₓₓ = zeros(nₚ)
+    fₜₜ = zeros(nₚ)
     for ap in aps
-        fₕ(ap,f₁,f₂)
+        truncation_error(ap,fₓ,fₜ,fₓₓ,fₜₜ)
     end
-    return f₁./f₂,f₁,f₂
+    return fₓ,fₜ,fₓₓ,fₜₜ
 end
 
 end
