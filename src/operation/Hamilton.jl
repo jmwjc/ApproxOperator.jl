@@ -38,26 +38,26 @@ function ∫∫∇q∇pdxdt(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractE
     end
 end
 
-# function ∫∫∇q∇pdxdt(a₁::T,a₂::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
-#     𝓒₁ = a₁.𝓒; 𝓖₁ = a₁.𝓖
-#     𝓒₂ = a₂.𝓒; 𝓖₂ = a₂.𝓖
-#     for (ξ₁,ξ₂) in (𝓖₁,𝓖₂)
-#         B̄ₓ = ξ₁[:∂𝝭∂x]
-#         B̄ₜ = ξ₁[:∂𝝭∂y]
-#         ρA = ξ₂.ρA
-#         EA = ξ₂.EA
-#         Bₓ = ξ₂[:∂𝝭∂x]
-#         Bₜ = ξ₂[:∂𝝭∂y]
-#         𝑤 = ξ₂.𝑤
-#         for (i,xᵢ) in enumerate(𝓒₁)
-#             I = xᵢ.𝐼
-#             for (j,xⱼ) in enumerate(𝓒₂)
-#                 J = xⱼ.𝐼
-#                 k[I,J] += (-B̄ₜ[i]*ρA*Bₜ[j] + B̄ₓ[i]*EA*Bₓ[j])*𝑤
-#             end
-#         end
-#     end
-# end
+function ∫∫∇q∇pdxdt(a₁::T,a₂::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+    𝓒₁ = a₁.𝓒; 𝓖₁ = a₁.𝓖
+    𝓒₂ = a₂.𝓒; 𝓖₂ = a₂.𝓖
+    for (ξ₁,ξ₂) in (𝓖₁,𝓖₂)
+        B̄ₓ = ξ₁[:∂𝝭∂x]
+        B̄ₜ = ξ₁[:∂𝝭∂y]
+        ρA = ξ₂.ρA
+        EA = ξ₂.EA
+        Bₓ = ξ₂[:∂𝝭∂x]
+        Bₜ = ξ₂[:∂𝝭∂y]
+        𝑤 = ξ₂.𝑤
+        for (i,xᵢ) in enumerate(𝓒₁)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒₂)
+                J = xⱼ.𝐼
+                k[I,J] += (-B̄ₜ[i]*ρA*Bₜ[j] + B̄ₓ[i]*EA*Bₓ[j])*𝑤
+            end
+        end
+    end
+end
 
 function ∫q∇𝑛pds(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒;𝓖 = ap.𝓖
@@ -134,7 +134,7 @@ function truncation_error(aps::Vector{T},nₚ::Int) where T<:AbstractElement
     return fₓ,fₜ,fₓₓ,fₜₜ
 end
 
-function ∫∫∇q∇pdxdt(a₁::T,a₂::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+function ∫pudΩ(a₁::T,a₂::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒₁ = a₁.𝓒; 𝓖₁ = a₁.𝓖
     𝓒₂ = a₂.𝓒; 𝓖₂ = a₂.𝓖
     for (ξ₁,ξ₂) in (𝓖₁,𝓖₂)
@@ -148,7 +148,9 @@ function ∫∫∇q∇pdxdt(a₁::T,a₂::S,k::AbstractMatrix{Float64}) where {T
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒₂)
                 J = xⱼ.𝐼
-                k[I,J] += (N[i]*Bₜ[j] - (1/ρA)N[i]*N[j] + *Bₜ[i]*N[j] - Bₓ[i]*EA*Bₓ[j])*𝑤
+                k[I,J] += (N[i]*Bₜ[j]  + *Bₜ[i]*N[j] )*𝑤
+                k[I,J] += - (1/ρA)N[i]*N[j]*𝑤
+                k[I,J] += - Bₓ[i]*EA*Bₓ[j]*𝑤
             end
         end
     end
