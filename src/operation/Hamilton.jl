@@ -138,6 +138,41 @@ function ∫pudΩ(a₁::T,a₂::S,k::AbstractMatrix{Float64}) where {T<:Abstract
     𝓒₁ = a₁.𝓒; 𝓖₁ = a₁.𝓖
     𝓒₂ = a₂.𝓒; 𝓖₂ = a₂.𝓖
     for (ξ₁,ξ₂) in (𝓖₁,𝓖₂)
+        Bₓ = ξ₁[:∂𝝭∂x]
+        Bₜ = ξ₁[:∂𝝭∂y]
+        N = ξ₂[:𝝭]
+        𝑤 = ξ₁.𝑤
+        for (i,xᵢ) in enumerate(𝓒₁)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒₂)
+                J = xⱼ.𝐼
+                k[I,J] += (N[i]*Bₜ[j]  + Bₜ[i]*N[j] )*𝑤
+            end
+        end
+    end
+end
+
+function ∫ppdΩ(a₁::T,a₂::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+    𝓒₁ = a₁.𝓒; 𝓖₁ = a₁.𝓖
+    𝓒₂ = a₂.𝓒; 𝓖₂ = a₂.𝓖
+    for (ξ₁,ξ₂) in (𝓖₁,𝓖₂)
+        ρA = ξ₁.ρA
+        N = ξ₂[:𝝭]
+        𝑤 = ξ₁.𝑤
+        for (i,xᵢ) in enumerate(𝓒₁)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒₂)
+                J = xⱼ.𝐼
+                k[I,J] += - (1/ρA)N[i]*N[j]*𝑤
+            end
+        end
+    end
+end
+
+function ∫pudΩ(a₁::T,a₂::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+    𝓒₁ = a₁.𝓒; 𝓖₁ = a₁.𝓖
+    𝓒₂ = a₂.𝓒; 𝓖₂ = a₂.𝓖
+    for (ξ₁,ξ₂) in (𝓖₁,𝓖₂)
         ρA = ξ₁.ρA
         EA = ξ₁.EA
         Bₓ = ξ₁[:∂𝝭∂x]
