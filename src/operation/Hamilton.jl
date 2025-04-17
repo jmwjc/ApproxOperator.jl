@@ -41,7 +41,7 @@ end
 function ∫∫∇q∇pdxdt(a₁::T,a₂::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒₁ = a₁.𝓒; 𝓖₁ = a₁.𝓖
     𝓒₂ = a₂.𝓒; 𝓖₂ = a₂.𝓖
-    for (ξ₁,ξ₂) in (𝓖₁,𝓖₂)
+    for (ξ₁,ξ₂) in zip(𝓖₁,𝓖₂)
         B̄ₓ = ξ₁[:∂𝝭∂x]
         B̄ₜ = ξ₁[:∂𝝭∂y]
         ρA = ξ₂.ρA
@@ -137,10 +137,10 @@ end
 function ∫pudΩ(a₁::T,a₂::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒₁ = a₁.𝓒; 𝓖₁ = a₁.𝓖
     𝓒₂ = a₂.𝓒; 𝓖₂ = a₂.𝓖
-    for (ξ₁,ξ₂) in (𝓖₁,𝓖₂)
+    for (ξ₁,ξ₂) in zip(𝓖₁,𝓖₂)
         Bₜ = ξ₂[:∂𝝭∂y]
         N = ξ₁[:𝝭]
-        𝑤 = ξ₁.𝑤
+        𝑤 = ξ₂.𝑤
         for (i,xᵢ) in enumerate(𝓒₁)
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒₂)
