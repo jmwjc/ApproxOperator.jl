@@ -398,6 +398,27 @@ function ∫∫σᵢⱼσₖₗdxdy(ap::T,k::AbstractMatrix{Float64}) where T<:A
     end
 end
 
+function ∫∫uᵢⱼuₖₗdxdy(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒;𝓖 = ap.𝓖
+    for ξ in 𝓖
+        N = ξ[:𝝭]
+        𝑤 = ξ.𝑤
+   
+       
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[2*I-1,2*J-1] += N[i]*N[j]*𝑤
+                # k[2*I-1,2*J] += N[i]*N[j]*𝑤
+                # k[2*I,2*J-1] += N[i]*N[j]*𝑤
+                k[2*I,2*J] += N[i]*N[j]*𝑤
+              
+            end
+        end
+    end
+end
+
 function ∫∫σᵢⱼσₖₗdΩ(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒;𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -423,7 +444,7 @@ function ∫∫σᵢⱼσₖₗdΩ(ap::T,k::AbstractMatrix{Float64}) where T<:Ab
                 k[6*I-4,6*J-3] += N[i]*C⁻¹ᵢᵢⱼⱼ*N[j]*𝑤
 
                 k[6*I-3,6*J-5] += N[i]*C⁻¹ᵢᵢⱼⱼ*N[j]*𝑤
-                k[4*I-3,6*J-4] += N[i]*C⁻¹ᵢᵢⱼⱼ*N[j]*𝑤
+                k[6*I-3,6*J-4] += N[i]*C⁻¹ᵢᵢⱼⱼ*N[j]*𝑤
                 k[6*I-3,6*J-3] += N[i]*C⁻¹ᵢᵢᵢᵢ*N[j]*𝑤
 
                 k[6*I-2,6*J-2] += N[i]*C⁻¹ᵢⱼᵢⱼ*N[j]*𝑤
@@ -1031,12 +1052,9 @@ function ∫σᵢⱼnⱼgᵢdΓ(aₛ::T,aᵤ::S,k::AbstractMatrix{Float64},f::Ab
             f[6*I]   += N[i]*((n₁*n₁₃+n₃*n₁₁)*g₁ + (n₁*n₂₃+n₃*n₁₂)*g₂ + (n₁*n₃₃+n₃*n₁₃)*g₃)*𝑤
 
           
-
-
         end
     end
 end
-
 
 function ∫Cεᵢⱼnⱼgᵢds(aₛ::T,aᵤ::S,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ₛ = aₛ.𝓒;𝓖ₛ = aₛ.𝓖
@@ -1154,8 +1172,8 @@ function ∫σᵢⱼnⱼuᵢds(aₛ::T,aᵤ::S,k::AbstractMatrix{Float64}) where
     𝓒ₛ = aₛ.𝓒;𝓖ₛ = aₛ.𝓖
     𝓒ᵤ = aᵤ.𝓒;𝓖ᵤ = aᵤ.𝓖
     for (ξₛ,ξᵤ) in zip(𝓖ₛ,𝓖ᵤ)
-        𝑤 = ξₛ.𝑤
-        # 𝑤 = ξᵤ.𝑤
+        # 𝑤 = ξₛ.𝑤
+        𝑤 = ξᵤ.𝑤
 
         N = ξₛ[:𝝭]
         N̄ = ξᵤ[:𝝭]
@@ -1175,46 +1193,24 @@ function ∫σᵢⱼnⱼuᵢds(aₛ::T,aᵤ::S,k::AbstractMatrix{Float64}) where
     end
 end
 
-
-function ∫σᵢⱼnⱼuᵢds(aₛ::T,aᵤ::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
-    𝓒ₛ = aₛ.𝓒;𝓖ₛ = aₛ.𝓖
-    𝓒ᵤ = aᵤ.𝓒;𝓖ᵤ = aᵤ.𝓖
-    for (ξₛ,ξᵤ) in zip(𝓖ₛ,𝓖ᵤ)
-        𝑤 = ξₛ.𝑤
-        # 𝑤 = ξᵤ.𝑤
-
-        N = ξₛ[:𝝭]
-        N̄ = ξᵤ[:𝝭]
-        n₁ = ξᵤ.n₁
-        n₂ = ξᵤ.n₂
-        
-        for (i,xᵢ) in enumerate(𝓒ₛ)
-            I = xᵢ.𝐼
-            for (j,xⱼ) in enumerate(𝓒ᵤ)
-                J = xⱼ.𝐼
-                k[3*I-2,2*J-1] -= N[i]*n₁*N̄[j]*𝑤
-                k[3*I-1,2*J]   -= N[i]*n₂*N̄[j]*𝑤
-                k[3*I,2*J-1]   -= N[i]*n₂*N̄[j]*𝑤
-                k[3*I,2*J]     -= N[i]*n₁*N̄[j]*𝑤
-            end
-        end
-    end
-end
 
 
 function ∫σᵢⱼnⱼuᵢdΓ(aₛ::T,aᵤ::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ₛ = aₛ.𝓒;𝓖ₛ = aₛ.𝓖
     𝓒ᵤ = aᵤ.𝓒;𝓖ᵤ = aᵤ.𝓖
     for (ξₛ,ξᵤ) in zip(𝓖ₛ,𝓖ᵤ)
-        𝑤 = ξₛ.𝑤
-        # 𝑤 = ξᵤ.𝑤
+        # 𝑤 = ξₛ.𝑤
+        𝑤 = ξᵤ.𝑤
 
         N = ξₛ[:𝝭]
         N̄ = ξᵤ[:𝝭]
         n₁ = ξᵤ.n₁
         n₂ = ξᵤ.n₂
         n₃ = ξᵤ.n₃
-        
+
+        # n₁ = ξₛ.n₁
+        # n₂ = ξₛ.n₂
+        # n₃ = ξₛ.n₃
         
         for (i,xᵢ) in enumerate(𝓒ₛ)
             I = xᵢ.𝐼
@@ -1223,13 +1219,19 @@ function ∫σᵢⱼnⱼuᵢdΓ(aₛ::T,aᵤ::S,k::AbstractMatrix{Float64}) wher
                 k[6*I-5,3*J-2] -= N[i]*n₁*N̄[j]*𝑤
                 k[6*I-4,3*J-1] -= N[i]*n₂*N̄[j]*𝑤
                 k[6*I-3,3*J]   -= N[i]*n₃*N̄[j]*𝑤
+
                 k[6*I-2,3*J-2] -= N[i]*n₂*N̄[j]*𝑤
                 k[6*I-2,3*J-1] -= N[i]*n₁*N̄[j]*𝑤
+
                 k[6*I-1,3*J-1] -= N[i]*n₃*N̄[j]*𝑤
                 k[6*I-1,3*J]   -= N[i]*n₂*N̄[j]*𝑤
+
                 k[6*I,3*J-2]   -= N[i]*n₃*N̄[j]*𝑤
                 k[6*I,3*J]     -= N[i]*n₁*N̄[j]*𝑤
-                
+
+
+
+
 
             end
         end
@@ -1332,8 +1334,8 @@ function ∫∫∇σᵢⱼuᵢdxdy(aₛ::T,aᵤ::S,k::AbstractMatrix{Float64}) w
     𝓒ₛ = aₛ.𝓒;𝓖ₛ = aₛ.𝓖
     𝓒ᵤ = aᵤ.𝓒;𝓖ᵤ = aᵤ.𝓖
     for (ξₛ,ξᵤ) in zip(𝓖ₛ,𝓖ᵤ)
-        𝑤 = ξₛ.𝑤
-        # 𝑤 = ξᵤ.𝑤
+        # 𝑤 = ξₛ.𝑤
+        𝑤 = ξᵤ.𝑤
         B₁ = ξₛ[:∂𝝭∂x]
         B₂ = ξₛ[:∂𝝭∂y]
         N = ξᵤ[:𝝭]
@@ -1350,33 +1352,12 @@ function ∫∫∇σᵢⱼuᵢdxdy(aₛ::T,aᵤ::S,k::AbstractMatrix{Float64}) w
     end
 end
 
-function ∫p∇udΩ(aₚ::T,aᵤ::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
-    𝓒ᵤ = aᵤ.𝓒;𝓖ᵤ = aᵤ.𝓖
-    𝓒ₚ = aₚ.𝓒;𝓖ₚ = aₚ.𝓖
-    for (ξᵤ,ξₚ) in zip(𝓖ᵤ,𝓖ₚ)
-        N = ξₚ[:𝝭]
-        B₁ = ξᵤ[:∂𝝭∂x]
-        B₂ = ξᵤ[:∂𝝭∂y]
-        B₃ = ξᵤ[:∂𝝭∂z]
-        𝑤 = ξᵤ.𝑤
-        for (i,xᵢ) in enumerate(𝓒ₚ)
-            I = xᵢ.𝐼
-            for (j,xⱼ) in enumerate(𝓒ᵤ)
-                J = xⱼ.𝐼
-                k[I,3*J-2] -= N[i]*B₁[j]*𝑤
-                k[I,3*J-1] -= N[i]*B₂[j]*𝑤
-                k[I,3*J]   -= N[i]*B₃[j]*𝑤
-            end
-        end
-    end
-end
-
 function ∫∫∇σᵢⱼuᵢdΩ(aₛ::T,aᵤ::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ₛ = aₛ.𝓒;𝓖ₛ = aₛ.𝓖
     𝓒ᵤ = aᵤ.𝓒;𝓖ᵤ = aᵤ.𝓖
     for (ξₛ,ξᵤ) in zip(𝓖ₛ,𝓖ᵤ)
-        𝑤 = ξₛ.𝑤
-        # 𝑤 = ξᵤ.𝑤
+        # 𝑤 = ξₛ.𝑤
+        𝑤 = ξᵤ.𝑤
         B₁ = ξₛ[:∂𝝭∂x]
         B₂ = ξₛ[:∂𝝭∂y]
         B₃ = ξₛ[:∂𝝭∂z]
@@ -1401,6 +1382,27 @@ function ∫∫∇σᵢⱼuᵢdΩ(aₛ::T,aᵤ::S,k::AbstractMatrix{Float64}) wh
         end
     end
 end
+function ∫p∇udΩ(aₚ::T,aᵤ::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+    𝓒ᵤ = aᵤ.𝓒;𝓖ᵤ = aᵤ.𝓖
+    𝓒ₚ = aₚ.𝓒;𝓖ₚ = aₚ.𝓖
+    for (ξᵤ,ξₚ) in zip(𝓖ᵤ,𝓖ₚ)
+        N = ξₚ[:𝝭]
+        B₁ = ξᵤ[:∂𝝭∂x]
+        B₂ = ξᵤ[:∂𝝭∂y]
+        B₃ = ξᵤ[:∂𝝭∂z]
+        𝑤 = ξᵤ.𝑤
+        for (i,xᵢ) in enumerate(𝓒ₚ)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒ᵤ)
+                J = xⱼ.𝐼
+                k[I,3*J-2] -= N[i]*B₁[j]*𝑤
+                k[I,3*J-1] -= N[i]*B₂[j]*𝑤
+                k[I,3*J]   -= N[i]*B₃[j]*𝑤
+            end
+        end
+    end
+end
+
 function ∫∫C∇εᵢⱼuᵢdxdy(aₛ::T,aᵤ::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ₛ = aₛ.𝓒;𝓖ₛ = aₛ.𝓖
     𝓒ᵤ = aᵤ.𝓒;𝓖ᵤ = aᵤ.𝓖
@@ -2045,7 +2047,7 @@ function ∫∫τ∇σᵢⱼ∇σᵢₖdxdy(ap::T,k::AbstractMatrix{Float64},f::
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         𝑤 = ξ.𝑤
-        τ = ξ.τ
+        # τ = ξ.τ
         b₁ = ξ.b₁
         b₂ = ξ.b₂
         B₁ = ξ[:∂𝝭∂x]
@@ -2057,6 +2059,7 @@ function ∫∫τ∇σᵢⱼ∇σᵢₖdxdy(ap::T,k::AbstractMatrix{Float64},f::
         C⁻¹ᵢⱼᵢⱼ = 2*(1+ν)/E
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
+            τ = xᵢ.β
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
                 
@@ -2132,7 +2135,7 @@ function ∫∫τ∇σᵢⱼ∇σᵢₖdΩ(ap::T,k::AbstractMatrix{Float64},f::A
                 k[6*I-1,6*I-3] += τ*B₁[i]*B₃[j]*𝑤
                 k[6*I-1,6*I-2] += τ*B₃[i]*B₂[j]*𝑤
                 k[6*I-1,6*I-1] += τ*B₁[i]*B₂[j]*𝑤
-                k[6*I-1,6*I]   += τ*(B₃[i]*B₃[j]+B₁[i]*₁[j])*𝑤
+                k[6*I-1,6*I]   += τ*(B₃[i]*B₃[j]+B₁[i]*B₁[j])*𝑤
 
             end
             f[6*I-5] += τ*(B₁[i]*b₁)*𝑤
