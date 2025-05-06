@@ -28,6 +28,8 @@ include("approximation/hex8.jl")
 include("approximation/seg2.jl")
 include("approximation/seg3.jl")
 include("approximation/poi1.jl")
+include("approximation/trihermite.jl")
+include("approximation/tribell.jl")
 include("approximation/reproducingkernel.jl")
 include("approximation/kernelfunction.jl")
 include("approximation/CrouzeixRaviart.jl")
@@ -36,6 +38,7 @@ include("approximation/piecewise.jl")
 include("operation/heat.jl")
 include("operation/elasticity.jl")
 include("operation/Hamilton.jl")
+include("operation/test.jl")
 # include("operation/thin_shell.jl")
 # include("operation/incompressible.jl")
 # include("operation/heat_conduction.jl")
@@ -64,5 +67,6 @@ export set𝝭!, set∇𝝭!, set∇²𝝭!, set∇̂³𝝭!
 export getPhysicalGroups, get𝑿ᵢ, getElements, addEdgeElements, getDOFs
 export getPiecewiseElements, getPiecewiseBoundaryElements
 export getMacroElements, getMacroBoundaryElements, getCurvedElements, getCurvedPiecewiseElements
+export Tri3toTriBell, Tri3toTriHermite
 
 end

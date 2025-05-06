@@ -1104,3 +1104,144 @@ function Seg3toTri6(seg3::Vector{T},tri6::Vector{S}) where {T,S<:AbstractElement
     end
     return elms
 end
+
+function Tri3toTriHermite(as::Vector{T},nodes::Vector{𝑿ᵢ}) where T<:AbstractElement
+    elms = Element{:TriHermite}[]
+    edges = getTriEdgeIndices(as)
+    nds = 𝑿ᵢ[]
+    nₚ = length(nodes)
+    nₑ = length(as)
+    nₗ = length(edges)
+    data𝓒 = Dict{Symbol,Tuple{Int,Vector{Float64}}}([
+        :x => (1,zeros(nₚ+nₗ+nₑ)),
+        :y => (1,zeros(nₚ+nₗ+nₑ)),
+        :z => (1,zeros(nₚ+nₗ+nₑ)),
+        :s₁ => (1,zeros(nₚ+nₗ+nₑ)),
+        :s₂ => (1,zeros(nₚ+nₗ+nₑ)),
+    ])
+    data𝓖 = Dict{Symbol,Tuple{Int,Vector{Float64}}}([
+        :𝑤 => getfield(as[1].𝓖[1],:data)[:𝑤],
+        :ξ => getfield(as[1].𝓖[1],:data)[:ξ],
+        :η => getfield(as[1].𝓖[1],:data)[:η],
+        :x => getfield(as[1].𝓖[1],:data)[:x],
+        :y => getfield(as[1].𝓖[1],:data)[:y],
+        :z => getfield(as[1].𝓖[1],:data)[:z],
+    ])
+    for node in nodes
+        𝐼 = node.𝐼
+        xᵢ = 𝑿ᵢ((𝐼=𝐼,),data𝓒)
+        xᵢ.x = node.x
+        xᵢ.y = node.y
+        xᵢ.z = node.z
+        push!(nds,xᵢ)
+    end
+    for (i,(𝐼₁,𝐼₂)) in enumerate(edges)
+        xᵢ = 𝑿ᵢ((𝐼=nₚ+i,),data𝓒)
+        x₁ = nodes[𝐼₁].x
+        y₁ = nodes[𝐼₁].y
+        x₂ = nodes[𝐼₂].x
+        y₂ = nodes[𝐼₂].y
+        xᵢ.x = nodes[𝐼₁].x
+        xᵢ.y = nodes[𝐼₁].y
+        xᵢ.z = nodes[𝐼₁].z
+        xᵢ.s₁ = x₂-x₁
+        xᵢ.s₂ = y₂-y₁
+        push!(nds,xᵢ)
+    end
+    s = 0
+    for (C,a) in enumerate(as)
+        𝓒 = a.𝓒
+        𝓖 = a.𝓖
+        𝓒_ = [nds[xᵢ.𝐼] for xᵢ in 𝓒]
+        𝓖_ = 𝑿ₛ[]
+        ind_edge = indexin([(𝓒[1].𝐼,𝓒[2].𝐼)],edges)[1]
+        push!(𝓒_,nds[nₚ+ind_edge])
+        ind_edge = indexin([(𝓒[1].𝐼,𝓒[3].𝐼)],edges)[1]
+        push!(𝓒_,nds[nₚ+ind_edge])
+        ind_edge = indexin([(𝓒[2].𝐼,𝓒[3].𝐼)],edges)[1]
+        push!(𝓒_,nds[nₚ+ind_edge])
+        ind_edge = indexin([(𝓒[2].𝐼,𝓒[1].𝐼)],edges)[1]
+        push!(𝓒_,nds[nₚ+ind_edge])
+        ind_edge = indexin([(𝓒[3].𝐼,𝓒[1].𝐼)],edges)[1]
+        push!(𝓒_,nds[nₚ+ind_edge])
+        ind_edge = indexin([(𝓒[3].𝐼,𝓒[2].𝐼)],edges)[1]
+        push!(𝓒_,nds[nₚ+ind_edge])
+        x₁ = 𝓒[1].x
+        y₁ = 𝓒[1].y
+        x₂ = 𝓒[2].x
+        y₂ = 𝓒[2].y
+        x₃ = 𝓒[3].x
+        y₃ = 𝓒[3].y
+        xᵢ = 𝑿ᵢ((𝐼=nₚ+nₗ+C,),data𝓒)
+        xᵢ.x = (x₁+x₂+x₃)/3
+        xᵢ.y = (y₁+y₂+y₃)/3
+        push!(𝓒_,xᵢ)
+        push!(nds,xᵢ)
+        for ξ in 𝓖
+            push!(𝓖_,Node((𝑔=ξ.𝑔,𝐺=ξ.𝐺,𝐶=ξ.𝐶,𝑠=s),data𝓖))
+            s += length(𝓒_)
+        end
+        push!(elms,Element{:TriHermite}(𝓒_,𝓖_))
+    end
+    return elms, nds
+end
+
+function Tri3toTriBell(as::Vector{T},nodes::Vector{𝑿ᵢ}) where T<:AbstractElement
+    elms = Element{:TriBell}[]
+    nds = 𝑿ᵢ[]
+    nₚ = length(nodes)
+    data𝓒 = Dict{Symbol,Tuple{Int,Vector{Float64}}}([
+        :x => (1,zeros(6*nₚ)),
+        :y => (1,zeros(6*nₚ)),
+        :z => (1,zeros(6*nₚ)),
+    ])
+    data𝓖 = Dict{Symbol,Tuple{Int,Vector{Float64}}}([
+        :𝑤 => getfield(as[1].𝓖[1],:data)[:𝑤],
+        :ξ => getfield(as[1].𝓖[1],:data)[:ξ],
+        :η => getfield(as[1].𝓖[1],:data)[:η],
+        :x => getfield(as[1].𝓖[1],:data)[:x],
+        :y => getfield(as[1].𝓖[1],:data)[:y],
+        :z => getfield(as[1].𝓖[1],:data)[:z],
+    ])
+    for node in nodes
+        𝐼 = node.𝐼
+        for i in 1:6
+            xᵢ = 𝑿ᵢ((𝐼=6*𝐼-6+i,),data𝓒)
+            xᵢ.x = node.x
+            xᵢ.y = node.y
+            xᵢ.z = node.z
+            push!(nds,xᵢ)
+        end
+    end
+    s = 0
+    for a in as
+        𝓒 = a.𝓒
+        𝓖 = a.𝓖
+        𝓒_ = 𝑿ᵢ[]
+        𝓖_ = 𝑿ₛ[]
+        for xᵢ in 𝓒
+            𝐼 = xᵢ.𝐼
+            append!(𝓒_,nds[6*𝐼-5:6*𝐼])
+        end
+        for ξ in 𝓖
+            push!(𝓖_,Node((𝑔=ξ.𝑔,𝐺=ξ.𝐺,𝐶=ξ.𝐶,𝑠=s),data𝓖))
+        end
+        s += length(𝓒_)
+        push!(elms,Element{:TriBell}(𝓒_,𝓖_))
+    end
+    return elms, nds
+end
+
+function getTriEdgeIndices(as::Vector{T}) where T<:AbstractElement
+    indices = Vector{Tuple{Int,Int}}()
+    for a in as
+        𝓒 = a.𝓒
+        push!(indices,(𝓒[1].𝐼,𝓒[2].𝐼))
+        push!(indices,(𝓒[1].𝐼,𝓒[3].𝐼))
+        push!(indices,(𝓒[2].𝐼,𝓒[3].𝐼))
+        push!(indices,(𝓒[2].𝐼,𝓒[1].𝐼))
+        push!(indices,(𝓒[3].𝐼,𝓒[1].𝐼))
+        push!(indices,(𝓒[3].𝐼,𝓒[2].𝐼))
+    end
+    return unique!(indices)
+end
