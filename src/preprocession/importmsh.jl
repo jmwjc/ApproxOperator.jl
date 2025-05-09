@@ -1126,6 +1126,7 @@ function Tri3toTriHermite(as::Vector{T},nodes::Vector{𝑿ᵢ}) where T<:Abstrac
         :x => getfield(as[1].𝓖[1],:data)[:x],
         :y => getfield(as[1].𝓖[1],:data)[:y],
         :z => getfield(as[1].𝓖[1],:data)[:z],
+        :𝐽 => getfield(as[1].𝓖[1],:data)[:𝐽],
     ])
     for node in nodes
         𝐼 = node.𝐼
@@ -1202,6 +1203,7 @@ function Tri3toTriBell(as::Vector{T},nodes::Vector{𝑿ᵢ}) where T<:AbstractEl
         :x => getfield(as[1].𝓖[1],:data)[:x],
         :y => getfield(as[1].𝓖[1],:data)[:y],
         :z => getfield(as[1].𝓖[1],:data)[:z],
+        :𝐽 => getfield(as[1].𝓖[1],:data)[:𝐽],
     ])
     for node in nodes
         𝐼 = node.𝐼
