@@ -1105,6 +1105,35 @@ function Seg3toTri6(seg3::Vector{T},tri6::Vector{S}) where {T,S<:AbstractElement
     return elms
 end
 
+function Seg2toSegHermite(as::Vector{T},nodes::Vector{𝑿ᵢ},edges::Vector{Tuple{Int,Int}}) where T<:AbstractElement
+    nₚ = getnₚ(as)
+    elms = Element{:TriHermite}[]
+    data𝓖 = Dict{Symbol,Tuple{Int,Vector{Float64}}}([
+        :𝑤 => getfield(as[1].𝓖[1],:data)[:𝑤],
+        :ξ => getfield(as[1].𝓖[1],:data)[:ξ],
+        :η => getfield(as[1].𝓖[1],:data)[:η],
+        :x => getfield(as[1].𝓖[1],:data)[:x],
+        :y => getfield(as[1].𝓖[1],:data)[:y],
+        :z => getfield(as[1].𝓖[1],:data)[:z],
+        :𝐽 => getfield(as[1].𝓖[1],:data)[:𝐽],
+    ])
+    s = 0
+    for (C,a) in enumerate(as)
+        𝓒 = a.𝓒
+        𝓖 = a.𝓖
+        𝓒_ = [nodes[xᵢ.𝐼] for xᵢ in 𝓒]
+        𝓖_ = 𝑿ₛ[]
+        ind_edge = indexin([(𝓒[1].𝐼,𝓒[2].𝐼)],edges)[1]
+        push!(𝓒_,nodes[nₚ+ind_edge])
+        ind_edge = indexin([(𝓒[2].𝐼,𝓒[1].𝐼)],edges)[1]
+        push!(𝓒_,nodes[nₚ+ind_edge])
+        for ξ in 𝓖
+            push!(𝓖_,Node((𝑔=ξ.𝑔,𝐺=ξ.𝐺,𝐶=ξ.𝐶,𝑠=s),data𝓖))
+            s += length(𝓒_)
+        end
+        push!(elms,Element{:TriHermite}(𝓒_,𝓖_))
+    end
+end
 function Tri3toTriHermite(as::Vector{T},nodes::Vector{𝑿ᵢ}) where T<:AbstractElement
     elms = Element{:TriHermite}[]
     edges = getTriEdgeIndices(as)
@@ -1184,7 +1213,7 @@ function Tri3toTriHermite(as::Vector{T},nodes::Vector{𝑿ᵢ}) where T<:Abstrac
         end
         push!(elms,Element{:TriHermite}(𝓒_,𝓖_))
     end
-    return elms, nds
+    return elms, nds, edges
 end
 
 function Tri3toTriBell(as::Vector{T},nodes::Vector{𝑿ᵢ}) where T<:AbstractElement
