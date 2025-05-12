@@ -64,7 +64,7 @@ function cc∇𝝭(aps::Vector{T}) where T<:AbstractElement
     H₁Norm_Δu²= 0.
     H₁Norm_ū² = 0.
     for ap in aps
-        Δu², ū² = cc𝝭(ap)
+        Δu², ū² = cc∇𝝭(ap)
         H₁Norm_Δu² += Δu²
         H₁Norm_ū²  += ū²
     end
