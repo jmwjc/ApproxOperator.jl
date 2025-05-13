@@ -1106,13 +1106,11 @@ function Seg3toTri6(seg3::Vector{T},tri6::Vector{S}) where {T,S<:AbstractElement
 end
 
 function Seg2toSegHermite(as::Vector{T},nodes::Vector{𝑿ᵢ},edges::Vector{Tuple{Int,Int}}) where T<:AbstractElement
-    # nₚ = getnₚ(as)
     nₚ = length(getfield(as[1].𝓒[1],:data)[:x][2])
-    elms = Element{:TriHermite}[]
+    elms = Element{:SegHermite}[]
     data𝓖 = Dict{Symbol,Tuple{Int,Vector{Float64}}}([
         :𝑤 => getfield(as[1].𝓖[1],:data)[:𝑤],
         :ξ => getfield(as[1].𝓖[1],:data)[:ξ],
-        # :η => getfield(as[1].𝓖[1],:data)[:η],
         :x => getfield(as[1].𝓖[1],:data)[:x],
         :y => getfield(as[1].𝓖[1],:data)[:y],
         :z => getfield(as[1].𝓖[1],:data)[:z],
@@ -1132,8 +1130,9 @@ function Seg2toSegHermite(as::Vector{T},nodes::Vector{𝑿ᵢ},edges::Vector{Tup
             push!(𝓖_,Node((𝑔=ξ.𝑔,𝐺=ξ.𝐺,𝐶=ξ.𝐶,𝑠=s),data𝓖))
             s += length(𝓒_)
         end
-        push!(elms,Element{:TriHermite}(𝓒_,𝓖_))
+        push!(elms,Element{:SegHermite}(𝓒_,𝓖_))
     end
+    return elms
 end
 function Tri3toTriHermite(as::Vector{T},nodes::Vector{𝑿ᵢ}) where T<:AbstractElement
     elms = Element{:TriHermite}[]
