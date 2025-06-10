@@ -181,6 +181,9 @@ coordinatesForFaces = quote
 
     ng = length(weights)
     ne = Int(length(nodeTag)/ni)
+    println(ne)
+    println(ni)
+    println(nb)
     # nodeTag = gmsh.model.mesh.getElementFaceNodes(elementTypeΩ,nf,tagΩ_,true)
    
     append!(data[:w][2], weights)
@@ -308,10 +311,14 @@ coordinatesForEdges = quote
     if elementTypeΩ ∈ (2,9)
         nb = 3
     elseif elementTypeΩ ∈ (3,4,10,16)
+        
         nb = 4
     end
     nodeTag = gmsh.model.mesh.getElementEdgeNodes(elementTypeΩ,tagΩ_,true)
     
+    println(ne)
+    println(ni)
+    println(nb)
     append!(data[:w][2],weights)
     jacobians, determinants, coord = gmsh.model.mesh.getJacobians(elementType, localCoord, tag)
     x = coord[1:3:end]
@@ -578,7 +585,7 @@ cal_normal = quote
         nodeTags = gmsh.model.mesh.getElementEdgeNodes(elementType,tag,true)
        
         if dim == 1 
-            println(dim)
+            
             for C in 1:ne
                 𝐿 = 2*determinants[C*ng]
                 coord, = gmsh.model.mesh.getNode(nodeTags[2*C-1])
@@ -596,54 +603,48 @@ cal_normal = quote
         if dim == 2
        
             nₙ = Int(length(nodeTags)/ne)
-            println(nₙ )
+           
             for C in 1:ne
                 𝐽 = determinants[C*ng]
                 n₁ = 0.0
                 n₂ = 0.0
                 n₃ = 0.0
 
-                face_nodes = nodeTags[(C-1)*nₙ+1:C*nₙ]
+               
 
-                coord1, = gmsh.model.mesh.getNode(face_nodes[1])
-                coord2, = gmsh.model.mesh.getNode(face_nodes[2])
-                coord3, = gmsh.model.mesh.getNode(face_nodes[4])
-                v1 = [coord2[1]-coord1[1], coord2[2]-coord1[2], coord2[3]-coord1[3]]  # 边向量1
-                v2 = [coord3[1]-coord1[1], coord3[2]-coord1[2], coord3[3]-coord1[3]]  # 边向量2
-                n = [
-                    v1[2] * v2[3] - v1[3] * v2[2],  # x 分量
-                    v1[3] * v2[1] - v1[1] * v2[3],  # y 分量
-                    v1[1] * v2[2] - v1[2] * v2[1]   # z 分量
-                ]
-
-                # for i in 1:2:nₙ
+                for i in 1:2:nₙ
 
 
-                #     coord, = gmsh.model.mesh.getNode(nodeTags[nₙ*(C-1)+i])
-                #     x₁ = coord[1]
-                #     y₁ = coord[2]
-                #     z₁ = coord[3]
-                #     coord, = gmsh.model.mesh.getNode(nodeTags[nₙ*(C-1)+i+1])
-                #     x₂ = coord[1]
-                #     y₂ = coord[2]
-                #     z₂ = coord[3]
+                    coord, = gmsh.model.mesh.getNode(nodeTags[nₙ*(C-1)+i])
+                    x₁ = coord[1]
+                    y₁ = coord[2]
+                    z₁ = coord[3]
+                    coord, = gmsh.model.mesh.getNode(nodeTags[nₙ*(C-1)+i+1])
+                    x₂ = coord[1]
+                    y₂ = coord[2]
+                    z₂ = coord[3]
 
-                #     n₁ += y₁*z₂-y₂*z₁
-                #     n₂ += z₁*x₂-z₂*x₁
-                #     n₃ += x₁*y₂-x₂*y₁
-                # end
+                    n₁ += y₁*z₂-y₂*z₁
+                    n₂ += z₁*x₂-z₂*x₁
+                    n₃ += x₁*y₂-x₂*y₁
+                end
                 
                 if elementType == 3
                     𝐽 *= 8
                 end
                
-                push!(data[:n₁][2], n[1]/𝐽)
-                push!(data[:n₂][2], n[2]/𝐽)
-                push!(data[:n₃][2], n[3]/𝐽)
+                # push!(data[:n₁][2], n[1]/𝐽)
+                # push!(data[:n₂][2], n[2]/𝐽)
+                # push!(data[:n₃][2], n[3]/𝐽)
             
-                # push!(data[:n₁][2], n₁/𝐽)
-                # push!(data[:n₂][2], n₂/𝐽)
-                # push!(data[:n₃][2], n₃/𝐽)
+                push!(data[:n₁][2], n₁/𝐽)
+                push!(data[:n₂][2], n₂/𝐽)
+                push!(data[:n₃][2], n₃/𝐽)
+
+                
+                # push!(data[:n₁][2], n₁)
+                # push!(data[:n₂][2], n₂)
+                # push!(data[:n₃][2], n₃)
             end
         end
 
