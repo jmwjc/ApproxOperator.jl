@@ -38,7 +38,7 @@ function ∫∫∇q∇pdxdt(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractE
     end
 end
 
-function ∫∫∇v∇udxdt(a₁::T,a₂::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+function ∫∫∇q∇pdxdt(a₁::T,a₂::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒₁ = a₁.𝓒; 𝓖₁ = a₁.𝓖
     𝓒₂ = a₂.𝓒; 𝓖₂ = a₂.𝓖
     for (ξ₁,ξ₂) in zip(𝓖₁,𝓖₂)
