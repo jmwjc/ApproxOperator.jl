@@ -28,6 +28,13 @@ struct Tri3<:AbstractGeometry
     z::Vector{Float64}
 end
 
+struct TriHermite<:AbstractGeometry
+    i::NTuple{10,Int}
+    x::Vector{Float64}
+    y::Vector{Float64}
+    z::Vector{Float64}
+end
+
 struct Tri6<:AbstractGeometry
     i::NTuple{6,Int}
     x::Vector{Float64}
@@ -183,7 +190,34 @@ function (a::Tri3)(b::Seg2,ξ₀::Float64)
     end
     return (a(ξ,η),(ξ,η))
 end
-
+function (a::TriHermite)(ξ::Float64,η::Float64)
+    ξ₁ = 1-ξ-η
+    ξ₂ = ξ
+    ξ₃ = η
+    x₁ = a.x[a.i[1]];y₁ = a.y[a.i[1]];z₁ = a.z[a.i[1]]
+    x₂ = a.x[a.i[2]];y₂ = a.y[a.i[2]];z₂ = a.z[a.i[2]]
+    x₃ = a.x[a.i[3]];y₃ = a.y[a.i[3]];z₃ = a.z[a.i[3]]
+    x₄ = a.x[a.i[4]];y₄ = a.y[a.i[4]];z₄ = a.z[a.i[4]]
+    x₅ = a.x[a.i[5]];y₅ = a.y[a.i[5]];z₅ = a.z[a.i[5]]
+    x₆ = a.x[a.i[6]];y₆ = a.y[a.i[6]];z₆ = a.z[a.i[6]]
+    x₇ = a.x[a.i[7]];y₇ = a.y[a.i[7]];z₇ = a.z[a.i[7]]
+    x₈ = a.x[a.i[8]];y₈ = a.y[a.i[8]];z₈ = a.z[a.i[8]]
+    x₉ = a.x[a.i[9]];y₉ = a.y[a.i[9]];z₉ = a.z[a.i[9]]
+    x₁₀ = a.x[a.i[10]];y₁₀ = a.y[a.i[10]];z₁₀ = a.z[a.i[10]]
+    N₁ = 3*ξ₁^2 - 2*ξ₁^3 - 7*ξ₁*ξ₂*ξ₃
+    N₂ = 3*ξ₂^2 - 2*ξ₂^3 - 7*ξ₂*ξ₃*ξ₁
+    N₃ = 3*ξ₃^2 - 2*ξ₃^3 - 7*ξ₃*ξ₁*ξ₂
+    N₄ = ξ₁*ξ₂*(2*ξ₁ + ξ₂ - 1)
+    N₅ = ξ₁*ξ₃*(2*ξ₁ + ξ₃ - 1)
+    N₆ = ξ₂*ξ₃*(2*ξ₂ + ξ₃ - 1)
+    N₇ = ξ₂*ξ₁*(2*ξ₂ + ξ₁ - 1)
+    N₈ = ξ₃*ξ₁*(2*ξ₃ + ξ₁ - 1)
+    N₉ = ξ₃*ξ₂*(2*ξ₃ + ξ₂ - 1)
+    N₁₀ = 27*ξ₁*ξ₂*ξ₃
+    return x₁*N₁ + x₂*N₂ + x₃*N₃ + x₄*N₄ + x₅*N₅ + x₆*N₆ + x₇*N₇ + x₈*N₈ + x₉*N₉ + x₁₀*N₁₀,
+           y₁*N₁ + y₂*N₂ + y₃*N₃ + y₄*N₄ + y₅*N₅ + y₆*N₆ + y₇*N₇ + y₈*N₈ + y₉*N₉ + y₁₀*N₁₀,
+           z₁*N₁ + z₂*N₂ + z₃*N₃ + z₄*N₄ + z₅*N₅ + z₆*N₆ + z₇*N₇ + z₈*N₈ + z₉*N₉ + z₁₀*N₁₀
+end
 function (a::Tri6)(ξ::Float64,η::Float64)
     γ = 1.0-ξ-η
     x₁ = a.x[a.i[1]];y₁ = a.y[a.i[1]];z₁ = a.z[a.i[1]]
@@ -308,6 +342,20 @@ function get𝐴(a::Tri3)
     return 0.5*(x₁*y₂+x₂*y₃+x₃*y₁-x₂*y₁-x₃*y₂-x₁*y₃)
 end
 get𝐽(a::Tri3,::Float64,::Float64) = get𝐴(a)
+function get𝐴(a::TriHermite)
+    x₁ = a.x[a.i[1]]
+    x₂ = a.x[a.i[2]]
+    x₃ = a.x[a.i[3]]
+    y₁ = a.y[a.i[1]]
+    y₂ = a.y[a.i[2]]
+    y₃ = a.y[a.i[3]]
+    z₁ = a.z[a.i[1]]
+    z₂ = a.z[a.i[2]]
+    z₃ = a.z[a.i[3]]
+
+    return 0.5*(x₁*y₂+x₂*y₃+x₃*y₁-x₂*y₁-x₃*y₂-x₁*y₃)
+end
+get𝐽(a::TriHermite,::Float64,::Float64) = get𝐴(a)
 function get𝐴(a::Tri6)
     x₁ = a.x[a.i[1]]
     x₂ = a.x[a.i[2]]
