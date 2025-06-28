@@ -101,6 +101,27 @@ function stabilization_bar_LSG(ap::T,k::AbstractMatrix{Float64}) where T<:Abstra
     end
 end
 
+function stabilization_bar_LSG_Γ(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        ρA = ξ.ρA
+        EA = ξ.EA
+        α = ξ.α
+        Bₓ = ξ[:∂𝝭∂x]
+        Bₜ = ξ[:∂𝝭∂y]
+        nₓ = ξ.n₁
+        nₜ = ξ.n₂
+        𝑤 = ξ.𝑤
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I,J] += α*(ρA*Bₜ[i]*nₜ - EA*Bₓ[i]*nₓ)*(ρA*Bₜ[j]*nₜ - EA*Bₓ[j]*nₓ)*𝑤
+            end
+        end
+    end
+end
+
 function truncation_error(ap::T,fₓ::AbstractVector{Float64},fₜ::AbstractVector{Float64},fₓₓ::AbstractVector{Float64},fₜₜ::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -133,6 +154,25 @@ function truncation_error(aps::Vector{T},nₚ::Int) where T<:AbstractElement
     end
     return fₓ,fₜ,fₓₓ,fₜₜ
 end
+
+# function error_Ω(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+#     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+#     for ξ in 𝓖
+#         ρA = ξ.ρA
+#         EA = ξ.EA
+#         α = ξ.α
+#         Bₓₓ = ξ[:∂²𝝭∂x²]
+#         Bₜₜ = ξ[:∂²𝝭∂y²]
+#         𝑤 = ξ.𝑤
+#         for (i,xᵢ) in enumerate(𝓒)
+#             I = xᵢ.𝐼
+#             for (j,xⱼ) in enumerate(𝓒)
+#                 J = xⱼ.𝐼
+#                 k[I,J] += α*(ρA*Bₜₜ[i] - EA*Bₓₓ[i])*(ρA*Bₜₜ[j] - EA*Bₓₓ[j])*𝑤
+#             end
+#         end
+#     end
+# end
 
 function ∫pudΩ(a₁::T,a₂::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒₁ = a₁.𝓒; 𝓖₁ = a₁.𝓖
@@ -181,6 +221,99 @@ function ∫uudΩ(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
             end
         end
     end
+end
+
+function test_boundary_error(aᵤ::T,aᵥ::T) where T<:AbstractElement
+    𝓒ᵤ= aᵤ.𝓒; 𝓖ᵤ = aᵤ.𝓖
+    𝓒ᵥ= aᵥ.𝓒; 𝓖ᵥ = aᵥ.𝓖
+    error = 0.0
+    for (ξᵤ,ξᵥ) in zip(𝓖ᵤ,𝓖ᵥ)
+        Bₓᵤ = ξᵤ[:∂𝝭∂x]
+        Bₜᵤ = ξᵤ[:∂𝝭∂y]
+        Bₓᵥ = ξᵥ[:∂𝝭∂x]
+        Bₜᵥ = ξᵥ[:∂𝝭∂y]
+        𝑤 = ξᵤ.𝑤
+        nₓ = ξᵤ.n₁
+        nₜ = ξᵤ.n₂
+        tᵤ = 0.0
+        for (i,xᵢ) in enumerate(𝓒ᵤ)
+            tᵤ +=  (Bₜᵤ[i]*nₜ - Bₓᵤ[i]*nₓ)*xᵢ.d
+        end
+        tᵥ = 0.0
+        for (i,xᵢ) in enumerate(𝓒ᵥ)
+            tᵥ += (Bₜᵥ[i]*nₜ - Bₓᵥ[i]*nₓ)*xᵢ.d
+        end
+        error += abs(tᵤ - tᵥ)^2*𝑤
+    end
+    return error
+end
+
+function test_boundary_error(aᵤs::Vector{T},aᵥs::Vector{T}) where T<:AbstractElement
+    error = 0.0
+    for (aᵤ,aᵥ) in zip(aᵤs,aᵥs)
+        error += test_boundary_error(aᵤ,aᵥ)
+    end
+    return error^0.5
+end
+
+function test_boundary_error(a::T) where T<:AbstractElement
+    𝓒= a.𝓒; 𝓖 = a.𝓖
+    error = 0.0
+    for ξ in 𝓖
+        Bₓ = ξ[:∂𝝭∂x]
+        Bₜ = ξ[:∂𝝭∂y]
+        𝑤 = ξ.𝑤
+        nₓ = ξ.n₁
+        nₜ = ξ.n₂
+        tᵤ = 0.0
+        for (i,xᵢ) in enumerate(𝓒)
+            tᵤ +=  (Bₜ[i]*nₜ - Bₓ[i]*nₓ)*xᵢ.d
+        end
+        tᵥ = 0.0
+        for (i,xᵢ) in enumerate(𝓒)
+            tᵥ += (Bₜ[i]*nₜ - Bₓ[i]*nₓ)*xᵢ.δd
+        end
+        error += abs(tᵤ - tᵥ)^2*𝑤
+    end
+    return error
+end
+
+function test_boundary_error(as::Vector{T}) where T<:AbstractElement
+    error = 0.0
+    for a in as
+        error += test_boundary_error(a)
+    end
+    return error^0.5
+end
+
+function test_domain_error(a::T) where T<:AbstractElement
+    𝓒= a.𝓒; 𝓖 = a.𝓖
+    error = 0.0
+    for ξ in 𝓖
+        Bₓₓ = ξ[:∂²𝝭∂x²]
+        Bₜₜ = ξ[:∂²𝝭∂y²]
+        𝑤 = ξ.𝑤
+        ρA = ξ.ρA
+        EA = ξ.EA
+        sᵤ = 0.0
+        for (i,xᵢ) in enumerate(𝓒)
+            sᵤ +=  (ρA*Bₜₜ[i] - EA*Bₓₓ[i])*xᵢ.d
+        end
+        sᵥ = 0.0
+        for (i,xᵢ) in enumerate(𝓒)
+            sᵥ += (ρA*Bₜₜ[i] - EA*Bₓₓ[i])*xᵢ.δd
+        end
+        error += abs(sᵤ - sᵥ)^2*𝑤
+    end
+    return error
+end
+
+function test_domain_error(as::Vector{T}) where T<:AbstractElement
+    error = 0.0
+    for a in as
+        error += test_domain_error(a)
+    end
+    return error^0.5
 end
 
 
