@@ -2048,7 +2048,7 @@ function ∫∫τ∇σᵢⱼ∇σᵢₖdxdy(ap::T,k::AbstractMatrix{Float64},f::
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         𝑤 = ξ.𝑤
-        # τ = ξ.τ
+        τ = ξ.τ
         b₁ = ξ.b₁
         b₂ = ξ.b₂
         B₁ = ξ[:∂𝝭∂x]
@@ -2060,7 +2060,7 @@ function ∫∫τ∇σᵢⱼ∇σᵢₖdxdy(ap::T,k::AbstractMatrix{Float64},f::
         C⁻¹ᵢⱼᵢⱼ = 2*(1+ν)/E
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
-            τ = xᵢ.β 
+            # τ = xᵢ.β 
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
                 
