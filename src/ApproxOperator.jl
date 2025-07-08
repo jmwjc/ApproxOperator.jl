@@ -41,6 +41,7 @@ include("operation/thin_plate.jl")
 include("operation/thin_shell.jl")
 include("operation/hamilton.jl")
 include("operation/test.jl")
+include("operation/stokes.jl")
 # include("operation/phasefield.jl")
 # include("operation/error_estimates.jl")
 
