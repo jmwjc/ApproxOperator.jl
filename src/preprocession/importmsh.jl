@@ -540,7 +540,7 @@ generateForPiecewiseBoundary = quote
 end
 
 generateSummary = quote
-    println("Info: Generate $ne elements of $type with $ng integration points.")
+    println("Info    : Generate $ne elements of $type with $ng integration points.")
 end
 
 @eval begin
