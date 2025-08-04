@@ -82,12 +82,30 @@ function ∫q∇𝑛pds(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float
     end
 end
 
+function ∫∫αqṗdxdt(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    α = ap.α
+    for ξ in 𝓖
+        B = ξ[:∂𝝭∂y]
+        N = ξ[:𝝭]
+        𝑤 = ξ.𝑤
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I,J] += α*(B[i]*N[j] + N[i]*B[j])*𝑤
+            end
+        end
+    end
+end
+
+
 function stabilization_bar_LSG(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         ρA = ξ.ρA
         EA = ξ.EA
-        β = ξ.β
+        α = ξ.α
         Bₓₓ = ξ[:∂²𝝭∂x²]
         Bₜₜ = ξ[:∂²𝝭∂y²]
         𝑤 = ξ.𝑤
@@ -95,7 +113,7 @@ function stabilization_bar_LSG(ap::T,k::AbstractMatrix{Float64}) where T<:Abstra
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                k[I,J] += β*(ρA*Bₜₜ[i] - EA*Bₓₓ[i])*(ρA*Bₜₜ[j] - EA*Bₓₓ[j])*𝑤
+                k[I,J] += α*(ρA*Bₜₜ[i] - EA*Bₓₓ[i])*(ρA*Bₜₜ[j] - EA*Bₓₓ[j])*𝑤
             end
         end
     end
@@ -106,7 +124,7 @@ function stabilization_bar_LSG_Γ(ap::T,k::AbstractMatrix{Float64}) where T<:Abs
     for ξ in 𝓖
         ρA = ξ.ρA
         EA = ξ.EA
-        β = ξ.β
+        α = ξ.α
         Bₓ = ξ[:∂𝝭∂x]
         Bₜ = ξ[:∂𝝭∂y]
         nₓ = ξ.n₁
@@ -116,7 +134,7 @@ function stabilization_bar_LSG_Γ(ap::T,k::AbstractMatrix{Float64}) where T<:Abs
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                k[I,J] += β*(ρA*Bₜ[i]*nₜ - EA*Bₓ[i]*nₓ)*(ρA*Bₜ[j]*nₜ - EA*Bₓ[j]*nₓ)*𝑤
+                k[I,J] += α*(ρA*Bₜ[i]*nₜ - EA*Bₓ[i]*nₓ)*(ρA*Bₜ[j]*nₜ - EA*Bₓ[j]*nₓ)*𝑤
             end
         end
     end

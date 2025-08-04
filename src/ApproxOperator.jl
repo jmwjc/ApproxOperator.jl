@@ -34,7 +34,6 @@ include("approximation/CrouzeixRaviart.jl")
 include("approximation/piecewise.jl")
 
 include("operation/heat.jl")
-include("operation/Hamilton.jl")
 include("operation/elasticity.jl")
 include("operation/hyperelasticity.jl")
 include("operation/curved_beam.jl")
