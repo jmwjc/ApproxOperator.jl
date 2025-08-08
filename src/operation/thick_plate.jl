@@ -200,7 +200,44 @@ function ∫φMdΓ(ap::T,f::AbstractVector) where T<:AbstractElement
     end
 end
 
-function ∫QwdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
+function ∫Q∇wdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[2*I-1,J] += N[i]*B₁[j]*𝑤
+                k[2*I,J]   += N[i]*B₂[j]*𝑤
+            end
+        end
+    end
+end
+
+function ∫Q∇wdΩ(a::T,b::S,k::AbstractMatrix) where {T<:AbstractElement,S<:AbstractElement}
+    𝓒₁ = a.𝓒; 𝓖₁ = a.𝓖
+    𝓒₂ = b.𝓒; 𝓖₂ = b.𝓖
+    for (ξ₁,ξ₂) in zip(𝓖₁,𝓖₂)
+        𝑤 = ξ₁.𝑤
+        N = ξ₁[:𝝭]
+        B̄₁ = ξ₂[:∂𝝭∂x]
+        B̄₂ = ξ₂[:∂𝝭∂y]
+        for (i,xᵢ) in enumerate(𝓒₁)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒₂)
+                J = xⱼ.𝐼
+                k[2*I-1,J] += N[i]*B̄₁[j]*𝑤
+                k[2*I,J]   += N[i]*B̄₂[j]*𝑤
+            end
+        end
+    end
+end
+
+function ∫∇QwdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         𝑤 = ξ.𝑤
@@ -218,7 +255,7 @@ function ∫QwdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
-function ∫QwdΩ(a::T,b::S,k::AbstractMatrix) where {T<:AbstractElement,S<:AbstractElement}
+function ∫∇QwdΩ(a::T,b::S,k::AbstractMatrix) where {T<:AbstractElement,S<:AbstractElement}
     𝓒₁ = a.𝓒; 𝓖₁ = a.𝓖
     𝓒₂ = b.𝓒; 𝓖₂ = b.𝓖
     for (ξ₁,ξ₂) in zip(𝓖₁,𝓖₂)
@@ -237,7 +274,7 @@ function ∫QwdΩ(a::T,b::S,k::AbstractMatrix) where {T<:AbstractElement,S<:Abst
     end
 end
 
-function ∫QφdΩ(ap::T,k::AbstractMatrix) where {T<:AbstractElement,S<:AbstractElement}
+function ∫QφdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         𝑤 = ξ.𝑤
@@ -309,6 +346,49 @@ function ∫QwdΓ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
+function ∫QwdΓ(a::T,b::S,k::AbstractMatrix,f::AbstractVector) where {T<:AbstractElement,S<:AbstractElement}
+    𝓒ᵛ = a.𝓒; 𝓖ᵛ= a.𝓖
+    𝓒ʷ = b.𝓒; 𝓖ʷ= b.𝓖
+    for (ξᵛ,ξʷ) in zip(𝓖ᵛ,𝓖ʷ)
+        𝑤 = ξᵛ.𝑤
+        Nᵛ = ξᵛ[:𝝭]
+        Nʷ = ξʷ[:𝝭]
+        n₁ = ξᵛ.n₁
+        n₂ = ξᵛ.n₂
+        g = ξʷ.g
+        for (i,xᵢ) in enumerate(𝓒ᵛ)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒ʷ)
+                J = xⱼ.𝐼
+                k[2*I-1,J] -= n₁*Nᵛ[i]*Nʷ[j]*𝑤
+                k[2*I,J]   -= n₂*Nᵛ[i]*Nʷ[j]*𝑤
+            end
+            f[2*I-1] -= n₁*Nᵛ[i]*g*𝑤
+            f[2*I]   -= n₂*Nᵛ[i]*g*𝑤
+        end
+    end
+end
+
+function ∫QwdΓ(a::T,b::S,k::AbstractMatrix) where {T<:AbstractElement,S<:AbstractElement}
+    𝓒ᵛ = a.𝓒; 𝓖ᵛ= a.𝓖
+    𝓒ʷ = b.𝓒; 𝓖ʷ= b.𝓖
+    for (ξᵛ,ξʷ) in zip(𝓖ᵛ,𝓖ʷ)
+        𝑤 = ξᵛ.𝑤
+        Nᵛ = ξᵛ[:𝝭]
+        Nʷ = ξʷ[:𝝭]
+        n₁ = ξᵛ.n₁
+        n₂ = ξᵛ.n₂
+        for (i,xᵢ) in enumerate(𝓒ᵛ)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒ʷ)
+                J = xⱼ.𝐼
+                k[2*I-1,J] += n₁*Nᵛ[i]*Nʷ[j]*𝑤
+                k[2*I,J]   += n₂*Nᵛ[i]*Nʷ[j]*𝑤
+            end
+        end
+    end
+end
+
 function ∫QwdΓ(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -374,6 +454,43 @@ function ∫αφφdΓ(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:Abstra
         end
     end
 end
+
+function L₂Q(ap::T) where T<:AbstractElement
+    ΔQ²= 0
+    Q̄² = 0
+    E = ap.E
+    ν = ap.ν
+    h = ap.h
+    Dˢ = 5/6*E*h/(2*(1+ν))
+    for ξ in ap.𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        Q̄₁ = ξ.Q₁
+        Q̄₂ = ξ.Q₂
+        u = 0
+        Q₁ = 0
+        Q₂ = 0
+        for (i,xᵢ) in enumerate(ap.𝓒)
+            Q₁ += N[i]*xᵢ.q₁
+            Q₂ += N[i]*xᵢ.q₂
+        end
+        ΔQ² +=((Q₁ - Q̄₁)^2 + (Q₂ - Q̄₂)^2)*𝑤
+        Q̄²  += (Q̄₁^2 + Q̄₂^2)*𝑤
+    end
+    return ΔQ², Q̄²
+end
+
+function L₂Q(aps::Vector{T}) where T<:AbstractElement
+    L₂Norm_ΔQ²= 0
+    L₂Norm_Q̄² = 0
+    for ap in aps
+        ΔQ², Q̄² = L₂Q(ap)
+        L₂Norm_ΔQ² += ΔQ²
+        L₂Norm_Q̄²  += Q̄²
+    end
+    return (L₂Norm_ΔQ²/L₂Norm_Q̄²)^0.5
+end
+
 
 function L₂φ(ap::T) where T<:AbstractElement
     Δφ²= 0
