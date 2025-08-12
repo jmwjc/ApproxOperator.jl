@@ -1,6 +1,6 @@
 module GmshImport
     
-using ..ApproxOperator: AbstractElement, Element, Node, 𝑿ᵢ, 𝑿ₛ, SpatialPartition
+using ..ApproxOperator: AbstractElement, Element, Node, 𝑿ᵢ, 𝑿ₛ, SpatialPartition, get𝑛𝑝
 import Gmsh: gmsh
 
 function getPhysicalGroups()
@@ -166,7 +166,7 @@ coordinatesForEdges = quote
     end
     for CΩ_ in 1:Int(ne/nb)
         tagΩ = tagsΩ[CΩ+CΩ_]
-        for C in (nb-1)*CΩ_+1:nb*CΩ_
+        for C in nb*(CΩ_-1)+1:nb*CΩ_
             𝐿 = 2*determinants[C*ng]
             coord, = gmsh.model.mesh.getNode(nodeTag[2*C-1])
             x₁ = coord[1]
@@ -540,7 +540,7 @@ generateForPiecewiseBoundary = quote
 end
 
 generateSummary = quote
-    println("Info: Generate $ne elements of $type with $ng integration points.")
+    println("Info    : Generate $ne elements of $type with $ng integration points.")
 end
 
 @eval begin
@@ -937,5 +937,45 @@ end
 # end
 
 end 
+
+function getElements(dimTag1::Pair{Int,Vector{Int}},dimTag2::Pair{Int,Vector{Int}},elms::Vector{T}) where T<:AbstractElement
+    elements = AbstractElement[]
+    dim1, tag1 = dimTag1
+    dim2, tag2 = dimTag2
+    elementTypes1 = Int32[]
+    elementTypes2 = Int32[]
+    nodeTags1 = Vector{UInt64}[]
+    nodeTags2 = Vector{UInt64}[]
+    for tag in tag1
+        elementTypes_, ~, nodeTags_ = gmsh.model.mesh.getElements(dim1,tag)
+        push!(elementTypes1,elementTypes_[1])
+        push!(nodeTags1,nodeTags_[1])
+    end
+    for tag in tag2
+        elementTypes_, ~, nodeTags_ = gmsh.model.mesh.getElements(dim2,tag)
+        push!(elementTypes2,elementTypes_[1])
+        push!(nodeTags2,nodeTags_[1])
+    end
+    for (elementType1,nodeTag1) in zip(elementTypes1,nodeTags1)
+        j₀ = 0
+        for (elementType2,nodeTag2) in zip(elementTypes2,nodeTags2)
+            if elementType1 == elementType2
+                ~, ~, ~, ni = gmsh.model.mesh.getElementProperties(elementType1)
+                ne1 = Int(length(nodeTag1)/ni)
+                ne2 = Int(length(nodeTag2)/ni)
+                for i in 1:ne1
+                    for j in 1:ne2
+                        if nodeTag1[ni*(i-1)+1:ni*i] == nodeTag2[ni*(j-1)+1:ni*j]
+                            push!(elements,elms[j₀+j])
+                            continue
+                        end
+                    end
+                end
+                j₀ += ne2
+            end
+        end
+    end
+    return elements
+end
 
 end
