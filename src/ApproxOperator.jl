@@ -12,9 +12,6 @@ include("element.jl")
 include("operation.jl")
 include("shapefunction.jl")
 
-include("preprocession/importmsh.jl")
-include("preprocession/convert.jl")
-
 include("approximation/quad.jl")
 include("approximation/quad8.jl")
 include("approximation/tri3.jl")
@@ -32,6 +29,9 @@ include("approximation/reproducingkernel.jl")
 include("approximation/kernelfunction.jl")
 include("approximation/CrouzeixRaviart.jl")
 include("approximation/piecewise.jl")
+
+include("preprocession/importmsh.jl")
+include("preprocession/convert.jl")
 
 include("operation/heat.jl")
 include("operation/elasticity.jl")
