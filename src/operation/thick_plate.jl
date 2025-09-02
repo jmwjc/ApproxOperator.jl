@@ -410,6 +410,105 @@ function ∫QwdΓ(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:AbstractEl
     end
 end
 
+function ∫MMdΩ(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒;𝓖 = ap.𝓖
+    for ξ in 𝓖
+        N = ξ[:𝝭]
+        𝑤 = ξ.𝑤
+        E = ξ.E
+        ν = ξ.ν
+        h = ξ.h
+        C⁻¹ᵢᵢᵢᵢ = 1/E*12/h^3
+        C⁻¹ᵢᵢⱼⱼ = -ν/E*12/h^3
+        C⁻¹ᵢⱼᵢⱼ = 2*(1+ν)/E*12/h^3
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[3*I-2,3*J-2] -= N[i]*C⁻¹ᵢᵢᵢᵢ*N[j]*𝑤
+                k[3*I-2,3*J-1] -= N[i]*C⁻¹ᵢᵢⱼⱼ*N[j]*𝑤
+                k[3*I-1,3*J-2] -= N[i]*C⁻¹ᵢᵢⱼⱼ*N[j]*𝑤
+                k[3*I-1,3*J-1] -= N[i]*C⁻¹ᵢᵢᵢᵢ*N[j]*𝑤
+                k[3*I,3*J]     -= N[i]*C⁻¹ᵢⱼᵢⱼ*N[j]*𝑤
+            end
+        end
+    end
+end
+
+function ∫MφdΓ(aₘ::T,aᵩ::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+    𝓒ₘ = aₘ.𝓒;𝓖ₘ = aₘ.𝓖
+    𝓒ᵩ = aᵩ.𝓒;𝓖ᵩ = aᵩ.𝓖
+    for (ξₘ,ξᵩ) in zip(𝓖ₘ,𝓖ᵩ)
+        𝑤 = ξₘ.𝑤
+        N = ξₘ[:𝝭]
+        N̄ = ξᵩ[:𝝭]
+        n₁ = ξᵩ.n₁
+        n₂ = ξᵩ.n₂
+        for (i,xᵢ) in enumerate(𝓒ₘ)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒ᵩ)
+                J = xⱼ.𝐼
+                k[3*I-2,2*J-1] -= N[i]*n₁*N̄[j]*𝑤
+                k[3*I-1,2*J]   -= N[i]*n₂*N̄[j]*𝑤
+                k[3*I,2*J-1]   -= N[i]*n₂*N̄[j]*𝑤
+                k[3*I,2*J]     -= N[i]*n₁*N̄[j]*𝑤
+            end
+        end
+    end
+end
+
+function ∫MφdΓ(aₘ::T,aᵩ::S,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+    𝓒ₘ = aₘ.𝓒;𝓖ₘ = aₘ.𝓖
+    𝓒ᵩ = aᵩ.𝓒;𝓖ᵩ = aᵩ.𝓖
+    for (ξₘ,ξᵩ) in zip(𝓖ₘ,𝓖ᵩ)
+        𝑤 = ξₘ.𝑤
+        N = ξₘ[:𝝭]
+        N̄ = ξᵩ[:𝝭]
+        n₁ = ξᵩ.n₁
+        n₂ = ξᵩ.n₂
+        n₁₁ = ξᵩ.n₁₁
+        n₁₂ = ξᵩ.n₁₂
+        n₂₂ = ξᵩ.n₂₂
+        g₁ = ξᵩ.g₁
+        g₂ = ξᵩ.g₂
+        for (i,xᵢ) in enumerate(𝓒ₘ)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒ᵩ)
+                J = xⱼ.𝐼
+                k[3*I-2,2*J-1] += N[i]*n₁*n₁₁*N̄[j]*𝑤
+                k[3*I-2,2*J]   += N[i]*n₁*n₁₂*N̄[j]*𝑤
+                k[3*I-1,2*J-1] += N[i]*n₂*n₁₂*N̄[j]*𝑤
+                k[3*I-1,2*J]   += N[i]*n₂*n₂₂*N̄[j]*𝑤
+                k[3*I,2*J-1]   += N[i]*(n₁*n₁₂ + n₂*n₁₁)*N̄[j]*𝑤
+                k[3*I,2*J]     += N[i]*(n₁*n₂₂ + n₂*n₁₂)*N̄[j]*𝑤
+            end
+            f[3*I-2] += N[i]*(n₁*n₁₁*g₁ + n₁*n₁₂*g₂)*𝑤
+            f[3*I-1] += N[i]*(n₂*n₁₂*g₁ + n₂*n₂₂*g₂)*𝑤
+            f[3*I]   += N[i]*((n₁*n₁₂+n₂*n₁₁)*g₁ + (n₁*n₂₂+n₂*n₁₂)*g₂)*𝑤 
+        end
+    end
+end
+
+function ∫∇MφdΩ(aₘ::T,aᵩ::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+    𝓒ₘ = aₘ.𝓒;𝓖ₘ = aₘ.𝓖
+    𝓒ᵩ = aᵩ.𝓒;𝓖ᵩ = aᵩ.𝓖
+    for (ξₘ,ξᵩ) in zip(𝓖ₘ,𝓖ᵩ)
+        𝑤 = ξₘ.𝑤
+        B₁ = ξₘ[:∂𝝭∂x]
+        B₂ = ξₘ[:∂𝝭∂y]
+        N = ξᵩ[:𝝭]
+        for (i,xᵢ) in enumerate(𝓒ₘ)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒ᵩ)
+                J = xⱼ.𝐼
+                k[3*I-2,2*J-1] += B₁[i]*N[j]*𝑤
+                k[3*I-1,2*J]   += B₂[i]*N[j]*𝑤
+                k[3*I,2*J-1]   += B₂[i]*N[j]*𝑤
+                k[3*I,2*J]     += B₁[i]*N[j]*𝑤
+            end
+        end
+    end
+end
 
 function ∫αwwdΓ(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
@@ -474,8 +573,8 @@ function L₂Q(ap::T) where T<:AbstractElement
             Q₁ += N[i]*xᵢ.q₁
             Q₂ += N[i]*xᵢ.q₂
         end
-        ΔQ² +=((Q₁ - Q̄₁)^2 + (Q₂ - Q̄₂)^2)*𝑤
-        Q̄²  += (Q̄₁^2 + Q̄₂^2)*𝑤
+        ΔQ² +=((Q₁ - Q̄₁)^2 + (Q₂ - Q̄₂)^2)/Dˢ*𝑤
+        Q̄²  += (Q̄₁^2 + Q̄₂^2)/Dˢ*𝑤
     end
     return ΔQ², Q̄²
 end
