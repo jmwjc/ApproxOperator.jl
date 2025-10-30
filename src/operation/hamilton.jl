@@ -32,7 +32,7 @@ function ∫∫∇q∇pdxdt(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractE
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                k[I,J] += (-Bₜ[i]*ρA*Bₜ[j] + Bₓ[i]*EA*Bₓ[j])*𝑤
+                k[I,J] += (Bₜ[i]*ρA*Bₜ[j] - Bₓ[i]*EA*Bₓ[j])*𝑤
             end
         end
     end
