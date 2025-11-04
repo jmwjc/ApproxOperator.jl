@@ -55,7 +55,7 @@ prequote = quote
         data[:s₁] = (3,Float64[])
         data[:s₂] = (3,Float64[])
     end
-    if dim >= 2
+    if dim == 2
         data[:η] = (1,Float64[])
 
         data[:∂ξ∂y] = (2,Float64[])
@@ -66,8 +66,14 @@ prequote = quote
             data[:s₃] = (3,Float64[])
         end
     end
-    if dim >= 3
+    if dim == 3
         data[:γ] = (1,Float64[])
+        data[:η] = (1,Float64[])
+
+        
+        data[:∂ξ∂y] = (2,Float64[])
+        data[:∂η∂x] = (2,Float64[])
+        data[:∂η∂y] = (2,Float64[])
 
         data[:∂ξ∂z] = (2,Float64[])
         data[:∂η∂z] = (2,Float64[])
@@ -77,6 +83,7 @@ prequote = quote
     end
 
     if normal
+        
         data[:n₁] = (3,Float64[])
         data[:n₂] = (3,Float64[])
         data[:n₃] = (3,Float64[])
@@ -563,11 +570,15 @@ cal_jacobe = quote
         end
     end
     append!(data[:∂ξ∂x][2],∂ξ∂x)
-    if dim >= 2
+    if dim == 2
         append!(data[:∂ξ∂y][2],∂ξ∂y)
         append!(data[:∂η∂x][2],∂η∂x)
         append!(data[:∂η∂y][2],∂η∂y)
-    elseif dim >= 3
+    elseif dim == 3
+        append!(data[:∂ξ∂y][2],∂ξ∂y)
+        append!(data[:∂η∂x][2],∂η∂x)
+        append!(data[:∂η∂y][2],∂η∂y)
+
         append!(data[:∂ξ∂z][2],∂ξ∂z)
         append!(data[:∂η∂z][2],∂η∂z)
         append!(data[:∂γ∂x][2],∂γ∂x)

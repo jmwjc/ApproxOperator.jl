@@ -1,5 +1,7 @@
-
-function (op::Operator{:∫ESdx})(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+module Hyperelasticity
+    
+using ..ApproxOperator: AbstractElement
+function ∫ESdx(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖 
     Eᵉ = op.E
     for ξ in 𝓖
@@ -22,11 +24,223 @@ function (op::Operator{:∫ESdx})(ap::T;k::AbstractMatrix{Float64},f::AbstractVe
     end
 end
 
-function (op::Operator{:Δ∫∫EᵢⱼSᵢⱼdxdy_SaintVenantKirchhoff})(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
+
+function Δ∫∫EᵢⱼSᵢⱼdxdy_HR_SaintVenantKirchhoff(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     E = op.E
     ν = op.ν
     for ξ in 𝓖
+      
+        
+        𝑤 = ξ.𝑤
+        C⁻¹ᵢᵢᵢᵢ = 1/E
+        C⁻¹ᵢᵢⱼⱼ = -ν/E
+        C⁻¹ᵢⱼᵢⱼ = 2*(1+ν)/E
+      
+        
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                 k[3*I-2,3*J-2] += N[i]*C⁻¹ᵢᵢᵢᵢ*N[j]*𝑤
+                k[3*I-2,3*J-1] += N[i]*C⁻¹ᵢᵢⱼⱼ*N[j]*𝑤
+                k[3*I-1,3*J-2] += N[i]*C⁻¹ᵢᵢⱼⱼ*N[j]*𝑤
+                k[3*I-1,3*J-1] += N[i]*C⁻¹ᵢᵢᵢᵢ*N[j]*𝑤
+                k[3*I,3*J]     += N[i]*C⁻¹ᵢⱼᵢⱼ*N[j]*𝑤
+
+            end
+        end
+    end
+end
+
+
+
+
+function ∫∫EᵢⱼSᵢⱼdxdy_HR_SaintVenantKirchhoff(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    E = op.E
+    ν = op.ν
+    for ξ in 𝓖
+       
+        𝑤 = ξ.𝑤
+        C⁻¹ᵢᵢᵢᵢ = 1/E
+        C⁻¹ᵢᵢⱼⱼ = -ν/E
+        C⁻¹ᵢⱼᵢⱼ = 2*(1+ν)/E
+        N = ξ[:𝝭]
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        
+        
+        F₁₁ = 1.0
+        F₁₂ = 0.0
+        F₂₁ = 0.0
+        F₂₂ = 1.0
+        for (i,xᵢ) in  enumerate(𝓒)
+           S₁₁ += N[i]*xᵢ.dₛ₁₁
+           S₂₂ += N[i]*xᵢ.dₛ₂₂
+           S₁₂ += N[i]*xᵢ.dₛ₁₂
+        end
+         S₁₁ = 𝓒[1].dₛ₁₁+𝓒[2].dₛ₁₁*xc+𝓒[3].dₛ₁₁*yc
+         S₂₂ = 𝓒[1].dₛ₂₂+𝓒[2].dₛ₂₂*xc+𝓒[3].dₛ₂₂*yc
+         S₁₂ = 𝓒[1].dₛ₁₂+𝓒[2].dₛ₁₂*xc+𝓒[3].dₛ₁₂*yc
+
+        E₁₁ = 0.5*(F₁₁*F₁₁+F₂₁*F₂₁-1.0)
+        E₁₂ = 0.5*(F₁₁*F₁₂+F₂₁*F₂₂)
+        E₂₂ = 0.5*(F₁₂*F₁₂+F₂₂*F₂₂-1.0)
+
+        
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            f[3*I-2] += (N[i]*C⁻¹ᵢᵢᵢᵢ*S₁₁+N[i]*C⁻¹ᵢᵢⱼⱼ*S₂₂)*𝑤
+            f[3*I-1] += (N[i]*C⁻¹ᵢᵢⱼⱼ*S₁₁+N[i]*C⁻¹ᵢᵢᵢᵢ*S₂₂)*𝑤
+            f[3*I]   += ( N[i]*C⁻¹ᵢⱼᵢⱼ*S₁₂ )*𝑤
+        end
+    end
+end
+
+function ∫∫δSΔFnudxdy_HR_SaintVenantKirchhoff(aₛ::T,aᵤ::S,k::AbstractMatrix{Float64}) where  {T<:AbstractElement,S<:AbstractElement}
+    𝓒ₛ = aₛ.𝓒;𝓖ₛ = aₛ.𝓖
+    𝓒ᵤ = aᵤ.𝓒;𝓖ᵤ = aᵤ.𝓖
+   
+    for (ξₛ,ξᵤ) in zip(𝓖ₛ,𝓖ᵤ)
+        B₁ = ξᵤ[:∂𝝭∂x]
+        B₂ = ξᵤ[:∂𝝭∂y]
+        𝑤 = ξₛ.𝑤
+        Nₛ = ξₛ[:𝝭]
+        Nᵤ = ξₛ[:𝝭]
+        n₁ = ξᵤ.n₁
+        n₂ = ξᵤ.n₂
+       
+       
+        F₁₁ = 1.0
+        F₁₂ = 0.0
+        F₂₁ = 0.0
+        F₂₂ = 1.0
+        for (i,xᵢ) in  enumerate(𝓒ᵤ)
+            F₁₁ += B₁[i]*xᵢ.d₁
+            F₁₂ += B₂[i]*xᵢ.d₁
+            F₂₁ += B₁[i]*xᵢ.d₂
+            F₂₂ += B₂[i]*xᵢ.d₂
+            u₁  += Nᵤ[i]*xᵢ.d₁
+            u₂  += Nᵤ[i]*xᵢ.d₂
+        end
+
+        for (i,xᵢ) in  enumerate(𝓒ₛ)
+           S₁₁ += N[i]*xᵢ.dₛ₁₁
+           S₂₂ += N[i]*xᵢ.dₛ₂₂
+           S₁₂ += N[i]*xᵢ.dₛ₁₂
+        end
+        
+        
+      for (i,xᵢ) in enumerate(𝓒ₛ)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒ᵤ)
+                J = xⱼ.𝐼
+                k[3*I-2,2*J-1] -= Nₛ[i]*n₁*u₁*(B₁[j]+B₂[j])*𝑤
+                k[3*I-1,2*J]   -= Nₛ[i]*n₂*u₁*(B₁[j]+B₂[j])*𝑤
+                k[3*I,2*J-1]   -= Nₛ[i]*n₁*u₂*(B₁[j]+B₂[j])*𝑤
+                k[3*I,2*J]     -= Nₛ[i]*n₂*u₂*(B₁[j]+B₂[j])*𝑤
+            end
+        end
+    end
+end
+function ∫∫δSFnΔudxdy_HR_SaintVenantKirchhoff(aₛ::T,aᵤ::S,k::AbstractMatrix{Float64}) where  {T<:AbstractElement,S<:AbstractElement}
+    𝓒ₛ = aₛ.𝓒;𝓖ₛ = aₛ.𝓖
+    𝓒ᵤ = aᵤ.𝓒;𝓖ᵤ = aᵤ.𝓖
+   
+    for (ξₛ,ξᵤ) in zip(𝓖ₛ,𝓖ᵤ)
+        B₁ = ξᵤ[:∂𝝭∂x]
+        B₂ = ξᵤ[:∂𝝭∂y]
+        𝑤 = ξₛ.𝑤
+        Nₛ = ξₛ[:𝝭]
+        Nᵤ = ξₛ[:𝝭]
+        n₁ = ξᵤ.n₁
+        n₂ = ξᵤ.n₂
+       
+       
+        F₁₁ = 1.0
+        F₁₂ = 0.0
+        F₂₁ = 0.0
+        F₂₂ = 1.0
+        for (i,xᵢ) in  enumerate(𝓒ᵤ)
+            F₁₁ += B₁[i]*xᵢ.d₁
+            F₁₂ += B₂[i]*xᵢ.d₁
+            F₂₁ += B₁[i]*xᵢ.d₂
+            F₂₂ += B₂[i]*xᵢ.d₂
+            u₁  += Nᵤ[i]*xᵢ.d₁
+            u₂  += Nᵤ[i]*xᵢ.d₂
+        end
+
+        for (i,xᵢ) in  enumerate(𝓒ₛ)
+           S₁₁ += N[i]*xᵢ.dₛ₁₁
+           S₂₂ += N[i]*xᵢ.dₛ₂₂
+           S₁₂ += N[i]*xᵢ.dₛ₁₂
+        end
+        
+        
+      for (i,xᵢ) in enumerate(𝓒ₛ)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒ᵤ)
+                J = xⱼ.𝐼
+                k[3*I-2,2*J-1] -= Nₛ[i]*n₁*Nᵤ[j]*(F₁₁+F₁₂)*𝑤
+                k[3*I-1,2*J]   -= Nₛ[i]*n₂*Nᵤ[j]*(F₁₁+F₁₂)*𝑤
+                k[3*I,2*J-1]   -= Nₛ[i]*n₁*Nᵤ[j]*(F₂₁+F₂₂)*𝑤
+                k[3*I,2*J]     -= Nₛ[i]*n₂*Nᵤ[j]*(F₂₁+F₂₂)*𝑤
+            end
+        end
+    end
+end
+function ∫∫δSFnudxdy_HR_SaintVenantKirchhoff(aₛ::T,aᵤ::S,f::AbstractVector{Float64})  where  {T<:AbstractElement,S<:AbstractElement}
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+   
+    for ξ in 𝓖
+        E = ξᵤ.E
+        ν = ξᵤ.ν
+        B₁ = ξᵤ[:∂𝝭∂x]
+        B₂ = ξᵤ[:∂𝝭∂y]
+        𝑤 = ξₛ.𝑤
+        Nₛ = ξₛ[:𝝭]
+        Nᵤ = ξₛ[:𝝭]
+        n₁ = ξᵤ.n₁
+        n₂ = ξᵤ.n₂
+        𝑤 = ξ.𝑤
+        C⁻¹ᵢᵢᵢᵢ = 1/E
+        C⁻¹ᵢᵢⱼⱼ = -ν/E
+        C⁻¹ᵢⱼᵢⱼ = 2*(1+ν)/E
+        F₁₁ = 1.0
+        F₁₂ = 0.0
+        F₂₁ = 0.0
+        F₂₂ = 1.0
+        for (i,xᵢ) in  enumerate(𝓒)
+            F₁₁ += B₁[i]*xᵢ.d₁
+            F₁₂ += B₂[i]*xᵢ.d₁
+            F₂₁ += B₁[i]*xᵢ.d₂
+            F₂₂ += B₂[i]*xᵢ.d₂
+            u₁  += Nᵤ[i]*xᵢ.d₁
+            u₂  += Nᵤ[i]*xᵢ.d₂
+        end
+        
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+                f[2*I-1] -= (Nₛ[i]*n₁*u₁*(F₁₁+F₁₂)+Nₛ[i]*n₂*u₁*(F₁₁+F₁₂))*𝑤
+                f[2*I]   -= Nₛ[i]*n₂*Nᵤ[j]*(F₁₁+F₁₂)*𝑤
+
+                k[3*I-2,2*J-1] -= (Nₛ[i]*)n₁*u₁*(B₁[j]+B₂[j])*𝑤
+                k[3*I-1,2*J]   -= Nₛ[i]*n₂*u₁*(B₁[j]+B₂[j])*𝑤
+                k[3*I,2*J-1]   -= Nₛ[i]*n₁*u₂*(B₁[j]+B₂[j])*𝑤
+                k[3*I,2*J]     -= Nₛ[i]*n₂*u₂*(B₁[j]+B₂[j])*𝑤
+            end
+        end
+    end
+end
+
+
+function Δ∫∫EᵢⱼSᵢⱼdxdy_SaintVenantKirchhoff(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+   
+    for ξ in 𝓖
+        E = ξ.E
+        ν = ξ.ν
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
         𝑤 = ξ.𝑤
@@ -79,11 +293,13 @@ function (op::Operator{:Δ∫∫EᵢⱼSᵢⱼdxdy_SaintVenantKirchhoff})(ap::T;
     end
 end
 
-function (op::Operator{:∫∫EᵢⱼSᵢⱼdxdy_SaintVenantKirchhoff})(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
+
+function ∫∫EᵢⱼSᵢⱼdxdy_SaintVenantKirchhoff(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E = op.E
-    ν = op.ν
+    
     for ξ in 𝓖
+        E = ξ.E
+        ν = ξ.ν
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
         𝑤 = ξ.𝑤
@@ -117,7 +333,7 @@ function (op::Operator{:∫∫EᵢⱼSᵢⱼdxdy_SaintVenantKirchhoff})(ap::T;f:
     end
 end
 
-function (op::Operator{:Δ∫∫EᵢⱼSᵢⱼdxdy_NeoHookean})(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
+function Δ∫∫EᵢⱼSᵢⱼdxdy_NeoHookean(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     E=op.E
     ν=op.ν
@@ -204,7 +420,7 @@ function (op::Operator{:Δ∫∫EᵢⱼSᵢⱼdxdy_NeoHookean})(ap::T;k::Abstrac
     end
 end
 
-function (op::Operator{:Δ∫∫EᵛᵢⱼSᵛᵢⱼdxdy_NeoHookean})(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
+function Δ∫∫EᵛᵢⱼSᵛᵢⱼdxdy_NeoHookean(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     E=op.E
     ν=op.ν
@@ -290,7 +506,7 @@ function (op::Operator{:Δ∫∫EᵛᵢⱼSᵛᵢⱼdxdy_NeoHookean})(ap::T;k::A
     end
 end
 
-function (op::Operator{:Δ∫∫EᵈᵢⱼSᵈᵢⱼdxdy_NeoHookean})(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
+function Δ∫∫EᵈᵢⱼSᵈᵢⱼdxdy_NeoHookean(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     E=op.E
     ν=op.ν
@@ -376,7 +592,7 @@ function (op::Operator{:Δ∫∫EᵈᵢⱼSᵈᵢⱼdxdy_NeoHookean})(ap::T;k::A
     end
 end
 
-function (op::Operator{:∫∫EᵢⱼSᵢⱼdxdy_NeoHookean})(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
+function ∫∫EᵢⱼSᵢⱼdxdy_NeoHookean(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     E=op.E
     ν=op.ν
@@ -420,7 +636,7 @@ function (op::Operator{:∫∫EᵢⱼSᵢⱼdxdy_NeoHookean})(ap::T;f::AbstractV
     end
 end
 
-function (op::Operator{:∫∫EᵛᵢⱼSᵛᵢⱼdxdy_NeoHookean})(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
+function ∫∫EᵛᵢⱼSᵛᵢⱼdxdy_NeoHookean(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     E=op.E
     ν=op.ν
@@ -464,7 +680,7 @@ function (op::Operator{:∫∫EᵛᵢⱼSᵛᵢⱼdxdy_NeoHookean})(ap::T;f::Abs
     end
 end
 
-function (op::Operator{:∫∫EᵈᵢⱼSᵈᵢⱼdxdy_NeoHookean})(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
+function ∫∫EᵈᵢⱼSᵈᵢⱼdxdy_NeoHookean(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     E=op.E
     ν=op.ν
@@ -508,10 +724,11 @@ function (op::Operator{:∫∫EᵈᵢⱼSᵈᵢⱼdxdy_NeoHookean})(ap::T;f::Abs
     end
 end
 
-function (op::Operator{:∫vᵢuᵢds})(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+function ∫vᵢuᵢds(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    α = op.α
+  
     for ξ in 𝓖
+        α = ξ.α
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
         n₁₁ = ξ.n₁₁
@@ -542,7 +759,7 @@ function (op::Operator{:∫vᵢuᵢds})(ap::T;k::AbstractMatrix{Float64},f::Abst
         end
     end
 end
-function (op::Operator{:Δ∫∫EᵢⱼSᵢⱼdxdy_NeoHookean2})(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
+function Δ∫∫EᵢⱼSᵢⱼdxdy_NeoHookean2(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     E=op.E
     ν=op.ν
@@ -633,7 +850,7 @@ function (op::Operator{:Δ∫∫EᵢⱼSᵢⱼdxdy_NeoHookean2})(ap::T;k::Abstra
     end
 end
 
-function (op::Operator{:Δ∫∫EᵛᵢⱼSᵛᵢⱼdxdy_NeoHookean2})(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
+function Δ∫∫EᵛᵢⱼSᵛᵢⱼdxdy_NeoHookean2(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     E=op.E
     ν=op.ν
@@ -722,7 +939,7 @@ function (op::Operator{:Δ∫∫EᵛᵢⱼSᵛᵢⱼdxdy_NeoHookean2})(ap::T;k::
         end
     end
 end
-function (op::Operator{:Δ∫∫EᵈᵢⱼSᵈᵢⱼdxdy_NeoHookean2})(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
+function Δ∫∫EᵈᵢⱼSᵈᵢⱼdxdy_NeoHookean2(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     E=op.E
     ν=op.ν
@@ -810,7 +1027,7 @@ function (op::Operator{:Δ∫∫EᵈᵢⱼSᵈᵢⱼdxdy_NeoHookean2})(ap::T;k::
         end
     end
 end
-function (op::Operator{:∫∫EᵢⱼSᵢⱼdxdy_NeoHookean2})(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
+function ∫∫EᵢⱼSᵢⱼdxdy_NeoHookean2(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     E=op.E
     ν=op.ν
@@ -855,7 +1072,7 @@ function (op::Operator{:∫∫EᵢⱼSᵢⱼdxdy_NeoHookean2})(ap::T;f::Abstract
         end
     end
 end
-function (op::Operator{:∫∫EᵛᵢⱼSᵛᵢⱼdxdy_NeoHookean2})(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
+function ∫∫EᵛᵢⱼSᵛᵢⱼdxdy_NeoHookean2(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     E=op.E
     ν=op.ν
@@ -900,7 +1117,7 @@ function (op::Operator{:∫∫EᵛᵢⱼSᵛᵢⱼdxdy_NeoHookean2})(ap::T;f::Ab
         end
     end
 end
-function (op::Operator{:∫∫EᵈᵢⱼSᵈᵢⱼdxdy_NeoHookean2})(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
+function ∫∫EᵈᵢⱼSᵈᵢⱼdxdy_NeoHookean2(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     E=op.E
     ν=op.ν
@@ -945,4 +1162,6 @@ function (op::Operator{:∫∫EᵈᵢⱼSᵈᵢⱼdxdy_NeoHookean2})(ap::T;f::Ab
             f[2*I]   += (B₁[i]*F₂₁*S₁₁+B₂[i]*F₂₂*S₂₂+(B₁[i]*F₂₂+B₂[i]*F₂₁)*S₁₂)*𝑤
         end
     end
+end
+
 end
