@@ -20,6 +20,7 @@ const Element2D = Union{
 }
 const Element3D = Union{
     Element{:Tet4},
+    Element{:Tet10},
     Element{:Hex8},
     ReproducingKernel{:Linear3D},
     ReproducingKernel{:Quadratic3D},
