@@ -1,6 +1,6 @@
 module Hamilton
     
-using ..ApproxOperator: AbstractElement
+using ..ApproxOperator: AbstractElement, Element2D, Element3D
 
 function ∫qmpdΩ(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
@@ -64,7 +64,25 @@ function ∫∫∇q∇pdxdt(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractE
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                k[I,J] += (-Bₜ[i]*ρA*Bₜ[j] + Bₓ[i]*EA*Bₓ[j])*𝑤
+                k[I,J] += (Bₜ[i]*ρA*Bₜ[j] - Bₓ[i]*EA*Bₓ[j])*𝑤
+            end
+        end
+    end
+end
+
+function ∫∫∇q∇pdΩdt(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        c² = ξ.c²
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        Bₜ = ξ[:∂𝝭∂z]
+        𝑤 = ξ.𝑤
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I,J] += (Bₜ[i]*Bₜ[j] - c²*(B₁[i]*B₁[j] + B₂[i]*B₂[j]))*𝑤
             end
         end
     end
@@ -114,6 +132,24 @@ function ∫q∇𝑛pds(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float
     end
 end
 
+function ∫∫αqṗdxdt(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    α = ap.α
+    for ξ in 𝓖
+        B = ξ[:∂𝝭∂y]
+        N = ξ[:𝝭]
+        𝑤 = ξ.𝑤
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I,J] += α*(B[i]*N[j] + N[i]*B[j])*𝑤
+            end
+        end
+    end
+end
+
+
 function stabilization_bar_LSG(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -128,6 +164,27 @@ function stabilization_bar_LSG(ap::T,k::AbstractMatrix{Float64}) where T<:Abstra
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
                 k[I,J] += α*(ρA*Bₜₜ[i] - EA*Bₓₓ[i])*(ρA*Bₜₜ[j] - EA*Bₓₓ[j])*𝑤
+            end
+        end
+    end
+end
+
+function stabilization_bar_LSG_Γ(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        ρA = ξ.ρA
+        EA = ξ.EA
+        α = ξ.α
+        Bₓ = ξ[:∂𝝭∂x]
+        Bₜ = ξ[:∂𝝭∂y]
+        nₓ = ξ.n₁
+        nₜ = ξ.n₂
+        𝑤 = ξ.𝑤
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I,J] += α*(ρA*Bₜ[i]*nₜ - EA*Bₓ[i]*nₓ)*(ρA*Bₜ[j]*nₜ - EA*Bₓ[j]*nₓ)*𝑤
             end
         end
     end
@@ -215,5 +272,79 @@ function ∫uudΩ(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
     end
 end
 
+function Hₑ(ap::T) where T<:Element2D
+    Δu²= 0
+    Δδu² = 0
+    ρA = ap.ρA
+    EA = ap.EA
+    for ξ in ap.𝓖
+        𝑤 = ξ.𝑤
+        Bₓ = ξ[:∂𝝭∂x]
+        Bₜ = ξ[:∂𝝭∂y]
+        ∂ūᵢ∂x = ξ.∂u∂x
+        ∂ūᵢ∂t = ξ.∂u∂t
+        ∂δūᵢ∂x = ξ.∂δu∂x
+        ∂δūᵢ∂t = ξ.∂δu∂t
+        ∂uᵢ∂x = 0
+        ∂uᵢ∂t = 0
+        ∂δuᵢ∂x = 0
+        ∂δuᵢ∂t = 0
+        for (i,xᵢ) in enumerate(ap.𝓒)
+            ∂uᵢ∂x += Bₓ[i]*xᵢ.d
+            ∂uᵢ∂t += Bₜ[i]*xᵢ.d
+            ∂δuᵢ∂x += Bₓ[i]*xᵢ.δd
+            ∂δuᵢ∂t += Bₜ[i]*xᵢ.δd
+        end
+        Δu² += 0.5*abs(ρA*(∂uᵢ∂t - ∂ūᵢ∂t)^2 - EA*(∂uᵢ∂x - ∂ūᵢ∂x)^2)*𝑤
+        Δδu² += 0.5*abs(ρA*(∂δuᵢ∂t - ∂δūᵢ∂t)^2 - EA*(∂δuᵢ∂x - ∂δūᵢ∂x)^2)*𝑤
+    end
+    return Δu², Δδu²
+end
+
+function Hₑ(ap::T) where T<:Element3D
+    Δu²= 0
+    Δδu² = 0
+    c² = ap.c²
+    for ξ in ap.𝓖
+        𝑤 = ξ.𝑤
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        Bₜ = ξ[:∂𝝭∂z]
+        ∂ūᵢ∂x = ξ.∂u∂x
+        ∂ūᵢ∂y = ξ.∂u∂y
+        ∂ūᵢ∂t = ξ.∂u∂t
+        ∂δūᵢ∂x = ξ.∂δu∂x
+        ∂δūᵢ∂y = ξ.∂δu∂y
+        ∂δūᵢ∂t = ξ.∂δu∂t
+        ∂uᵢ∂x = 0
+        ∂uᵢ∂y = 0
+        ∂uᵢ∂t = 0
+        ∂δuᵢ∂x = 0
+        ∂δuᵢ∂y = 0
+        ∂δuᵢ∂t = 0
+        for (i,xᵢ) in enumerate(ap.𝓒)
+            ∂uᵢ∂x += B₁[i]*xᵢ.d
+            ∂uᵢ∂y += B₂[i]*xᵢ.d
+            ∂uᵢ∂t += Bₜ[i]*xᵢ.d
+            ∂δuᵢ∂x += B₁[i]*xᵢ.δd
+            ∂δuᵢ∂y += B₂[i]*xᵢ.δd
+            ∂δuᵢ∂t += Bₜ[i]*xᵢ.δd
+        end
+        Δu² += 0.5*abs((∂uᵢ∂t - ∂ūᵢ∂t)^2 - c²*((∂uᵢ∂x - ∂ūᵢ∂x)^2 + (∂uᵢ∂y - ∂ūᵢ∂y)^2))*𝑤
+        Δδu² += 0.5*abs((∂δuᵢ∂t - ∂δūᵢ∂t)^2 - c²*((∂δuᵢ∂x - ∂δūᵢ∂x)^2 + (∂δuᵢ∂y - ∂δūᵢ∂y)^2))*𝑤
+    end
+    return Δu², Δδu²
+end
+
+function Hₑ(aps::Vector{T}) where T<:AbstractElement
+    HₑNorm_Δu²= 0.
+    HₑNorm_Δδu² = 0.
+    for ap in aps
+        Δu², Δδu² = Hₑ(ap)
+        HₑNorm_Δu² += Δu²
+        HₑNorm_Δδu² += Δδu²
+    end
+    return HₑNorm_Δu²^0.5, HₑNorm_Δδu²^0.5
+end
 
 end
