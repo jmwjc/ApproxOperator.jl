@@ -29,9 +29,6 @@ function Seg2toTri3(seg2::Vector{T},tri3::Vector{S}) where {T,S<:AbstractElement
                 x₂ = 𝓒_seg2[2].x
                 y₂ = 𝓒_seg2[2].y
                 𝐿 = 2*elm_seg2.𝐽
-                push!(data[:𝐽][2],elm_tri3.𝐽)
-                push!(data[:n₁][2],(y₂-y₁)/𝐿)
-                push!(data[:n₂][2],(x₁-x₂)/𝐿)
                 if indices == [2,3]
                     for ξ in 𝓖_seg2
                         push!(data[:ξ][2],0.5*(1-ξ.ξ))
@@ -50,6 +47,9 @@ function Seg2toTri3(seg2::Vector{T},tri3::Vector{S}) where {T,S<:AbstractElement
                 else
                     continue
                 end
+                push!(data[:𝐽][2],elm_tri3.𝐽)
+                push!(data[:n₁][2],(y₂-y₁)/𝐿)
+                push!(data[:n₂][2],(x₁-x₂)/𝐿)
                 𝓖 = [𝑿ₛ((𝑔=g,𝐺=G+g,𝐶=C,𝑠=s+3*(g-1)),data) for g in 1:nᵢ]
                 push!(elms, Element{:Tri3}(𝓒_tri3,𝓖))
                 G += nᵢ
