@@ -2,7 +2,7 @@ module Heat
 
 using ..ApproxOperator: AbstractElement
 
-function ∫∇v∇udx(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+function ∫∇v∇udx(ap::T,k::AbstractMatrix) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         B₁ = ξ[:∂𝝭∂x]
@@ -18,7 +18,7 @@ function ∫∇v∇udx(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElemen
     end
 end
 
-function ∫∫∇v∇udxdy(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+function ∫∫∇v∇udxdy(ap::T,k::AbstractMatrix) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         B₁ = ξ[:∂𝝭∂x]
@@ -35,7 +35,7 @@ function ∫∫∇v∇udxdy(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractE
     end
 end
     
-function ∫∇v∇udΩ(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+function ∫∇v∇udΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         B₁ = ξ[:∂𝝭∂x]
@@ -53,7 +53,7 @@ function ∫∇v∇udΩ(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractEleme
     end
 end
 
-function ∫∫qᵢpᵢdxdy(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+function ∫∫qᵢpᵢdxdy(ap::T,k::AbstractMatrix) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         𝑤 = ξ.𝑤
@@ -69,7 +69,7 @@ function ∫∫qᵢpᵢdxdy(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractE
     end
 end
 
-function ∫∫∇𝒑bdxdy(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+function ∫∫∇𝒑bdxdy(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:AbstractElement
     𝓒 = a.𝓒;𝓖 = a.𝓖
     for ξ in 𝓖
         B₁ = ξ[:∂𝝭∂x]
@@ -90,7 +90,7 @@ function ∫∫∇𝒑bdxdy(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{F
     end
 end
 
-function ∫∫𝒑∇udxdy(aₚ::T,aᵤ::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+function ∫∫𝒑∇udxdy(aₚ::T,aᵤ::S,k::AbstractMatrix) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ᵤ = aᵤ.𝓒;𝓖ᵤ = aᵤ.𝓖
     𝓒ₚ = aₚ.𝓒;𝓖ₚ = aₚ.𝓖
     for (ξᵤ,ξₚ) in zip(𝓖ᵤ,𝓖ₚ)
@@ -109,7 +109,7 @@ function ∫∫𝒑∇udxdy(aₚ::T,aᵤ::S,k::AbstractMatrix{Float64}) where {T
     end
 end
 
-function ∫∫∇𝒑udxdy(aₚ::T,aᵤ::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+function ∫∫∇𝒑udxdy(aₚ::T,aᵤ::S,k::AbstractMatrix) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ᵤ = aᵤ.𝓒;𝓖ᵤ = aᵤ.𝓖
     𝓒ₚ = aₚ.𝓒;𝓖ₚ = aₚ.𝓖
     for (ξᵤ,ξₚ) in zip(𝓖ᵤ,𝓖ₚ)
@@ -128,7 +128,7 @@ function ∫∫∇𝒑udxdy(aₚ::T,aᵤ::S,k::AbstractMatrix{Float64}) where {T
     end
 end
 
-function ∫pᵢnᵢuds(aₚ::T,aᵤ::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+function ∫pᵢnᵢuds(aₚ::T,aᵤ::S,k::AbstractMatrix) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ᵤ = aᵤ.𝓒;𝓖ᵤ = aᵤ.𝓖
     𝓒ₚ = aₚ.𝓒;𝓖ₚ = aₚ.𝓖
     for (ξᵤ,ξₚ) in zip(𝓖ᵤ,𝓖ₚ)
@@ -148,7 +148,7 @@ function ∫pᵢnᵢuds(aₚ::T,aᵤ::S,k::AbstractMatrix{Float64}) where {T<:Ab
     end
 end
 
-function ∫vbdΩ(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
+function ∫vbdΩ(ap::T,f::AbstractVector) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         𝑤 = ξ.𝑤
@@ -161,7 +161,7 @@ function ∫vbdΩ(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
     end
 end
 
-function ∫vtdΓ(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
+function ∫vtdΓ(ap::T,f::AbstractVector) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         𝑤 = ξ.𝑤
@@ -174,7 +174,7 @@ function ∫vtdΓ(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
     end
 end
 
-function ∫vgdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+function ∫vgdΓ(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         𝑤 = ξ.𝑤
@@ -192,7 +192,7 @@ function ∫vgdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) w
     end
 end
 
-function ∫λgdΓ(a::T,b::S,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+function ∫λgdΓ(a::T,b::S,k::AbstractMatrix,f::AbstractVector) where {T<:AbstractElement,S<:AbstractElement}
     𝓒₁= a.𝓒; 𝓖₁= a.𝓖
     𝓒₂= b.𝓒; 𝓖₂= b.𝓖
     for (ξ₁,ξ₂) in zip(𝓖₁,𝓖₂)
@@ -211,7 +211,7 @@ function ∫λgdΓ(a::T,b::S,k::AbstractMatrix{Float64},f::AbstractVector{Float6
     end
 end
 
-function ∫∇𝑛vgdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+function ∫∇𝑛vgdΓ(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         N = ξ[:𝝭]
@@ -234,7 +234,7 @@ function ∫∇𝑛vgdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Floa
     end
 end
 
-function ∫∇𝑛vgds(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+function ∫∇𝑛vgds(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:AbstractElement
     𝓒 = ap.𝓒;𝓖 = ap.𝓖
     for ξ in 𝓖
         N = ξ[:𝝭]
@@ -257,7 +257,7 @@ function ∫∇𝑛vgds(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float
     end
 end
 
-function ∫pᵢnᵢgⱼds(aₚ::T,aᵤ::S,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+function ∫pᵢnᵢgⱼds(aₚ::T,aᵤ::S,k::AbstractMatrix,f::AbstractVector) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ᵤ = aᵤ.𝓒;𝓖ᵤ = aᵤ.𝓖
     𝓒ₚ = aₚ.𝓒;𝓖ₚ = aₚ.𝓖
     for (ξᵤ,ξₚ) in zip(𝓖ᵤ,𝓖ₚ)
@@ -280,7 +280,7 @@ function ∫pᵢnᵢgⱼds(aₚ::T,aᵤ::S,k::AbstractMatrix{Float64},f::Abstrac
     end
 end
 
-function g(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64},dof::Symbol=:d) where T<:AbstractElement
+function g(ap::T,k::AbstractMatrix,f::AbstractVector,dof::Symbol=:d) where T<:AbstractElement
     x, = ap.𝓒
     j = x.𝐼
     g = getproperty(x,dof)
@@ -293,7 +293,7 @@ function g(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64},dof::Symb
     f[j] = g
 end
 
-function ∫vᵢnᵢuds(a₁::T,a₂::S;k::AbstractMatrix{Float64}) where {T,S<:AbstractElement}
+function ∫vᵢnᵢuds(a₁::T,a₂::S;k::AbstractMatrix) where {T,S<:AbstractElement}
     𝓖 = zip(a₁.𝓖,a₂.𝓖)
     for (ξ₁,ξ₂) in 𝓖
         N = ξ₂[:𝝭]
@@ -313,7 +313,7 @@ function ∫vᵢnᵢuds(a₁::T,a₂::S;k::AbstractMatrix{Float64}) where {T,S<:
     end
 end
 
-function ∫vᵢnᵢgds(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
+function ∫vᵢnᵢgds(ap::T;f::AbstractVector) where T<:AbstractElement
     𝓒 = ap.𝓒;𝓖 = ap.𝓖
     for ξ in 𝓖
         B₁ = ξ[:∂𝝭∂x]
