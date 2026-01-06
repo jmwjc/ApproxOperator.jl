@@ -38,7 +38,7 @@ function ∫∫q̇mṗqkpdxdt(ap::T,k::AbstractMatrix{Float64}) where T<:Abstrac
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         m = ξ.m
-        kᶜ = ξ.kᶜ
+        kᶜ = ξ.k
         B = ξ[:∂𝝭∂x]
         N = ξ[:𝝭]
         𝑤 = ξ.𝑤
