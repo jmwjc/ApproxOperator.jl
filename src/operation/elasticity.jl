@@ -296,6 +296,8 @@ function ∫εᵈᵢⱼσᵈᵢⱼdΩ(ap::T,k::AbstractMatrix{Float64}) where T<
         end
     end
 end
+
+
 function ∫εᵈᵢⱼσᵈᵢⱼdΩ(aₛ::T,aᵤ::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ᵤ = aᵤ.𝓒;𝓖ᵤ = aᵤ.𝓖
     𝓒ₛ = aₛ.𝓒;𝓖ₛ = aₛ.𝓖
@@ -530,6 +532,7 @@ function ∫∫σᵢⱼσₖₗdΩ(ap::T,k::AbstractMatrix{Float64}) where T<:Ab
         C⁻¹ᵢᵢᵢᵢ = 1/E
         C⁻¹ᵢᵢⱼⱼ = -ν/E
         C⁻¹ᵢⱼᵢⱼ = 2*(1+ν)/E
+        
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
@@ -556,30 +559,30 @@ function ∫∫σᵢⱼσₖₗdΩ(ap::T,k::AbstractMatrix{Float64}) where T<:Ab
     end
 end
 
-function ∫∫σᵢⱼσₖₗdxdy(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
-    𝓒 = ap.𝓒;𝓖 = ap.𝓖
-    for ξ in 𝓖
-        N = ξ[:𝝭]
-        𝑤 = ξ.𝑤
-        E = ξ.E
-        ν = ξ.ν
-        C⁻¹ᵢᵢᵢᵢ = 1/E
-        C⁻¹ᵢᵢⱼⱼ = -ν/E
-        C⁻¹ᵢⱼᵢⱼ = 2*(1+ν)/E
-        # C⁻¹ᵢⱼᵢⱼ = (1+ν)/E
-        for (i,xᵢ) in enumerate(𝓒)
-            I = xᵢ.𝐼
-            for (j,xⱼ) in enumerate(𝓒)
-                J = xⱼ.𝐼
-                k[3*I-2,3*J-2] += N[i]*C⁻¹ᵢᵢᵢᵢ*N[j]*𝑤
-                k[3*I-2,3*J-1] += N[i]*C⁻¹ᵢᵢⱼⱼ*N[j]*𝑤
-                k[3*I-1,3*J-2] += N[i]*C⁻¹ᵢᵢⱼⱼ*N[j]*𝑤
-                k[3*I-1,3*J-1] += N[i]*C⁻¹ᵢᵢᵢᵢ*N[j]*𝑤
-                k[3*I,3*J]     += N[i]*C⁻¹ᵢⱼᵢⱼ*N[j]*𝑤
-            end
-        end
-    end
-end
+# function ∫∫σᵢⱼσₖₗdxdy(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+#     𝓒 = ap.𝓒;𝓖 = ap.𝓖
+#     for ξ in 𝓖
+#         N = ξ[:𝝭]
+#         𝑤 = ξ.𝑤
+#         E = ξ.E
+#         ν = ξ.ν
+#         C⁻¹ᵢᵢᵢᵢ = 1/E
+#         C⁻¹ᵢᵢⱼⱼ = -ν/E
+#         C⁻¹ᵢⱼᵢⱼ = 2*(1+ν)/E
+#         # C⁻¹ᵢⱼᵢⱼ = (1+ν)/E
+#         for (i,xᵢ) in enumerate(𝓒)
+#             I = xᵢ.𝐼
+#             for (j,xⱼ) in enumerate(𝓒)
+#                 J = xⱼ.𝐼
+#                 k[3*I-2,3*J-2] += N[i]*C⁻¹ᵢᵢᵢᵢ*N[j]*𝑤
+#                 k[3*I-2,3*J-1] += N[i]*C⁻¹ᵢᵢⱼⱼ*N[j]*𝑤
+#                 k[3*I-1,3*J-2] += N[i]*C⁻¹ᵢᵢⱼⱼ*N[j]*𝑤
+#                 k[3*I-1,3*J-1] += N[i]*C⁻¹ᵢᵢᵢᵢ*N[j]*𝑤
+#                 k[3*I,3*J]     += N[i]*C⁻¹ᵢⱼᵢⱼ*N[j]*𝑤
+#             end
+#         end
+#     end
+# end
 
 
 function ∫∫Mσσdxdy(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
@@ -1114,9 +1117,9 @@ function ∫σᵢⱼnⱼgᵢds(aₛ::T,aᵤ::S,k::AbstractMatrix{Float64},f::Abs
                 k[3*I,2*J-1]   += N[i]*(n₁*n₁₂ + n₂*n₁₁)*N̄[j]*𝑤
                 k[3*I,2*J]     += N[i]*(n₁*n₂₂ + n₂*n₁₂)*N̄[j]*𝑤
             end
-            f[3*I-2] += N[i]*(n₁*n₁₁*g₁ + n₁*n₁₂*g₂)*𝑤
-            f[3*I-1] += N[i]*(n₂*n₁₂*g₁ + n₂*n₂₂*g₂)*𝑤
-            f[3*I]   += N[i]*((n₁*n₁₂+n₂*n₁₁)*g₁ + (n₁*n₂₂+n₂*n₁₂)*g₂)*𝑤 
+        f[3*I-2] += N[i]*(n₁*n₁₁*g₁ + n₁*n₁₂*g₂)*𝑤
+        f[3*I-1] += N[i]*(n₂*n₁₂*g₁ + n₂*n₂₂*g₂)*𝑤
+        f[3*I]   += N[i]*((n₁*n₁₂+n₂*n₁₁)*g₁ + (n₁*n₂₂+n₂*n₁₂)*g₂)*𝑤 
         end
     end
 end
@@ -1505,15 +1508,7 @@ function ∫∫∇σᵢⱼuᵢdΩ(aₛ::T,aᵤ::S,k::AbstractMatrix{Float64}) wh
                 k[6*I,3*J-2]   += B₃[i]*N[j]*𝑤
                 k[6*I,3*J]     += B₁[i]*N[j]*𝑤
 
-                # k[6*I-5,3*J-2] -= B₁[i]*N[j]*𝑤
-                # k[6*I-4,3*J-1] -= B₂[i]*N[j]*𝑤
-                # k[6*I-3,3*J]   -= B₃[i]*N[j]*𝑤
-                # k[6*I-2,3*J-2] -= B₂[i]*N[j]*𝑤
-                # k[6*I-2,3*J-1] -= B₁[i]*N[j]*𝑤
-                # k[6*I-1,3*J-1] -= B₃[i]*N[j]*𝑤
-                # k[6*I-1,3*J]   -= B₂[i]*N[j]*𝑤
-                # k[6*I,3*J-2]   -= B₃[i]*N[j]*𝑤
-                # k[6*I,3*J]     -= B₁[i]*N[j]*𝑤
+               
 
             end
         end
@@ -2180,6 +2175,9 @@ function ∫∫τ∇sᵢⱼ∇pdxdy(aₛ::T,aₚ::S,k::AbstractMatrix{Float64}) 
         end
     end
 end
+
+
+
 function ∫∫τ∇σᵢⱼ∇σᵢₖdxdy(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -2218,73 +2216,191 @@ function ∫∫τ∇σᵢⱼ∇σᵢₖdxdy(ap::T,k::AbstractMatrix{Float64},f::
     end
 end
 
-function ∫∫∇σᵢⱼ∇σᵢₖdxdy(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
-    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+
+
+
+# function ∫∫τ∇σᵢⱼ∇σᵢₖdxdy(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+#     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+#     gp = 0
+#     c   = 0.1
+#     τmin = 1e-16
+#     τmax = 1e16
+#     for ξ in 𝓖
+#         𝑤 = ξ.𝑤
+#         # τ = ξ.τ
+#         b₁ = ξ.b₁
+#         b₂ = ξ.b₂
+#         N = ξ[:𝝭]
+#         B₁ = ξ[:∂𝝭∂x]
+#         B₂ = ξ[:∂𝝭∂y]
+#         E = ξ.E
+#         ν = ξ.ν
+#         μ = E / (2*(1+ν))
+#           dξdx = ξ[:∂ξ∂x][gp]
+#     dξdy = ξ[:∂ξ∂y][gp]
+#     dηdx = ξ[:∂η∂x][gp]
+#     dηdy = ξ[:∂η∂y][gp]
+
+#         trG = dξdx*dξdx + dξdy*dξdy + dηdx*dηdx + dηdy*dηdy
+#         h   = 2 / sqrt(trG + eps())
+#         τ   = clamp(c* h^2 / μ /2, τmin, τmax)
+
+#         for (i,xᵢ) in enumerate(𝓒)
+#             I = xᵢ.𝐼
+#             # τ = xᵢ.β 
+#             for (j,xⱼ) in enumerate(𝓒)
+#                 J = xⱼ.𝐼
+                
+#                 k[3*I-2,3*J-2] += τ*(B₁[i]*B₁[j])*𝑤
+#                 k[3*I-2,3*J]   += τ*B₁[i]*B₂[j]*𝑤
+#                 k[3*I-1,3*J-1] += τ*(B₂[i]*B₂[j])*𝑤
+#                 k[3*I-1,3*J]   += τ*B₂[i]*B₁[j]*𝑤
+#                 k[3*I,3*J-2]   += τ*B₂[i]*B₁[j]*𝑤
+#                 k[3*I,3*J-1]   += τ*B₁[i]*B₂[j]*𝑤
+#                 k[3*I,3*J]     += τ*(B₁[i]*B₁[j] + B₂[i]*B₂[j])*𝑤
+              
+#             end
+#             f[3*I-2] += τ*(B₁[i]*b₁)*𝑤
+#             f[3*I-1] += τ*(B₂[i]*b₂ )*𝑤
+#             f[3*I]   += τ*(B₁[i]*b₂ + B₂[i]*b₁)*𝑤
+
+#         end
+#     end
+# end
+
+
+
+function ∫∫τ∇trσᵢⱼ∇trσᵢₖdxdy(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+
+    
     for ξ in 𝓖
         𝑤 = ξ.𝑤
-        ℎ = ξ.ℎ
-        b₁ = ξ.b₁
-        b₂ = ξ.b₂
-        N = ξ[:𝝭]
+         τ = ξ.τ
+        b₁ = ξ.b₁     
+        b₂ = ξ.b₂     
+        N  = ξ[:𝝭]    
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
         E = ξ.E
         ν = ξ.ν
-        C⁻¹ᵢᵢᵢᵢ = 1/E
-        C⁻¹ᵢᵢⱼⱼ = -ν/E
-        C⁻¹ᵢⱼᵢⱼ = 2*(1+ν)/E
+        G = E/(2*(1+ν))            # shear modulus
+       
+
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
-            # τ = xᵢ.β 
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                
-                k[3*I-2,3*J-2] += ℎ^2*(B₁[i]*B₁[j])*𝑤
-                k[3*I-2,3*J]   += ℎ^2*B₁[i]*B₂[j]*𝑤
-                k[3*I-1,3*J-1] += ℎ^2*(B₂[i]*B₂[j])*𝑤
-                k[3*I-1,3*J]   += ℎ^2*B₂[i]*B₁[j]*𝑤
-                k[3*I,3*J-2]   += ℎ^2*B₂[i]*B₁[j]*𝑤
-                k[3*I,3*J-1]   += ℎ^2*B₁[i]*B₂[j]*𝑤
-                k[3*I,3*J]     += ℎ^2*(B₁[i]*B₁[j] + B₂[i]*B₂[j])*𝑤
 
-             
-              
+                # 关键改动：从 N[i]*N[j] 换成 ∇Ni·∇Nj
+                gij = (B₁[i]*B₁[j] + B₂[i]*B₂[j]+0.001*N[i]*N[j]) * 𝑤
+
+                # trσ = σxx + σyy => 四个块同加 gij
+                k[3*I-2,3*J-2] += τ * gij   # xx-xx
+                # k[3*I-2,3*J-1] += τ * gij   # xx-yy
+                # k[3*I-1,3*J-2] += τ * gij   # yy-xx
+                k[3*I-1,3*J-1] += τ * gij   # yy-yy
             end
-            f[3*I-2] += 0
-            f[3*I-1] += 0
-            f[3*I]   += 0
-
         end
     end
 end
-function ∫∫τtrσᵢⱼtrσᵢₖdxdy(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
-    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+
+
+
+
+
+function ∫∫τσᵢⱼσᵢₖdxdy(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+
+    
     for ξ in 𝓖
         𝑤 = ξ.𝑤
-        
-        b₁ = ξ.b₁
-        b₂ = ξ.b₂
-        N = ξ[:𝝭]
-       
+        #  τ = ξ.τ
+        b₁ = ξ.b₁     
+        b₂ = ξ.b₂     
+        N  = ξ[:𝝭]    
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
         E = ξ.E
         ν = ξ.ν
-        C⁻¹ᵢᵢᵢᵢ = 1/E
-        C⁻¹ᵢᵢⱼⱼ = -ν/E
-        C⁻¹ᵢⱼᵢⱼ = 2*(1+ν)/E
-        K=E/3/(1-2*ν )
+        G = E/(2*(1+ν))            # shear modulus
+       
+
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
-            # τ = xᵢ.β 
+             τ = xᵢ.β 
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                k[3*I-2,3*J-2] += 0.001*(1+ν)^2*1/K*(N[i]*N[j])*𝑤
-                k[3*I-2,3*J-1] += 0.001*(1+ν)^2*1/K*(N[i]*N[j])*𝑤
-                k[3*I-1,3*J-2] += 0.001*(1+ν)^2*1/K*(N[i]*N[j])*𝑤
-                k[3*I-1,3*J-1] += 0.001*(1+ν)^2*1/K*(N[i]*N[j])*𝑤
+
+                # 关键改动：从 N[i]*N[j] 换成 ∇Ni·∇Nj
+                gij = (0.01*N[i]*N[j]) * 𝑤
+
+                # trσ = σxx + σyy => 四个块同加 gij
+                k[3*I-2,3*J-2] += τ * gij   # xx-xx
+                # k[3*I-2,3*J-1] += τ * gij   # xx-yy
+                # k[3*I-1,3*J-2] += τ * gij   # yy-xx
+                k[3*I-1,3*J-1] += τ * gij   # yy-yy
+                k[3*I,3*J] += τ * gij   # yy-yy
             end
         end
     end
 end
+
+function ∫∫τg∇trσ∇trδστmtrσtrδσdxdy(ap::T, k::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    gp = 0
+
+    cg   = 0.1      # τg 系数（梯度项）
+    cm   = 1e-3     # τm 系数（质量项，建议很小：1e-4~1e-2 试）
+    τmin = 1e-12
+    τmax = 1e6
+
+    for ξ in 𝓖
+        gp += 1
+        𝑤 = ξ.𝑤
+
+        N  = ξ[:𝝭]      # N_i (stress basis)
+        B₁ = ξ[:∂𝝭∂x]   # ∂N/∂x
+        B₂ = ξ[:∂𝝭∂y]   # ∂N/∂y
+        τ = ξ.τ
+        E = ξ.E
+        ν = ξ.ν
+        μ = E / (2*(1+ν))
+
+        # # 你原来的 h
+        # dξdx = ξ[:∂ξ∂x][gp]
+        # dξdy = ξ[:∂ξ∂y][gp]
+        # dηdx = ξ[:∂η∂x][gp]
+        # dηdy = ξ[:∂η∂y][gp]
+
+        # trG = dξdx*dξdx + dξdy*dξdy + dηdx*dηdx + dηdy*dηdy
+        # h   = 2 / sqrt(trG + eps())
+
+        # τg = clamp(cg * h^2 / (2*μ), τmin, τmax)     # trace-gradient
+        # τm = cm * (1.0 / (2*μ))                      # trace-mass（不乘 h^2，取很小）
+
+        for (i, xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j, xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+
+                gij = (B₁[i]*B₁[j] + B₂[i]*B₂[j]) * 𝑤   # ∇Ni·∇Nj
+                mij = (N[i]*N[j]) * 𝑤                   # Ni*Nj
+
+                s =  gij +  mij
+
+                # trσ = σxx + σyy => four blocks
+                k[3*I-2, 3*J-2] += s
+                k[3*I-2, 3*J-1] += s
+                k[3*I-1, 3*J-2] += s
+                k[3*I-1, 3*J-1] += s
+            end
+        end
+    end
+end
+
 
 function ∫∫τ∇σᵢⱼ∇σᵢₖdΩ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
@@ -2308,38 +2424,38 @@ function ∫∫τ∇σᵢⱼ∇σᵢₖdΩ(ap::T,k::AbstractMatrix{Float64},f::A
                 J = xⱼ.𝐼
               
               
-                k[6*I-5,6*I-5] += τ*B₁[i]*B₁[j]*𝑤
-                k[6*I-5,6*I-2] += τ*B₁[i]*B₂[j]*𝑤
-                k[6*I-5,6*I]   += τ*B₁[i]*B₃[j]*𝑤
+                k[6*I-5,6*J-5] += τ*B₁[i]*B₁[j]*𝑤
+                k[6*I-5,6*J-2] += τ*B₁[i]*B₂[j]*𝑤
+                k[6*I-5,6*J]   += τ*B₁[i]*B₃[j]*𝑤
 
-                k[6*I-4,6*I-4] += τ*B₂[i]*B₂[j]*𝑤
-                k[6*I-4,6*I-2] += τ*B₂[i]*B₁[j]*𝑤
-                k[6*I-4,6*I-1] += τ*B₂[i]*B₃[j]*𝑤
+                k[6*I-4,6*J-4] += τ*B₂[i]*B₂[j]*𝑤
+                k[6*I-4,6*J-2] += τ*B₂[i]*B₁[j]*𝑤
+                k[6*I-4,6*J-1] += τ*B₂[i]*B₃[j]*𝑤
                
-                k[6*I-3,6*I-3] += τ*B₃[i]*B₃[j]*𝑤
-                k[6*I-3,6*I-1] += τ*B₃[i]*B₂[j]*𝑤
-                k[6*I-3,6*I]   += τ*B₃[i]*B₁[j]*𝑤
+                k[6*I-3,6*J-3] += τ*B₃[i]*B₃[j]*𝑤
+                k[6*I-3,6*J-1] += τ*B₃[i]*B₂[j]*𝑤
+                k[6*I-3,6*J]   += τ*B₃[i]*B₁[j]*𝑤
 
                 
-                k[6*I-2,6*I-5] += τ*B₂[i]*B₁[j]*𝑤
-                k[6*I-2,6*I-4] += τ*B₁[i]*B₂[j]*𝑤
-                k[6*I-2,6*I-2] += τ*(B₁[i]*B₁[j]+B₂[i]*B₂[j])*𝑤
-                k[6*I-2,6*I-1] += τ*B₁[i]*B₃[j]*𝑤
-                k[6*I-2,6*I]   += τ*B₂[i]*B₃[j]*𝑤
+                k[6*I-2,6*J-5] += τ*B₂[i]*B₁[j]*𝑤
+                k[6*I-2,6*J-4] += τ*B₁[i]*B₂[j]*𝑤
+                k[6*I-2,6*J-2] += τ*(B₁[i]*B₁[j]+B₂[i]*B₂[j])*𝑤
+                k[6*I-2,6*J-1] += τ*B₁[i]*B₃[j]*𝑤
+                k[6*I-2,6*J]   += τ*B₂[i]*B₃[j]*𝑤
 
                 
-                k[6*I-1,6*I-4] += τ*B₂[i]*B₂[j]*𝑤
-                k[6*I-1,6*I-3] += τ*B₂[i]*B₃[j]*𝑤
-                k[6*I-1,6*I-2] += τ*B₃[i]*B₁[j]*𝑤
-                k[6*I-1,6*I-1] += τ*(B₃[i]*B₃[j]+B₂[i]*B₂[j])*𝑤
-                k[6*I-1,6*I]   += τ*B₂[i]*B₁[j]*𝑤
+                k[6*I-1,6*J-4] += τ*B₃[i]*B₂[j]*𝑤
+                k[6*I-1,6*J-3] += τ*B₂[i]*B₃[j]*𝑤
+                k[6*I-1,6*J-2] += τ*B₃[i]*B₁[j]*𝑤
+                k[6*I-1,6*J-1] += τ*(B₃[i]*B₃[j]+B₂[i]*B₂[j])*𝑤
+                k[6*I-1,6*J]   += τ*B₂[i]*B₁[j]*𝑤
 
                 
-                k[6*I-1,6*I-5] += τ*B₃[i]*B₁[j]*𝑤
-                k[6*I-1,6*I-3] += τ*B₁[i]*B₃[j]*𝑤
-                k[6*I-1,6*I-2] += τ*B₃[i]*B₂[j]*𝑤
-                k[6*I-1,6*I-1] += τ*B₁[i]*B₂[j]*𝑤
-                k[6*I-1,6*I]   += τ*(B₃[i]*B₃[j]+B₁[i]*B₁[j])*𝑤
+                k[6*I-1,6*J-5] += τ*B₃[i]*B₁[j]*𝑤
+                k[6*I-1,6*J-3] += τ*B₁[i]*B₃[j]*𝑤
+                k[6*I-1,6*J-2] += τ*B₃[i]*B₂[j]*𝑤
+                k[6*I-1,6*J-1] += τ*B₁[i]*B₂[j]*𝑤
+                k[6*I-1,6*J]   += τ*(B₃[i]*B₃[j]+B₁[i]*B₁[j])*𝑤
 
             end
             f[6*I-5] += τ*(B₁[i]*b₁)*𝑤
@@ -2347,7 +2463,7 @@ function ∫∫τ∇σᵢⱼ∇σᵢₖdΩ(ap::T,k::AbstractMatrix{Float64},f::A
             f[6*I-3] += τ*(B₃[i]*b₃)*𝑤
             f[6*I-2] += τ*(B₁[i]*b₂ + B₂[i]*b₁)*𝑤
             f[6*I-1] += τ*(B₃[i]*b₂ + B₂[i]*b₃)*𝑤
-            f[6*1]   += τ*(B₃[i]*b₁ + B₁[i]*b₃)*𝑤
+            f[6*I]   += τ*(B₃[i]*b₁ + B₁[i]*b₃)*𝑤
         end
     end
 end
@@ -3132,6 +3248,7 @@ function 𝐿₂_PlaneStrain_Pressure_HR(ap::T) where T<:AbstractElement
         σ₁₁ = 𝓒[1].dₛ₁₁+𝓒[2].dₛ₁₁*xc+𝓒[3].dₛ₁₁*yc
         σ₂₂ = 𝓒[1].dₛ₂₂+𝓒[2].dₛ₂₂*xc+𝓒[3].dₛ₂₂*yc
         σ₁₂ = 𝓒[1].dₛ₁₂+𝓒[2].dₛ₁₂*xc+𝓒[3].dₛ₁₂*yc
+        
         # σ₁₁ = 0.
         # σ₂₂ = 0.
         # σ₁₂ = 0.

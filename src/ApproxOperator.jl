@@ -6,6 +6,8 @@ import StaticArrays: SVector, SMatrix, @SArray
 # import Tensors: Vec, Tensor, SymmetricTensor, ⋅, ⊡, ⊗, gradient
 import Printf: @printf
 import Gmsh: gmsh
+import LinearAlgebra
+
 
 abstract type AbstractElement end
 abstract type AbstractPiecewise<:AbstractElement end
@@ -16,9 +18,9 @@ include("element.jl")
 include("operation.jl")
 include("meshfree.jl")
 
-# include("preprocession/integration.jl")
+include("preprocession/integration.jl")
 include("preprocession/importmsh.jl")
-# include("preprocession/geometry.jl")
+include("preprocession/geometry.jl")
 include("preprocession/importcomsol.jl")
 
 include("approximation/quad.jl")
@@ -31,6 +33,7 @@ include("approximation/seg2.jl")
 include("approximation/seg3.jl")
 include("approximation/poi1.jl")
 include("approximation/reproducingkernel.jl")
+include("approximation/rkgradientsmoothing.jl")
 include("approximation/kernelfunction.jl")
 include("approximation/CrouzeixRaviart.jl")
 include("approximation/piecewise.jl")
@@ -61,7 +64,7 @@ export Operator
 export 𝑿ᵢ, 𝑿ₛ
 export Element
 export TRElement
-export ReproducingKernel, RegularGrid
+export ReproducingKernel, RegularGrid, RKGradientSmoothing
 export PiecewiseParametric, PiecewisePolynomial
 export set𝝭!, set∇𝝭!, set∇²𝝭!, set∇̂³𝝭!
 # export RKGradientSmoothing, GRKGradientSmoothing

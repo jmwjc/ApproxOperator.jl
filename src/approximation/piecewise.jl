@@ -8,6 +8,9 @@ struct PiecewiseParametric{𝑝,T}<:AbstractPiecewise
     𝓖::Vector{𝑿ₛ}
 end
 
+get𝑛𝑝(::PiecewisePolynomial{:Constant3D}) = 1
+get𝑛𝑝(::PiecewiseParametric{:Constant3D}) = 1
+
 get𝑛𝑝(::PiecewisePolynomial{:Constant}) = 1
 get𝑛𝑝(::PiecewiseParametric{:Constant}) = 1
 get𝑛𝑝(::PiecewisePolynomial{:Linear1D}) = 2
@@ -47,13 +50,27 @@ function set∇𝝭!(::PiecewisePolynomial{:Constant},𝒙::Node)
     𝝭 = 𝒙[:𝝭]
     ∂𝝭∂x = 𝒙[:∂𝝭∂x]
     ∂𝝭∂y = 𝒙[:∂𝝭∂y]
+   
+    𝝭[1] = 1.0
+    ∂𝝭∂x[1] = 0.0
+    ∂𝝭∂y[1] = 0.0
+   
+end
+function set𝝭!(::PiecewisePolynomial{:Constant3D},𝒙::Node)
+    𝝭 = 𝒙[:𝝭]
+    𝝭[1] = 1.0
+end
+
+function set∇𝝭!(::PiecewisePolynomial{:Constant3D},𝒙::Node)
+    𝝭 = 𝒙[:𝝭]
+    ∂𝝭∂x = 𝒙[:∂𝝭∂x]
+    ∂𝝭∂y = 𝒙[:∂𝝭∂y]
     ∂𝝭∂z = 𝒙[:∂𝝭∂z]
     𝝭[1] = 1.0
     ∂𝝭∂x[1] = 0.0
     ∂𝝭∂y[1] = 0.0
     ∂𝝭∂z[1] = 0.0
 end
-
 function set𝝭!(::PiecewisePolynomial{:Linear1D},𝒙::Node)
     𝝭 = 𝒙[:𝝭]
     𝝭[1] = 1.0
@@ -175,6 +192,9 @@ function set∇²𝝭!(::PiecewisePolynomial{:Quadratic2D},𝒙::Node)
     y = 𝒙.y
     ∂𝝭∂x = 𝒙[:∂𝝭∂x]
     ∂𝝭∂y = 𝒙[:∂𝝭∂y]
+    ∂²𝝭∂x² = 𝒙[:∂²𝝭∂x²]
+    ∂²𝝭∂y² = 𝒙[:∂²𝝭∂y²]
+    ∂²𝝭∂x∂y = 𝒙[:∂²𝝭∂x∂y]
     𝝭[1] = 1.0
     𝝭[2] = x
     𝝭[3] = y
