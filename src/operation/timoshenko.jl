@@ -2,28 +2,6 @@ module Timoshenko
 
 using ..ApproxOperator: AbstractElement
 
-# -----------------------------------------------------------------------------
-# Formula/source map (對照來源: D:\Joker\Timoshenko\pdf\Timoshenko_Report.tex)
-#
-# 1) 弱式與剛度子矩陣 (對應報告「對 w/φ 的弱式」與 K 子矩陣定義)
-#    - K_ww,IJ   = ∫ kAG N_I,x N_J,x dx
-#    - K_φφ,IJ   = ∫ (EI N_I,x N_J,x + kAG N_I N_J) dx
-#    - K_wφ,IJ   = -∫ kAG N_I,x N_J dx
-#    - K_φw,IJ   = -∫ kAG N_I N_J,x dx
-#
-# 2) 精確解 (對應報告「2.2.4 (b) 連續體精確解」)
-#    - SS: w_exact_ss, φ_exact_ss
-#    - CF: w_exact_cf, φ_exact_cf
-#
-# 3) L2 場誤差 (對應報告「表10.1 誤差定義」)
-#    - ε_L2 = sqrt(∫(u_h-u_ref)^2 / ∫u_ref^2)
-#
-# 4) 邊界項 ∫αwwdΓ / ∫αφφdΓ / ∫wVdΓ / ∫φMdΓ
-#    - 這些是數值實作中的邊界處理(含 penalty / 自然邊界載重)；
-#      報告主線給的是弱式與內域矩陣，未逐一寫成這四個離散 operator 名稱。
-# -----------------------------------------------------------------------------
-
-# Combined form: 對應單一 [w, φ] 全矩陣組裝中的彎曲項 EI φ_x^2
 function ∫κEIκds(ap::T, k::AbstractMatrix) where T<:AbstractElement
     𝓒 = ap.𝓒
     𝓖 = ap.𝓖
@@ -127,6 +105,28 @@ function ∫wwdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
             for (j, xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
                 k[I, J] += kGA * B[i] * B[j] * 𝑤
+            end
+        end
+    end
+end
+
+# Geometric stiffness (Engesser), 1D beam specialization of
+# K^g_{KL} = P_{αβ} ∫_Ω N_{K,α} N_{L,β} dΩ.
+# For a beam, α = β = x and P := P_xx, so
+# K^g_{IJ} = P ∫_Ω N_{I,x} N_{J,x} dΩ.
+# This routine assembles only the kernel ∫_Ω N_{I,x} N_{J,x} dΩ;
+# the axial-force factor P must be applied outside this function.
+function ∫wwGdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    for ξ in 𝓖
+        B = ξ[:∂𝝭∂x]
+        𝑤 = ξ.𝑤
+        for (i, xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j, xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I, J] += B[i] * B[j] * 𝑤
             end
         end
     end
