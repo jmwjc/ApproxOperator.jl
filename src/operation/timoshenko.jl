@@ -132,6 +132,32 @@ function ∫wwGdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
+# Geometric stiffness for 2D Mindlin plate buckling.
+# Assembles σᵣₑf,αβ w_,α δw_,β only in the w-w block of [w, φ₁, φ₂].
+function ∫wwGdΩ2D(ap::T, k::AbstractMatrix) where T<:AbstractElement
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    for ξ in 𝓖
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        𝑤 = ξ.𝑤
+        σ₁₁ = ξ.σ₁₁
+        σ₂₂ = ξ.σ₂₂
+        σ₁₂ = ξ.σ₁₂
+        for (i, xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j, xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[3 * I - 2, 3 * J - 2] += (
+                    σ₁₁ * B₁[i] * B₁[j] +
+                    σ₂₂ * B₂[i] * B₂[j] +
+                    σ₁₂ * (B₁[i] * B₂[j] + B₂[i] * B₁[j])
+                ) * 𝑤
+            end
+        end
+    end
+end
+
 # Block form: 對應 K_φw = -∫ kAG N_I N_J,x dx
 function ∫φwdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
     𝓒 = ap.𝓒
