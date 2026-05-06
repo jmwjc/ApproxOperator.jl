@@ -16,17 +16,19 @@ function ∫εᵢⱼσᵢⱼdΩ(ap::T,k::AbstractMatrix{Float64}) where T<:Abstr
         Cᵢⱼᵢⱼ = E/2/(1+ν)
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
+            i1 = 3*I-2; i2 = 3*I-1; i3 = 3*I
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                k[3*I-2,3*J-2] += (Cᵢᵢᵢᵢ*B₁[i]*B₁[j] + Cᵢⱼᵢⱼ*B₂[i]*B₂[j] + Cᵢⱼᵢⱼ*B₃[i]*B₃[j])*𝑤
-                k[3*I-2,3*J-1] += (Cᵢᵢⱼⱼ*B₁[i]*B₂[j] + Cᵢⱼᵢⱼ*B₂[i]*B₁[j])*𝑤
-                k[3*I-2,3*J]   += (Cᵢᵢⱼⱼ*B₁[i]*B₃[j] + Cᵢⱼᵢⱼ*B₃[i]*B₁[j])*𝑤
-                k[3*I-1,3*J-2] += (Cᵢᵢⱼⱼ*B₂[i]*B₁[j] + Cᵢⱼᵢⱼ*B₁[i]*B₂[j])*𝑤
-                k[3*I-1,3*J-1] += (Cᵢⱼᵢⱼ*B₁[i]*B₁[j] + Cᵢᵢᵢᵢ*B₂[i]*B₂[j] + Cᵢⱼᵢⱼ*B₃[i]*B₃[j])*𝑤
-                k[3*I-1,3*J]   += (Cᵢᵢⱼⱼ*B₂[i]*B₃[j] + Cᵢⱼᵢⱼ*B₃[i]*B₂[j])*𝑤
-                k[3*I,3*J-2]   += (Cᵢᵢⱼⱼ*B₃[i]*B₁[j] + Cᵢⱼᵢⱼ*B₁[i]*B₃[j])*𝑤
-                k[3*I,3*J-1]   += (Cᵢᵢⱼⱼ*B₃[i]*B₂[j] + Cᵢⱼᵢⱼ*B₂[i]*B₃[j])*𝑤
-                k[3*I,3*J]     += (Cᵢⱼᵢⱼ*B₁[i]*B₁[j] + Cᵢⱼᵢⱼ*B₂[i]*B₂[j] + Cᵢᵢᵢᵢ*B₃[i]*B₃[j])*𝑤
+                j1 = 3*J-2; j2 = 3*J-1; j3 = 3*J
+                k[i1,j1] += (Cᵢᵢᵢᵢ*B₁[i]*B₁[j] + Cᵢⱼᵢⱼ*B₂[i]*B₂[j] + Cᵢⱼᵢⱼ*B₃[i]*B₃[j])*𝑤
+                k[i1,j2] += (Cᵢᵢⱼⱼ*B₁[i]*B₂[j] + Cᵢⱼᵢⱼ*B₂[i]*B₁[j])*𝑤
+                k[i1,j3] += (Cᵢᵢⱼⱼ*B₁[i]*B₃[j] + Cᵢⱼᵢⱼ*B₃[i]*B₁[j])*𝑤
+                k[i2,j1] += (Cᵢᵢⱼⱼ*B₂[i]*B₁[j] + Cᵢⱼᵢⱼ*B₁[i]*B₂[j])*𝑤
+                k[i2,j2] += (Cᵢⱼᵢⱼ*B₁[i]*B₁[j] + Cᵢᵢᵢᵢ*B₂[i]*B₂[j] + Cᵢⱼᵢⱼ*B₃[i]*B₃[j])*𝑤
+                k[i2,j3] += (Cᵢᵢⱼⱼ*B₂[i]*B₃[j] + Cᵢⱼᵢⱼ*B₃[i]*B₂[j])*𝑤
+                k[i3,j1] += (Cᵢᵢⱼⱼ*B₃[i]*B₁[j] + Cᵢⱼᵢⱼ*B₁[i]*B₃[j])*𝑤
+                k[i3,j2] += (Cᵢᵢⱼⱼ*B₃[i]*B₂[j] + Cᵢⱼᵢⱼ*B₂[i]*B₃[j])*𝑤
+                k[i3,j3] += (Cᵢⱼᵢⱼ*B₁[i]*B₁[j] + Cᵢⱼᵢⱼ*B₂[i]*B₂[j] + Cᵢᵢᵢᵢ*B₃[i]*B₃[j])*𝑤
             end
         end
     end
@@ -44,17 +46,19 @@ function ∫εᵈᵢⱼσᵈᵢⱼdΩ(ap::T,k::AbstractMatrix{Float64}) where T<
         Cᵈ = E/(1+ν)
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
+            i1 = 3*I-2; i2 = 3*I-1; i3 = 3*I
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                k[3*I-2,3*J-2] += Cᵈ*( 2/3*B₁[i]*B₁[j]+1/2*B₂[i]*B₂[j]+1/2*B₃[i]*B₃[j])*𝑤
-                k[3*I-2,3*J-1] += Cᵈ*(-1/3*B₁[i]*B₂[j]+1/2*B₂[i]*B₁[j])*𝑤
-                k[3*I-2,3*J]   += Cᵈ*(-1/3*B₁[i]*B₃[j]+1/2*B₃[i]*B₁[j])*𝑤
-                k[3*I-1,3*J-2] += Cᵈ*(-1/3*B₂[i]*B₁[j]+1/2*B₁[i]*B₂[j])*𝑤
-                k[3*I-1,3*J-1] += Cᵈ*( 2/3*B₂[i]*B₂[j]+1/2*B₃[i]*B₃[j]+1/2*B₁[i]*B₁[j])*𝑤
-                k[3*I-1,3*J]   += Cᵈ*(-1/3*B₂[i]*B₃[j]+1/2*B₃[i]*B₂[j])*𝑤
-                k[3*I,3*J-2]   += Cᵈ*(-1/3*B₃[i]*B₁[j]+1/2*B₁[i]*B₃[j])*𝑤
-                k[3*I,3*J-1]   += Cᵈ*(-1/3*B₃[i]*B₂[j]+1/2*B₂[i]*B₃[j])*𝑤
-                k[3*I,3*J]     += Cᵈ*( 2/3*B₃[i]*B₃[j]+1/2*B₁[i]*B₁[j]+1/2*B₂[i]*B₂[j])*𝑤
+                j1 = 3*J-2; j2 = 3*J-1; j3 = 3*J
+                k[i1,j1] += Cᵈ*( 2/3*B₁[i]*B₁[j]+1/2*B₂[i]*B₂[j]+1/2*B₃[i]*B₃[j])*𝑤
+                k[i1,j2] += Cᵈ*(-1/3*B₁[i]*B₂[j]+1/2*B₂[i]*B₁[j])*𝑤
+                k[i1,j3] += Cᵈ*(-1/3*B₁[i]*B₃[j]+1/2*B₃[i]*B₁[j])*𝑤
+                k[i2,j1] += Cᵈ*(-1/3*B₂[i]*B₁[j]+1/2*B₁[i]*B₂[j])*𝑤
+                k[i2,j2] += Cᵈ*( 2/3*B₂[i]*B₂[j]+1/2*B₃[i]*B₃[j]+1/2*B₁[i]*B₁[j])*𝑤
+                k[i2,j3] += Cᵈ*(-1/3*B₂[i]*B₃[j]+1/2*B₃[i]*B₂[j])*𝑤
+                k[i3,j1] += Cᵈ*(-1/3*B₃[i]*B₁[j]+1/2*B₁[i]*B₃[j])*𝑤
+                k[i3,j2] += Cᵈ*(-1/3*B₃[i]*B₂[j]+1/2*B₂[i]*B₃[j])*𝑤
+                k[i3,j3] += Cᵈ*( 2/3*B₃[i]*B₃[j]+1/2*B₁[i]*B₁[j]+1/2*B₂[i]*B₂[j])*𝑤
             end
         end
     end
@@ -68,10 +72,12 @@ function ∫∫ρvᵢuᵢdxdy(ap::T,k::AbstractMatrix{Float64}) where T<:Abstrac
         ρ = ξ.ρ
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
+            i1 = 2*I-1; i2 = 2*I
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                k[2*I-1,2*J-1] += ρ*N[i]*N[j]*𝑤
-                k[2*I,2*J]     += ρ*N[i]*N[j]*𝑤
+                j1 = 2*J-1; j2 = 2*J
+                k[i1,j1] += ρ*N[i]*N[j]*𝑤
+                k[i2,j2] += ρ*N[i]*N[j]*𝑤
             end
         end
     end
@@ -90,12 +96,14 @@ function ∫∫εᵢⱼσᵢⱼdxdy(ap::T,k::AbstractMatrix{Float64}) where T<:A
         Cᵢⱼᵢⱼ = E/2/(1+ν)
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
+            i1 = 2*I-1; i2 = 2*I
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                k[2*I-1,2*J-1] += (Cᵢᵢᵢᵢ*B₁[i]*B₁[j] + Cᵢⱼᵢⱼ*B₂[i]*B₂[j])*𝑤
-                k[2*I-1,2*J]   += (Cᵢᵢⱼⱼ*B₁[i]*B₂[j] + Cᵢⱼᵢⱼ*B₂[i]*B₁[j])*𝑤
-                k[2*I,2*J-1]   += (Cᵢᵢⱼⱼ*B₂[i]*B₁[j] + Cᵢⱼᵢⱼ*B₁[i]*B₂[j])*𝑤
-                k[2*I,2*J]     += (Cᵢᵢᵢᵢ*B₂[i]*B₂[j] + Cᵢⱼᵢⱼ*B₁[i]*B₁[j])*𝑤
+                j1 = 2*J-1; j2 = 2*J
+                k[i1,j1] += (Cᵢᵢᵢᵢ*B₁[i]*B₁[j] + Cᵢⱼᵢⱼ*B₂[i]*B₂[j])*𝑤
+                k[i1,j2] += (Cᵢᵢⱼⱼ*B₁[i]*B₂[j] + Cᵢⱼᵢⱼ*B₂[i]*B₁[j])*𝑤
+                k[i2,j1] += (Cᵢᵢⱼⱼ*B₂[i]*B₁[j] + Cᵢⱼᵢⱼ*B₁[i]*B₂[j])*𝑤
+                k[i2,j2] += (Cᵢᵢᵢᵢ*B₂[i]*B₂[j] + Cᵢⱼᵢⱼ*B₁[i]*B₁[j])*𝑤
             end
         end
     end
@@ -117,12 +125,14 @@ function ∫∫εᵢⱼσᵢⱼdxdy(aᵤ::T,aₛ::S,k::AbstractMatrix{Float64}) 
         Cᵢⱼᵢⱼ = E/2/(1+ν)
         for (i,xᵢ) in enumerate(𝓒ₛ)
             I = xᵢ.𝐼
+            i1 = 2*I-1; i2 = 2*I
             for (j,xⱼ) in enumerate(𝓒ᵤ)
                 J = xⱼ.𝐼
-                k[2*I-1,2*J-1] += (Cᵢᵢᵢᵢ*Bₛ₁[i]*Bᵤ₁[j]+Cᵢⱼᵢⱼ*Bₛ₂[i]*Bᵤ₂[j])*𝑤
-                k[2*I-1,2*J]   += (Cᵢᵢⱼⱼ*Bₛ₁[i]*Bᵤ₂[j]+Cᵢⱼᵢⱼ*Bₛ₂[i]*Bᵤ₁[j])*𝑤
-                k[2*I,2*J-1]   += (Cᵢᵢⱼⱼ*Bₛ₂[i]*Bᵤ₁[j]+Cᵢⱼᵢⱼ*Bₛ₁[i]*Bᵤ₂[j])*𝑤
-                k[2*I,2*J]     += (Cᵢᵢᵢᵢ*Bₛ₂[i]*Bᵤ₂[j]+Cᵢⱼᵢⱼ*Bₛ₁[i]*Bᵤ₁[j])*𝑤
+                j1 = 2*J-1; j2 = 2*J
+                k[i1,j1] += (Cᵢᵢᵢᵢ*Bₛ₁[i]*Bᵤ₁[j]+Cᵢⱼᵢⱼ*Bₛ₂[i]*Bᵤ₂[j])*𝑤
+                k[i1,j2] += (Cᵢᵢⱼⱼ*Bₛ₁[i]*Bᵤ₂[j]+Cᵢⱼᵢⱼ*Bₛ₂[i]*Bᵤ₁[j])*𝑤
+                k[i2,j1] += (Cᵢᵢⱼⱼ*Bₛ₂[i]*Bᵤ₁[j]+Cᵢⱼᵢⱼ*Bₛ₁[i]*Bᵤ₂[j])*𝑤
+                k[i2,j2] += (Cᵢᵢᵢᵢ*Bₛ₂[i]*Bᵤ₂[j]+Cᵢⱼᵢⱼ*Bₛ₁[i]*Bᵤ₁[j])*𝑤
             end
         end
     end

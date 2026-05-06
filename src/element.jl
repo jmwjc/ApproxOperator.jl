@@ -31,77 +31,44 @@ function count(aps::Vector{T},i::Symbol) where T<:AbstractElement
 end
 
 function Base.push!(aps::Vector{T},ss::Symbol...;index::Symbol=:𝑠) where T<:AbstractElement
-    data = getfield(aps[1].𝓖[1],:data)
+    dat = getfield(aps[1].𝓖[1],:data)
     indices = getfield(aps[end].𝓖[end],:index)
     i = findfirst((x)->x==index,keys(indices))
     n = count(aps,index)
     for s in ss
-        data[s] = (i,zeros(n))
+        dat.value[s] = PerNodeValue(zeros(n))
+        dat.index[s] = i
     end
 end
 
-function Base.push!(aps::Vector{T},svs::Pair{Symbol, Vector{Float64}}...;index::Symbol=:𝑠) where T<:AbstractElement
-    data = getfield(aps[1].𝓖[1],:data)
+function Base.push!(aps::Vector{T},svs::Pair{Symbol,Vector{Float64}}...;index::Symbol=:𝑠) where T<:AbstractElement
+    dat = getfield(aps[1].𝓖[1],:data)
     indices = getfield(aps[end].𝓖[end],:index)
     i = findfirst((x)->x==index,keys(indices))
     for sv in svs
         s,v = sv
-        data[s] = (i,v)
+        dat.value[s] = PerNodeValue(v)
+        dat.index[s] = i
     end
-end
-
-function prescribe!(ξ::Node,sf::Pair{Symbol,F}) where F<:Function
-    s,f = sf
-    𝒙 = (ξ.x,ξ.y,ξ.z)
-    if applicable(f,𝒙...)
-        v = f(𝒙...)
-    elseif applicable(f,𝒙...,ξ.n₁)
-        v = f(𝒙...,ξ.n₁)
-    elseif applicable(f,𝒙...,ξ.n₁,ξ.n₂)
-        v = f(𝒙...,ξ.n₁,ξ.n₂)
-    elseif applicable(f,𝒙...,ξ.n₁,ξ.n₂,ξ.n₃)
-        v = f(𝒙...,ξ.n₁,ξ.n₂,ξ.n₃)
-    end
-    setproperty!(ξ,s,v)
 end
 
 function prescribe!(aps::Vector{T},sf::Pair{Symbol,F};index::Symbol=:𝐺) where {T<:AbstractElement,F<:Function}
-    s,f = sf
-    data = getfield((aps[1].𝓖)[1],:data)
+    s, f = sf
+    dat = getfield((aps[1].𝓖)[1],:data)
     indices = getfield(aps[end].𝓖[end],:index)
-    n = count(aps,index)
     i = findfirst((x)->x==index,keys(indices))
-    data[s] = (i,zeros(n))
-    if index == :𝑔
-        𝓖 = aps[1].𝓖
-        for ξ in 𝓖
-            prescribe!(ξ,sf)
-        end
-    elseif index == :𝐺
-        for ap in aps
-            𝓖 = ap.𝓖
-            for ξ in 𝓖
-                prescribe!(ξ,sf)
-            end
-        end
-    elseif index == :𝐶
-        for ap in aps
-            ξ = ap.𝓖[1]
-            prescribe!(ξ,sf)
-        end
-    else
-        error("prescribe error! Index is not supported.")
-    end
+    dat.value[s] = LazyValue(f)
+    dat.index[s] = i
 end
 
 function prescribe!(aps::Vector{T},sv::Pair{Symbol,Float64};index::Symbol=:𝐺) where T<:AbstractElement
     s,v = sv
     indices = getfield(aps[end].𝓖[end],:index)
     if index ∈ keys(indices)
-        data = getfield((aps[1].𝓖)[1],:data)
-        n = count(aps,index)
+        dat = getfield((aps[1].𝓖)[1],:data)
         i = findfirst((x)->x==index,keys(indices))
-        data[s] = (i,ones(n).*v)
+        dat.value[s] = UniformValue(v)
+        dat.index[s] = i
     else
         error("prescribe error! Index is not supported.")
     end

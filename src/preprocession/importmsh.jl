@@ -1,7 +1,12 @@
 module GmshImport
     
-using ..ApproxOperator: AbstractElement, Element, Node, 𝑿ᵢ, 𝑿ₛ, SpatialPartition, get𝑛𝑝
+using ..ApproxOperator: AbstractElement, Element, Node, 𝑿ᵢ, 𝑿ₛ, SpatialPartition, get𝑛𝑝, NodeData, PerNodeValue
 import Gmsh: gmsh
+
+function _vec(dat::NodeData, s::Symbol)
+    v = dat.value[s]
+    return v.values
+end
 
 function getPhysicalGroups()
     entities = Dict{String,Pair{Int,Vector{Int}}}()
@@ -25,8 +30,8 @@ function get𝑿ᵢ()
         y[I] = coord[3*i-1]
         z[I] = coord[3*i]
     end
-    data = Dict([:x=>(1,x),:y=>(1,y),:z=>(1,z)])
-    return [𝑿ᵢ((𝐼=i,), data) for i in 1:nₚ ]
+    dat = NodeData(x=(1,PerNodeValue(x)), y=(1,PerNodeValue(y)), z=(1,PerNodeValue(z)))
+    return [𝑿ᵢ((𝐼=i,), dat) for i in 1:nₚ ]
 end
 
 prequote = quote
@@ -42,40 +47,40 @@ prequote = quote
     elements = AbstractElement[]
 
     𝑔 = 0; 𝐺 = 0; 𝐶 = 0;𝑠 = 0;
-    data = Dict{Symbol,Tuple{Int,Vector{Float64}}}()
-    data[:w] = (1,Float64[])
-    data[:ξ] = (1,Float64[])
-    data[:x] = (2,Float64[])
-    data[:y] = (2,Float64[])
-    data[:z] = (2,Float64[])
-    data[:𝑤] = (2,Float64[])
-    data[:𝐽] = (2,Float64[])
-    data[:∂ξ∂x] = (2,Float64[])
+    data = NodeData()
+    data.value[:w] = PerNodeValue(Float64[]); data.index[:w] = 1
+    data.value[:ξ] = PerNodeValue(Float64[]); data.index[:ξ] = 1
+    data.value[:x] = PerNodeValue(Float64[]); data.index[:x] = 2
+    data.value[:y] = PerNodeValue(Float64[]); data.index[:y] = 2
+    data.value[:z] = PerNodeValue(Float64[]); data.index[:z] = 2
+    data.value[:𝑤] = PerNodeValue(Float64[]); data.index[:𝑤] = 2
+    data.value[:𝐽] = PerNodeValue(Float64[]); data.index[:𝐽] = 2
+    data.value[:∂ξ∂x] = PerNodeValue(Float64[]); data.index[:∂ξ∂x] = 2
     if normal
-        data[:n₁] = (3,Float64[])
-        data[:n₂] = (3,Float64[])
-        data[:s₁] = (3,Float64[])
-        data[:s₂] = (3,Float64[])
+        data.value[:n₁] = PerNodeValue(Float64[]); data.index[:n₁] = 3
+        data.value[:n₂] = PerNodeValue(Float64[]); data.index[:n₂] = 3
+        data.value[:s₁] = PerNodeValue(Float64[]); data.index[:s₁] = 3
+        data.value[:s₂] = PerNodeValue(Float64[]); data.index[:s₂] = 3
     end
     if dim >= 2
-        data[:η] = (1,Float64[])
+        data.value[:η] = PerNodeValue(Float64[]); data.index[:η] = 1
 
-        data[:∂ξ∂y] = (2,Float64[])
-        data[:∂η∂x] = (2,Float64[])
-        data[:∂η∂y] = (2,Float64[])
+        data.value[:∂ξ∂y] = PerNodeValue(Float64[]); data.index[:∂ξ∂y] = 2
+        data.value[:∂η∂x] = PerNodeValue(Float64[]); data.index[:∂η∂x] = 2
+        data.value[:∂η∂y] = PerNodeValue(Float64[]); data.index[:∂η∂y] = 2
         if normal
-            data[:n₃] = (3,Float64[])
-            data[:s₃] = (3,Float64[])
+            data.value[:n₃] = PerNodeValue(Float64[]); data.index[:n₃] = 3
+            data.value[:s₃] = PerNodeValue(Float64[]); data.index[:s₃] = 3
         end
     end
     if dim >= 3
-        data[:γ] = (1,Float64[])
+        data.value[:γ] = PerNodeValue(Float64[]); data.index[:γ] = 1
 
-        data[:∂ξ∂z] = (2,Float64[])
-        data[:∂η∂z] = (2,Float64[])
-        data[:∂γ∂x] = (2,Float64[])
-        data[:∂γ∂y] = (2,Float64[])
-        data[:∂γ∂z] = (2,Float64[])
+        data.value[:∂ξ∂z] = PerNodeValue(Float64[]); data.index[:∂ξ∂z] = 2
+        data.value[:∂η∂z] = PerNodeValue(Float64[]); data.index[:∂η∂z] = 2
+        data.value[:∂γ∂x] = PerNodeValue(Float64[]); data.index[:∂γ∂x] = 2
+        data.value[:∂γ∂y] = PerNodeValue(Float64[]); data.index[:∂γ∂y] = 2
+        data.value[:∂γ∂z] = PerNodeValue(Float64[]); data.index[:∂γ∂z] = 2
     end
 end
 
@@ -90,18 +95,18 @@ preForEdge = quote
         push!(tagsΩ,tagsΩ_[1]...)
     end
 
-    data[:w] = (1,Float64[])
-    data[:Δ] = (1,Float64[])
-    data[:ξ] = (2,Float64[])
-    data[:η] = (2,Float64[])
-    data[:n₁] = (3,Float64[])
-    data[:n₂] = (3,Float64[])
-    data[:s₁] = (3,Float64[])
-    data[:s₂] = (3,Float64[])
+    data.value[:w] = PerNodeValue(Float64[]); data.index[:w] = 1
+    data.value[:Δ] = PerNodeValue(Float64[]); data.index[:Δ] = 1
+    data.value[:ξ] = PerNodeValue(Float64[]); data.index[:ξ] = 2
+    data.value[:η] = PerNodeValue(Float64[]); data.index[:η] = 2
+    data.value[:n₁] = PerNodeValue(Float64[]); data.index[:n₁] = 3
+    data.value[:n₂] = PerNodeValue(Float64[]); data.index[:n₂] = 3
+    data.value[:s₁] = PerNodeValue(Float64[]); data.index[:s₁] = 3
+    data.value[:s₂] = PerNodeValue(Float64[]); data.index[:s₂] = 3
     if dim > 1
-        data[:γ] = (2,Float64[])
-        data[:n₃] = (3,Float64[])
-        data[:s₃] = (3,Float64[])
+        data.value[:γ] = PerNodeValue(Float64[]); data.index[:γ] = 2
+        data.value[:n₃] = PerNodeValue(Float64[]); data.index[:n₃] = 3
+        data.value[:s₃] = PerNodeValue(Float64[]); data.index[:s₃] = 3
     end   
 end
 
@@ -109,21 +114,21 @@ coordinates = quote
     ng = length(weights)
     ne = Int(length(nodeTag)/ni)
 
-    append!(data[:w][2],weights)
-    haskey(data,:ξ) ? append!(data[:ξ][2],localCoord[1:3:end]) : nothing
-    haskey(data,:η) ? append!(data[:η][2],localCoord[2:3:end]) : nothing
-    haskey(data,:γ) ? append!(data[:γ][2],localCoord[3:3:end]) : nothing
+    append!(_vec(data,:w),weights)
+    haskey(data,:ξ) ? append!(_vec(data,:ξ),localCoord[1:3:end]) : nothing
+    haskey(data,:η) ? append!(_vec(data,:η),localCoord[2:3:end]) : nothing
+    haskey(data,:γ) ? append!(_vec(data,:γ),localCoord[3:3:end]) : nothing
     jacobians, determinants, coord = gmsh.model.mesh.getJacobians(elementType, localCoord, tag)
     x = coord[1:3:end]
     y = coord[2:3:end]
     z = coord[3:3:end]
-    append!(data[:x][2],x)
-    append!(data[:y][2],y)
-    append!(data[:z][2],z)
+    append!(_vec(data,:x),x)
+    append!(_vec(data,:y),y)
+    append!(_vec(data,:z),z)
     for i in 1:Int(length(determinants)/ng)
         for (j,w) in enumerate(weights)
             G = ng*(i-1)+j
-            push!(data[:𝑤][2], determinants[G]*w)
+            push!(_vec(data,:𝑤), determinants[G]*w)
         end
     end
 end
@@ -139,29 +144,29 @@ coordinatesForEdges = quote
 
     nodeTag = gmsh.model.mesh.getElementEdgeNodes(elementType,tag,true)
 
-    append!(data[:w][2],weights)
+    append!(_vec(data,:w),weights)
     jacobians, determinants, coord = gmsh.model.mesh.getJacobians(elementType, localCoord, tag)
     x = coord[1:3:end]
     y = coord[2:3:end]
     z = coord[3:3:end]
-    append!(data[:x][2],x)
-    append!(data[:y][2],y)
-    append!(data[:z][2],z)
+    append!(_vec(data,:x),x)
+    append!(_vec(data,:y),y)
+    append!(_vec(data,:z),z)
     for i in 1:Int(length(determinants)/ng)
         for (j,w) in enumerate(weights)
             G = ng*(i-1)+j
-            push!(data[:𝑤][2], determinants[G]*w)
+            push!(_vec(data,:𝑤), determinants[G]*w)
         end
     end
 
     for g in 1:ng
         ξg = localCoord[3*g-2]
         if ξg ≈ 1.0
-            push!(data[:Δ][2], 1.0)
+            push!(_vec(data,:Δ), 1.0)
         elseif ξg ≈ -1.0
-            push!(data[:Δ][2], -1.0)
+            push!(_vec(data,:Δ), -1.0)
         else
-            push!(data[:Δ][2], 0.0)
+            push!(_vec(data,:Δ), 0.0)
         end
     end
     for CΩ_ in 1:Int(ne/nb)
@@ -174,16 +179,16 @@ coordinatesForEdges = quote
             coord, = gmsh.model.mesh.getNode(nodeTag[2*C])
             x₂ = coord[1]
             y₂ = coord[2]
-            push!(data[:n₁][2], (y₂-y₁)/𝐿)
-            push!(data[:n₂][2], (x₁-x₂)/𝐿)
-            push!(data[:s₁][2], (x₂-x₁)/𝐿)
-            push!(data[:s₂][2], (y₂-y₁)/𝐿)
+            push!(_vec(data,:n₁), (y₂-y₁)/𝐿)
+            push!(_vec(data,:n₂), (x₁-x₂)/𝐿)
+            push!(_vec(data,:s₁), (x₂-x₁)/𝐿)
+            push!(_vec(data,:s₂), (y₂-y₁)/𝐿)
             for g in 1:ng
                 G = ng*(C-1)+g
                 ξ, η, γ = gmsh.model.mesh.getLocalCoordinatesInElement(tagΩ, x[G], y[G], z[G])
-                push!(data[:ξ][2], ξ)
-                push!(data[:η][2], η)
-                haskey(data,:γ) ? push!(data[:γ][2], γ) : nothing
+                push!(_vec(data,:ξ), ξ)
+                push!(_vec(data,:η), η)
+                haskey(data,:γ) ? push!(_vec(data,:γ), γ) : nothing
             end
         end
     end
@@ -209,13 +214,7 @@ curvilinearCoordinates = quote
                 𝑤[G] = determinants[G]*cs.𝐽(x_)*w
             end
         end
-        data = Dict([
-            :w=>(1,weights),
-            :x=>(2,x),
-            :y=>(2,y),
-            :z=>(2,z),
-            :𝑤=>(2,𝑤),
-        ])
+        data = NodeData(w=(1,PerNodeValue(weights)),x=(2,PerNodeValue(x)),y=(2,PerNodeValue(y)),z=(2,PerNodeValue(z)),𝑤=(2,PerNodeValue(𝑤)))
     elseif dim == 1
         Δ = zeros(ng)
         ∂x∂ξ = jacobians[1:9:end]
@@ -306,40 +305,41 @@ curvilinearCoordinates = quote
                 Δ[g] = 0.0
             end
         end
-        data = Dict([
-            :w=>(1,weights),
-            :x=>(2,x),
-            :y=>(2,y),
-            :z=>(2,z),
-            :𝑤=>(2,𝑤),
-            :n₁=>(2,n₁),
-            :n₂=>(2,n₂),
-            :n¹=>(2,n¹),
-            :n²=>(2,n²),
-            :s₁=>(2,s₁),
-            :s₂=>(2,s₂),
-            :s¹=>(2,s¹),
-            :s²=>(2,s²),
-            :∂₁n₁=>(2,∂₁n₁),
-            :∂₁n₂=>(2,∂₁n₂),
-            :∂₂n₁=>(2,∂₂n₁),
-            :∂₂n₂=>(2,∂₂n₂),
-            :∂₁s₁=>(2,∂₁s₁),
-            :∂₁s₂=>(2,∂₁s₂),
-            :∂₂s₁=>(2,∂₂s₁),
-            :∂₂s₂=>(2,∂₂s₂),
-            :Δ=>(1,Δ),
-        ])
+        data = NodeData(
+            w=(1,PerNodeValue(weights)),
+            x=(2,PerNodeValue(x)),
+            y=(2,PerNodeValue(y)),
+            z=(2,PerNodeValue(z)),
+            𝑤=(2,PerNodeValue(𝑤)),
+            n₁=(2,PerNodeValue(n₁)),
+            n₂=(2,PerNodeValue(n₂)),
+            n¹=(2,PerNodeValue(n¹)),
+            n²=(2,PerNodeValue(n²)),
+            s₁=(2,PerNodeValue(s₁)),
+            s₂=(2,PerNodeValue(s₂)),
+            s¹=(2,PerNodeValue(s¹)),
+            s²=(2,PerNodeValue(s²)),
+            ∂₁n₁=(2,PerNodeValue(∂₁n₁)),
+            ∂₁n₂=(2,PerNodeValue(∂₁n₂)),
+            ∂₂n₁=(2,PerNodeValue(∂₂n₁)),
+            ∂₂n₂=(2,PerNodeValue(∂₂n₂)),
+            ∂₁s₁=(2,PerNodeValue(∂₁s₁)),
+            ∂₁s₂=(2,PerNodeValue(∂₁s₂)),
+            ∂₂s₁=(2,PerNodeValue(∂₂s₁)),
+            ∂₂s₂=(2,PerNodeValue(∂₂s₂)),
+            Δ=(1,PerNodeValue(Δ)),
+        )
     end
     if dim == 2
-        push!(data, :ξ=>(1,ξ), :η=>(1,η))
+        data.value[:ξ] = PerNodeValue(ξ); data.index[:ξ] = 1
+        data.value[:η] = PerNodeValue(η); data.index[:η] = 1
     else
-        push!(data, :ξ=>(1,ξ))
+        data.value[:ξ] = PerNodeValue(ξ); data.index[:ξ] = 1
     end
 end
 
 cal_jacobe = quote
-    append!(data[:𝐽][2],determinants)
+    append!(_vec(data,:𝐽),determinants)
     J = zeros(3,3)
     ∂ξ∂x = zeros(ne*ng)
     ∂ξ∂y = zeros(ne*ng)
@@ -373,17 +373,18 @@ cal_jacobe = quote
             ∂γ∂z[ng*(C-1)+g] = J⁻¹[3,3]
         end
     end
-    append!(data[:∂ξ∂x][2],∂ξ∂x)
+    append!(_vec(data,:∂ξ∂x),∂ξ∂x)
     if dim >= 2
-        append!(data[:∂ξ∂y][2],∂ξ∂y)
-        append!(data[:∂η∂x][2],∂η∂x)
-        append!(data[:∂η∂y][2],∂η∂y)
-    elseif dim >= 3
-        append!(data[:∂ξ∂z][2],∂ξ∂z)
-        append!(data[:∂η∂z][2],∂η∂z)
-        append!(data[:∂γ∂x][2],∂γ∂x)
-        append!(data[:∂γ∂y][2],∂γ∂y)
-        append!(data[:∂γ∂z][2],∂γ∂z)
+        append!(_vec(data,:∂ξ∂y),∂ξ∂y)
+        append!(_vec(data,:∂η∂x),∂η∂x)
+        append!(_vec(data,:∂η∂y),∂η∂y)
+    end
+    if dim >= 3
+        append!(_vec(data,:∂ξ∂z),∂ξ∂z)
+        append!(_vec(data,:∂η∂z),∂η∂z)
+        append!(_vec(data,:∂γ∂x),∂γ∂x)
+        append!(_vec(data,:∂γ∂y),∂γ∂y)
+        append!(_vec(data,:∂γ∂z),∂γ∂z)
     end
 end
 
@@ -403,10 +404,10 @@ cal_normal = quote
                 coord, = gmsh.model.mesh.getNode(nodeTags[2*C])
                 x₂ = coord[1]
                 y₂ = coord[2]
-                push!(data[:n₁][2], (y₂-y₁)/𝐿)
-                push!(data[:n₂][2], (x₁-x₂)/𝐿)
-                push!(data[:s₁][2], (x₂-x₁)/𝐿)
-                push!(data[:s₂][2], (y₂-y₁)/𝐿)
+                push!(data.value[:n₁], (y₂-y₁)/𝐿)
+                push!(data.value[:n₂], (x₁-x₂)/𝐿)
+                push!(data.value[:s₁], (x₂-x₁)/𝐿)
+                push!(data.value[:s₂], (y₂-y₁)/𝐿)
             end
         end
         if dim == 2
@@ -433,9 +434,9 @@ cal_normal = quote
                 if elementType == 3
                     𝐽 *= 8
                 end
-                push!(data[:n₁][2], n₁/𝐽)
-                push!(data[:n₂][2], n₂/𝐽)
-                push!(data[:n₃][2], n₃/𝐽)
+                push!(data.value[:n₁], n₁/𝐽)
+                push!(data.value[:n₂], n₂/𝐽)
+                push!(data.value[:n₃], n₃/𝐽)
             end
         end
     end

@@ -281,3 +281,21 @@ Returned by `getElements`. Downstream code like `set𝝭!.(elements)` cannot spe
 | 🟡 P2 | Return concretely typed vectors from getElements | Type-stable downstream code |
 | 🔵 P3 | Refactor Node to struct-of-arrays or flat struct | ~30-50% speedup in all Dict-access-heavy paths (major refactor) |
 | 🔵 P3 | Lazy moment matrix for high-order RK | Memory reduction from ~98 MB to O(n) |
+
+---
+
+## 11. Improvement Schedule (Todo)
+
+| Status | Priority | Task | Owner | Target |
+|--------|----------|------|-------|--------|
+| ☑ | P0 | Fix `heat.jl:72-73` bug (unbound variables) | — | — |
+| ☐ | P0 | Precompute `I/J` indices in assembly loops | — | — |
+| ☐ | P0 | Precompute `3*I±k` offsets in elasticity | — | — |
+| ☐ | P1 | Hoist material constants out of Gauss loop | — | — |
+| ☐ | P1 | Replace broadcast `set𝝭!.(as)` with for-loop | — | — |
+| ☐ | P1 | Replace `ones(n).*v` with `fill(v,n)` in prescribe! | — | — |
+| ☐ | P2 | Cache `findfirst` index mapping | — | — |
+| ☐ | P2 | Inline Node coordinate subtractions in RK | — | — |
+| ☐ | P2 | Return concretely typed vectors from getElements | — | — |
+| ☐ | P3 | Refactor Node to struct-of-arrays or flat struct | — | — |
+| ☐ | P3 | Lazy moment matrix for high-order RK | — | — |
