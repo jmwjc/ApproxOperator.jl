@@ -596,6 +596,22 @@ function ∫αwwdΓ(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:Abstract
     end
 end
 
+function ∫αwwdΓ(ap::T,k::AbstractMatrix) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    α = ap.α
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I,J] += α*N[i]*N[j]*𝑤
+            end
+        end
+    end
+end
+
 function ∫αφφdΓ(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     α = ap.α
@@ -618,6 +634,28 @@ function ∫αφφdΓ(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:Abstra
             end
             f[2*I-1] += α*N[i]*(n₁₁*g₁+n₁₂*g₂)*𝑤
             f[2*I]   += α*N[i]*(n₁₂*g₁+n₂₂*g₂)*𝑤
+        end
+    end
+end
+
+function ∫αφφdΓ(ap::T,k::AbstractMatrix) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    α = ap.α
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        n₁₁ = ξ.n₁₁
+        n₁₂ = ξ.n₁₂
+        n₂₂ = ξ.n₂₂
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[2*I-1,2*J-1] += α*N[i]*n₁₁*N[j]*𝑤
+                k[2*I,2*J-1]   += α*N[i]*n₁₂*N[j]*𝑤
+                k[2*I-1,2*J]   += α*N[i]*n₁₂*N[j]*𝑤
+                k[2*I,2*J]     += α*N[i]*n₂₂*N[j]*𝑤
+            end
         end
     end
 end
