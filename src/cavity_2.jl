@@ -99,16 +99,16 @@ f = [fᵘ;fᵖ]
 
 @timeit to "solve" d = k\f
 
-push!(nodes, :d₁=>d[1:2:2*nᵘ], :d₂=>d[2:2:2*nᵘ])
+push!(nodes, :d₁=>d[1:2:2*nᵘ], :d₂=>d[2:2:2*nᵘ], :d₃=>zeros(nᵘ))
 push!(nodes_p, :p=>d[2*nᵘ+1:end])
 
 elements = getElements(nodes, entities["Ω"])
 set∇𝝭!(elements)
-L₂error = L₂(elements)
+# L₂error = L₂(elements)
 gmsh.finalize()
 
 println(to)
-println("L₂ error: ", L₂error)
+# println("L₂ error: ", L₂error)
 
 # pressure = zeros(nᵘ)
 # u₁ = zeros(nᵘ)

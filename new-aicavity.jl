@@ -11,6 +11,10 @@
 # ============================================================================
 
 # ========================== Section 1: Dependencies ==========================
+
+# 自动切换到 Stokes-equation 目录
+cd(@__DIR__)
+
 using ApproxOperator
 using ApproxOperator.GmshImport: getPhysicalGroups, get𝑿ᵢ, getElements
 using WriteVTK
@@ -264,6 +268,9 @@ for step in 1:nsteps
     # ---- 7.3 VTK 输出 ----
     if step % vtk_step == 0 || step == nsteps
         @info "Writing VTK for step $step..."
+
+        # 确保输出文件夹存在
+        mkpath("./vtk/cavity-Convection")
 
         # 获取速度网格单元 (用于 VTK 拓扑)
         elements_vtk = getElements(nodes, entities["Ω"])
