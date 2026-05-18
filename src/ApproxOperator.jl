@@ -17,6 +17,7 @@ include("approximation/quad8.jl")
 include("approximation/tri3.jl")
 include("approximation/tri6.jl")
 include("approximation/tet4.jl")
+include("approximation/tet10.jl")
 include("approximation/hex8.jl")
 include("approximation/seg2.jl")
 include("approximation/seg3.jl")
@@ -43,6 +44,7 @@ include("operation/thick_plate.jl")
 include("operation/hamilton.jl")
 include("operation/test.jl")
 include("operation/stokes.jl")
+include("operation/weighted_residual.jl")
 # include("operation/phasefield.jl")
 # include("operation/error_estimates.jl")
 
@@ -59,5 +61,6 @@ export getPhysicalGroups, get𝑿ᵢ, getElements, addEdgeElements, getDOFs
 export getPiecewiseElements, getPiecewiseBoundaryElements
 export getMacroElements, getMacroBoundaryElements, getCurvedElements, getCurvedPiecewiseElements
 export Tri3toTriBell, Tri3toTriHermite, Seg2toSegHermite
+export WeightedResidual
 
 end

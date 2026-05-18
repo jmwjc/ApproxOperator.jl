@@ -1,4 +1,32 @@
 
+const Element1D = Union{
+    Element{:Seg2},
+    Element{:Seg3},
+    Element{:SegHermite},
+    ReproducingKernel{:Linear1D},
+    ReproducingKernel{:Quadratic1D},
+    ReproducingKernel{:Cubic1D}
+}
+const Element2D = Union{
+    Element{:Tri3},
+    Element{:Tri6},
+    Element{:TriBell},
+    Element{:TriHermite},
+    Element{:Quad4},
+    Element{:Quad8},
+    ReproducingKernel{:Linear2D},
+    ReproducingKernel{:Quadratic2D},
+    ReproducingKernel{:Cubic2D}
+}
+const Element3D = Union{
+    Element{:Tet4},
+    Element{:Tet10},
+    Element{:Hex8},
+    ReproducingKernel{:Linear3D},
+    ReproducingKernel{:Quadratic3D},
+    ReproducingKernel{:Cubic3D}
+}
+
 for set𝝭 in (:set𝝭!,:set∇𝝭!,:set∇²𝝭!,:set∇̂³𝝭!)
     @eval begin
         function $set𝝭(a::T) where T<:AbstractElement

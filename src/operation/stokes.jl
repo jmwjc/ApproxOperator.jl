@@ -69,24 +69,25 @@ function ∫∫ρ∇uvudxdy(aᵤ::T, M::AbstractMatrix{Float64}) where T<:Abstra
     𝓖 = aᵤ.𝓖
     for ξ in 𝓖
         N = ξ[:𝝭]
-        B₁ = ξ[:∂𝝭∂x]  # 速度形函数 x 导数
-        B₂ = ξ[:∂𝝭∂y]  # 速度形函数 y 导数
+        B₁ = ξ[:∂𝝭∂x]  
+        B₂ = ξ[:∂𝝭∂y]  
         ρ = ξ.ρ
         𝑤 = ξ.𝑤
-        u₁ = ξ.u₁  # 速度向量从积分点取出
-        u₂ = ξ.u₂  # 速度向量从积分点取出
-        ∂u₁∂x = ξ.∂u₁∂x  # 速度梯度从积分点取出
-        ∂u₁∂y = ξ.∂u₁∂y  # 速度梯度从积分点取出
-        ∂u₂∂x = ξ.∂u₂∂x  # 速度梯度从积分点取出
-        ∂u₂∂y = ξ.∂u₂∂y  # 速度梯度从积分点取出
+        u₁ = ξ.u₁  
+        u₂ = ξ.u₂  
+        ∂u₁∂x = ξ.∂u₁∂x  
+        ∂u₁∂y = ξ.∂u₁∂y  
+        ∂u₂∂x = ξ.∂u₂∂x 
+        ∂u₂∂y = ξ.∂u₂∂y  
+        
         for (i, xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
             for (j, xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
                 M[2I-1, 2J-1] += ρ * N[i] * (∂u₁∂x*N[j] + u₁*B₁[j] + u₂*B₂[j]) * 𝑤
-                M[2I-1, 2J]   += ρ * N[i] * ∇u * B₁[j]  * 𝑤
-                M[2I,   2J-1] += ρ * N[i] * ∇u * B₁[j]  * 𝑤
-                M[2I,   2J]   += ρ * N[i] * (∇u * B₁[j] + u * B₂[j]) * 𝑤
+                M[2I-1, 2J]   += ρ * N[i] * ∂u₁∂y*N[j]  * 𝑤
+                M[2I,   2J-1] += ρ * N[i] * ∂u₂∂x*N[j]  * 𝑤
+                M[2I,   2J]   += ρ * N[i] * (∂u₂∂y*N[j] + u₁*B₁[j] + u₂*B₂[j]) * 𝑤
             end
         end
     end
@@ -99,14 +100,31 @@ function update_velocity(a::T) where T<:AbstractElement
         N = ξ[:𝝭]
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
-        Δu₁ = 0.0
-        Δ∂u₁∂x = 0.0
+
+        u₁_val = 0.0
+        ∂u₁∂x_val = 0.0
+        ∂u₁∂y_val = 0.0
+
+        u₂_val = 0.0
+        ∂u₂∂x_val = 0.0
+        ∂u₂∂y_val = 0.0
+
         for (i, xᵢ) in enumerate(𝓒)
-            Δu₁ += N[i]*xᵢ.d₁
-            Δ∂u₁∂x += B₁[i]*xᵢ.d₁
+            u₁_val += N[i]*xᵢ.d₁
+            ∂u₁∂x_val += B₁[i]*xᵢ.d₁
+            ∂u₁∂y_val += B₂[i]*xᵢ.d₁
+
+            u₂_val += N[i]*xᵢ.d₂
+            ∂u₂∂x_val += B₁[i]*xᵢ.d₂
+            ∂u₂∂y_val += B₂[i]*xᵢ.d₂
         end
-        ξ.u₁ += Δu₁
-        ξ.∂u₁∂x += Δ∂u₁∂x
+        ξ.u₁ = u₁_val
+        ξ.u₂ = u₂_val
+
+        ξ.∂u₁∂x = ∂u₁∂x_val
+        ξ.∂u₁∂y = ∂u₁∂y_val
+        ξ.∂u₂∂x = ∂u₂∂x_val
+        ξ.∂u₂∂y = ∂u₂∂y_val
     end
 end
 
