@@ -59,6 +59,6 @@ export set𝝭!, set∇𝝭!, set∇²𝝭!, set∇̂³𝝭!
 export getPhysicalGroups, get𝑿ᵢ, getElements, addEdgeElements, getDOFs
 export getPiecewiseElements, getPiecewiseBoundaryElements
 export getMacroElements, getMacroBoundaryElements, getCurvedElements, getCurvedPiecewiseElements
-export Tri3toTriBell, Tri3toTriHermite, Seg2toSegHermite
+export Tri3toTriBell, Tri3toTriHermite, Seg2toSegHermite, Tri3toTRTri3, Tri3toDTRTri3, Seg2toTRTri3
 
 end

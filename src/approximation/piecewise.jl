@@ -8,10 +8,17 @@ struct PiecewiseParametric{𝑝,T}<:AbstractPiecewise
     𝓖::Vector{𝑿ₛ}
 end
 
+struct PiecewiseTangent{𝑝}<:AbstractPiecewise
+    𝓒::Vector{𝑿ᵢ}
+    𝓖::Vector{𝑿ₛ}
+end
+
 get𝑛𝑝(::PiecewisePolynomial{:Constant}) = 1
 get𝑛𝑝(::PiecewiseParametric{:Constant}) = 1
+get𝑛𝑝(::PiecewiseTangent{:Constant}) = 1
 get𝑛𝑝(::PiecewisePolynomial{:Linear1D}) = 2
 get𝑛𝑝(::PiecewiseParametric{:Linear1D}) = 2
+get𝑛𝑝(::PiecewiseTangent{:Linear1D}) = 2
 get𝑛𝑝(::PiecewisePolynomial{:Quadratic1D}) = 3
 get𝑛𝑝(::PiecewiseParametric{:Quadratic1D}) = 3
 get𝑛𝑝(::PiecewisePolynomial{:Cubic1D}) = 4
@@ -589,4 +596,19 @@ function set∇𝝭!(::PiecewiseParametric{:Bubble,:Quad},𝒙::Node)
     ∂𝝭∂y = 𝒙[:∂𝝭∂y]
     ∂𝝭∂x[1] = - 2*ξ*(1.0-η^2)*𝒙.∂ξ∂x - 2*η*(1.0-ξ^2)*𝒙.∂η∂x
     ∂𝝭∂y[1] = - 2*ξ*(1.0-η^2)*𝒙.∂ξ∂y - 2*η*(1.0-ξ^2)*𝒙.∂η∂y
+end
+
+function set𝝭!(::PiecewiseTangent{:Constant},𝒙::Node)
+    𝝭 = 𝒙[:𝝭]
+    𝝭[1] = 1.0
+end
+
+function set𝝭!(::PiecewiseTangent{:Linear1D},𝒙::Node)
+    n₁ = 𝒙.n₁
+    n₂ = 𝒙.n₂
+    nₘ = abs(n₁) ≥ abs(n₂) ? sign(n₁) : sign(n₂)
+    𝝭 = 𝒙[:𝝭]
+    𝝭[1] = 1.0
+    # 𝝭[2] = nₘ > 0.0 ? 0.5*(1.0-𝒙.ξ) : 0.5*(1.0-𝒙.ξ)
+    𝝭[2] = nₘ > 0.0 ? 𝒙.ξ : -𝒙.ξ
 end

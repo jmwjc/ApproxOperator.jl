@@ -624,31 +624,31 @@ function L₂φ(aps::Vector{T}) where T<:AbstractElement
 end
 
 function L₂(ap::T) where T<:AbstractElement
-    Δu²= 0
-    ū² = 0
+    Δw²= 0
+    w̄² = 0
     for ξ in ap.𝓖
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
-        ū = ξ.u
-        u = 0
+        w̄ = ξ.w
+        w = 0
         for (i,xᵢ) in enumerate(ap.𝓒)
-            u += N[i]*xᵢ.d
+            w += N[i]*xᵢ.d
         end
-        Δu² +=(u - ū)^2*𝑤
-        ū²  += ū^2*𝑤
+        Δw² +=(w - w̄)^2*𝑤
+        w̄²  += w̄^2*𝑤
     end
-    return Δu², ū²
+    return Δw², w̄²
 end
 
 function L₂(aps::Vector{T}) where T<:AbstractElement
-    L₂Norm_Δu²= 0
-    L₂Norm_ū² = 0
+    L₂Norm_Δw²= 0
+    L₂Norm_w̄² = 0
     for ap in aps
-        Δu², ū² = L₂(ap)
-        L₂Norm_Δu² += Δu²
-        L₂Norm_ū²  += ū²
+        Δw², w̄² = L₂(ap)
+        L₂Norm_Δw² += Δw²
+        L₂Norm_w̄²  += w̄²
     end
-    return (L₂Norm_Δu²/L₂Norm_ū²)^0.5
+    return (L₂Norm_Δw²/L₂Norm_w̄²)^0.5
 end
 
 end

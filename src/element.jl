@@ -11,6 +11,11 @@ struct ReproducingKernel{𝑝,𝑠,𝜙}<:AbstractElement
     𝓖::Vector{𝑿ₛ}
 end
 
+struct TRElement{T} <: AbstractElement
+    𝓒::Vector{𝑿ⱼ}
+    𝓖::Vector{𝑿ₛ}
+end
+
 function Base.getproperty(a::T,s::Symbol) where T<:AbstractElement
     if s∈(:𝓒,:𝓖)
         return getfield(a,s)
