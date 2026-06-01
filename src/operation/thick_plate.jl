@@ -557,10 +557,6 @@ end
 function L₂Q(ap::T) where T<:AbstractElement
     ΔQ²= 0
     Q̄² = 0
-    E = ap.E
-    ν = ap.ν
-    h = ap.h
-    Dˢ = 5/6*E*h/(2*(1+ν))
     for ξ in ap.𝓖
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
@@ -573,8 +569,8 @@ function L₂Q(ap::T) where T<:AbstractElement
             Q₁ += N[i]*xᵢ.q₁
             Q₂ += N[i]*xᵢ.q₂
         end
-        ΔQ² +=((Q₁ - Q̄₁)^2 + (Q₂ - Q̄₂)^2)/Dˢ*𝑤
-        Q̄²  += (Q̄₁^2 + Q̄₂^2)/Dˢ*𝑤
+        ΔQ² +=((Q₁ - Q̄₁)^2 + (Q₂ - Q̄₂)^2)*𝑤
+        Q̄²  += (Q̄₁^2 + Q̄₂^2)*𝑤
     end
     return ΔQ², Q̄²
 end
@@ -624,8 +620,8 @@ function L₂φ(aps::Vector{T}) where T<:AbstractElement
 end
 
 function L₂w(ap::T) where T<:AbstractElement
-    Δu²= 0
-    ū² = 0
+    Δw²= 0
+    w̄² = 0
     for ξ in ap.𝓖
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
