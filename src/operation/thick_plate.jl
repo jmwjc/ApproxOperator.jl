@@ -838,4 +838,40 @@ function ∫∇φσ∇φdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
+function ∫ρhwwdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    ρh = ap.ρ * ap.h
+    for ξ in 𝓖
+        N = ξ[:𝝭]
+        𝑤 = ξ.𝑤
+        for (i, xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j, xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I, J] += ρh * N[i] * N[j] * 𝑤
+            end
+        end
+    end
+end
+
+function ∫ρIφφdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    ρI = ap.ρ * ap.h^3 / 12.0
+    for ξ in 𝓖
+        N = ξ[:𝝭]
+        𝑤 = ξ.𝑤
+        for (i, xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j, xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                val = ρI * N[i] * N[j] * 𝑤
+                k[2I-1, 2J-1] += val
+                k[2I,   2J]   += val
+            end
+        end
+    end
+end
+
 end
