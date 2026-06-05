@@ -554,6 +554,45 @@ function ∫αφφdΓ(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:Abstra
     end
 end
 
+function ∫αwwdΓ(ap::T,k::AbstractMatrix) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    α = ap.α
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I,J] += α*N[i]*N[j]*𝑤
+            end
+        end
+    end
+end
+
+function ∫αφφdΓ(ap::T,k::AbstractMatrix) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    α = ap.α
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        n₁₁ = ξ.n₁₁
+        n₁₂ = ξ.n₁₂
+        n₂₂ = ξ.n₂₂
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[2*I-1,2*J-1] += α*N[i]*n₁₁*N[j]*𝑤
+                k[2*I,2*J-1]   += α*N[i]*n₁₂*N[j]*𝑤
+                k[2*I-1,2*J]   += α*N[i]*n₁₂*N[j]*𝑤
+                k[2*I,2*J]     += α*N[i]*n₂₂*N[j]*𝑤
+            end
+        end
+    end
+end
+
+
 function L₂Q(ap::T) where T<:AbstractElement
     ΔQ²= 0
     Q̄² = 0
@@ -584,6 +623,7 @@ function L₂Q(aps::Vector{T}) where T<:AbstractElement
         L₂Norm_Q̄²  += Q̄²
     end
     return (L₂Norm_ΔQ²/L₂Norm_Q̄²)^0.5
+    # return (L₂Norm_ΔQ²)^0.5
 end
 
 

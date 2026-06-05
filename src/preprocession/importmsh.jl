@@ -444,7 +444,7 @@ end
 integrationByGmsh = quote
     ~, ~, order, ni = gmsh.model.mesh.getElementProperties(elementType)
     if integrationOrder < 0 integrationOrder = order end
-    integrationType = "Gauss"*string(integrationOrder)
+    integrationType = "CompositeGauss"*string(integrationOrder)
     localCoord, weights = gmsh.model.mesh.getIntegrationPoints(elementType,integrationType)
 end
 
