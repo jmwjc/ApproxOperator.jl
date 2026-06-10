@@ -296,6 +296,7 @@ function getTriEdgeIndices(as::Vector{T}) where T<:AbstractElement
 end
 
 function Tri3toTRTri3(as::Vector{T},as_Γ::Vector{S}) where {T,S<:AbstractElement}
+    nodes = 𝑿ⱼ[]
     elms_Γ = Element{:Seg2}[]
     𝑿ᵢs = [Set((a.𝓒...,)) for a in as_Γ]
     unique!(𝑿ᵢs)
@@ -329,10 +330,11 @@ function Tri3toTRTri3(as::Vector{T},as_Γ::Vector{S}) where {T,S<:AbstractElemen
             𝐼 = findfirst(x->x==𝑿ᵢs_[i],𝑿ᵢs)
             xⱼ = 𝑿ⱼ((𝐼,𝐽),data𝓒)
             push!(𝓒,xⱼ)
+            push!(nodes,xⱼ)
         end
         push!(elms,TRElement{:Tri3}(𝓒,𝓖))
     end
-    return elms, elms_Γ
+    return elms, elms_Γ, nodes
 end
 
 function Tri3toDTRTri3(as::Vector{T},as_Γ::Vector{S}) where {T,S<:AbstractElement}
