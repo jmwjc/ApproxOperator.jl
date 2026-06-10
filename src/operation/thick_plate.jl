@@ -667,12 +667,18 @@ function L₂w(ap::T) where T<:AbstractElement
         N = ξ[:𝝭]
         w̄ = ξ.w
         w = 0
+        w̄ = ξ.w
+        w = 0
         for (i,xᵢ) in enumerate(ap.𝓒)
+            w += N[i]*xᵢ.d
             w += N[i]*xᵢ.d
         end
         Δw² +=(w - w̄)^2*𝑤
         w̄²  += w̄^2*𝑤
+        Δw² +=(w - w̄)^2*𝑤
+        w̄²  += w̄^2*𝑤
     end
+    return Δw², w̄²
     return Δw², w̄²
 end
 
@@ -684,6 +690,7 @@ function L₂w(aps::Vector{T}) where T<:AbstractElement
         L₂Norm_Δw² += Δw²
         L₂Norm_w̄²  += w̄²
     end
+    return (L₂Norm_Δw²/L₂Norm_w̄²)^0.5
     return (L₂Norm_Δw²/L₂Norm_w̄²)^0.5
 end
 

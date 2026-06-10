@@ -17,6 +17,7 @@ include("approximation/quad8.jl")
 include("approximation/tri3.jl")
 include("approximation/tri6.jl")
 include("approximation/tet4.jl")
+include("approximation/tet10.jl")
 include("approximation/hex8.jl")
 include("approximation/seg2.jl")
 include("approximation/seg3.jl")
@@ -58,6 +59,6 @@ export set𝝭!, set∇𝝭!, set∇²𝝭!, set∇̂³𝝭!
 export getPhysicalGroups, get𝑿ᵢ, getElements, addEdgeElements, getDOFs
 export getPiecewiseElements, getPiecewiseBoundaryElements
 export getMacroElements, getMacroBoundaryElements, getCurvedElements, getCurvedPiecewiseElements
-export Tri3toTriBell, Tri3toTriHermite, Seg2toSegHermite
+export Tri3toTriBell, Tri3toTriHermite, Seg2toSegHermite, Tri3toTRTri3, Tri3toDTRTri3, Seg2toTRTri3
 
 end

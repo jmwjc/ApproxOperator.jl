@@ -397,12 +397,12 @@ cal_normal = quote
         if dim == 1
             for C in 1:ne
                 𝐿 = 2*determinants[C*ng]
-                coord, = gmsh.model.mesh.getNode(nodeTags[2*C-1])
-                x₁ = coord[1]
-                y₁ = coord[2]
-                coord, = gmsh.model.mesh.getNode(nodeTags[2*C])
-                x₂ = coord[1]
-                y₂ = coord[2]
+                coord_, = gmsh.model.mesh.getNode(nodeTags[2*C-1])
+                x₁ = coord_[1]
+                y₁ = coord_[2]
+                coord_, = gmsh.model.mesh.getNode(nodeTags[2*C])
+                x₂ = coord_[1]
+                y₂ = coord_[2]
                 push!(data[:n₁][2], (y₂-y₁)/𝐿)
                 push!(data[:n₂][2], (x₁-x₂)/𝐿)
                 push!(data[:s₁][2], (x₂-x₁)/𝐿)
@@ -417,14 +417,14 @@ cal_normal = quote
                 n₂ = 0.0
                 n₃ = 0.0
                 for i in 1:2:nₙ
-                    coord, = gmsh.model.mesh.getNode(nodeTags[nₙ*(C-1)+i])
-                    x₁ = coord[1]
-                    y₁ = coord[2]
-                    z₁ = coord[3]
-                    coord, = gmsh.model.mesh.getNode(nodeTags[nₙ*(C-1)+i+1])
-                    x₂ = coord[1]
-                    y₂ = coord[2]
-                    z₂ = coord[3]
+                    coord_, = gmsh.model.mesh.getNode(nodeTags[nₙ*(C-1)+i])
+                    x₁ = coord_[1]
+                    y₁ = coord_[2]
+                    z₁ = coord_[3]
+                    coord_, = gmsh.model.mesh.getNode(nodeTags[nₙ*(C-1)+i+1])
+                    x₂ = coord_[1]
+                    y₂ = coord_[2]
+                    z₂ = coord_[3]
 
                     n₁ += y₁*z₂-y₂*z₁
                     n₂ += z₁*x₂-z₂*x₁
@@ -509,16 +509,33 @@ end
 
 generateForPiecewise = quote
     data𝓒 = Dict{Symbol,Tuple{Int,Vector{Float64}}}()
-    ni = get𝑛𝑝(type(𝑿ᵢ[],𝑿ₛ[]))
-    for C in 1:ne
-        𝐶 += 1
-        𝓒 = [𝑿ᵢ((𝐼=ni*(𝐶-1)+j,),data𝓒) for j in 1:ni]
-        𝓖 = [𝑿ₛ((𝑔 = 𝑔+g, 𝐺 = 𝐺+g, 𝐶 = 𝐶, 𝑠 = 𝑠+(g-1)*ni), data) for g in 1:ng]
-        𝐺 += ng
-        𝑠 += ng*ni
-        push!(elements,type(𝓒,𝓖))
+    if uniq
+        if dim == 1
+            indices = [Set([nodeTag[ni*(C-1)+1:ni*C]...]) for C in 1:ne]
+            unique!(indices)
+            ni_ = get𝑛𝑝(type(𝑿ᵢ[],𝑿ₛ[]))
+            for C in 1:ne
+                𝐶 += 1
+                I = findfirst(x->x==Set([nodeTag[ni*(𝐶-1)+1:ni*𝐶]...]),indices)
+                𝓒 = [𝑿ᵢ((𝐼=ni_*(I-1)+j,),data𝓒) for j in 1:ni_]
+                𝓖 = [𝑿ₛ((𝑔 = 𝑔+g, 𝐺 = 𝐺+g, 𝐶 = 𝐶, 𝑠 = 𝑠+(g-1)*ni_), data) for g in 1:ng]
+                𝐺 += ng
+                𝑠 += ng*ni_
+                push!(elements,type(𝓒,𝓖))
+            end
+        end
+    else
+        ni = get𝑛𝑝(type(𝑿ᵢ[],𝑿ₛ[]))
+        for C in 1:ne
+            𝐶 += 1
+            𝓒 = [𝑿ᵢ((𝐼=ni*(𝐶-1)+j,),data𝓒) for j in 1:ni]
+            𝓖 = [𝑿ₛ((𝑔 = 𝑔+g, 𝐺 = 𝐺+g, 𝐶 = 𝐶, 𝑠 = 𝑠+(g-1)*ni), data) for g in 1:ng]
+            𝐺 += ng
+            𝑠 += ng*ni
+            push!(elements,type(𝓒,𝓖))
+        end
+        𝑔 += ng
     end
-    𝑔 += ng
 end
 
 generateForPiecewiseBoundary = quote
@@ -695,7 +712,7 @@ function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},type::DataTy
     return elements
 end
 
-function getPiecewiseElements(dimTag::Pair{Int,Vector{Int}},type::DataType,integrationOrder::Int;normal::Bool=false)
+function getPiecewiseElements(dimTag::Pair{Int,Vector{Int}},type::DataType,integrationOrder::Int;normal::Bool=false,uniq::Bool=false)
     $prequote
     for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
         ## integration rule
@@ -704,6 +721,7 @@ function getPiecewiseElements(dimTag::Pair{Int,Vector{Int}},type::DataType,integ
         $coordinates
         ## special variables
         $cal_jacobe
+        $cal_normal # unit outernal normal
         ## generate element
         $generateForPiecewise
         ## summary
@@ -712,7 +730,7 @@ function getPiecewiseElements(dimTag::Pair{Int,Vector{Int}},type::DataType,integ
     return elements
 end
 
-function getPiecewiseElements(dimTag::Pair{Int,Vector{Int}},type::DataType,integration::NTuple{2,Vector{Float64}};normal::Bool=false)
+function getPiecewiseElements(dimTag::Pair{Int,Vector{Int}},type::DataType,integration::NTuple{2,Vector{Float64}};normal::Bool=false,uniq::Bool=false)
     $prequote
     for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
         ## integration rule
@@ -721,6 +739,7 @@ function getPiecewiseElements(dimTag::Pair{Int,Vector{Int}},type::DataType,integ
         $coordinates
         ## special variables
         $cal_jacobe
+        $cal_normal # unit outernal normal
         ## generate element
         $generateForPiecewise
         ## summary

@@ -211,6 +211,45 @@ function ∫λgdΓ(a::T,b::S,k::AbstractMatrix,f::AbstractVector) where {T<:Abst
     end
 end
 
+function ∫λudΓ(a::T,b::S,k::AbstractMatrix) where {T<:AbstractElement,S<:AbstractElement}
+    𝓒₁= a.𝓒; 𝓖₁= a.𝓖
+    𝓒₂= b.𝓒; 𝓖₂= b.𝓖
+    for (ξ₁,ξ₂) in zip(𝓖₁,𝓖₂)
+        𝑤 = ξ₁.𝑤
+        N = ξ₁[:𝝭]
+        N̄ = ξ₂[:𝝭]
+        n₁ = ξ₁.n₁
+        n₂ = ξ₁.n₂
+        nₘ = abs(n₁) ≥ abs(n₂) ? sign(n₁) : sign(n₂)
+        for (i,xᵢ) in enumerate(𝓒₁)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒₂)
+                J = xⱼ.𝐼
+                # println(I,J)
+                # println(N[i])
+                # println(N̄[j])
+                k[I,J] += nₘ*N[i]*N̄[j]*𝑤
+            end
+        end
+    end
+end
+
+function ∫λgdΓ(a::T,f::AbstractVector) where T<:AbstractElement
+    𝓒= a.𝓒; 𝓖= a.𝓖
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        g = ξ.g
+        n₁ = ξ.n₁
+        n₂ = ξ.n₂
+        nₘ = abs(n₁) ≥ abs(n₂) ? sign(n₁) : sign(n₂)
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            f[I] += nₘ*N[i]*g*𝑤
+        end
+    end
+end
+
 function ∫∇𝑛vgdΓ(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
