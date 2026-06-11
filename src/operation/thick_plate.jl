@@ -622,8 +622,6 @@ function L₂Q(aps::Vector{T}) where T<:AbstractElement
         L₂Norm_ΔQ² += ΔQ²
         L₂Norm_Q̄²  += Q̄²
     end
-    println(L₂Norm_ΔQ²)
-    println(L₂Norm_Q̄²)
     return (L₂Norm_ΔQ²/L₂Norm_Q̄²)^0.5
     # return (L₂Norm_ΔQ²)^0.5
 end
@@ -657,8 +655,6 @@ function L₂φ(aps::Vector{T}) where T<:AbstractElement
         L₂Norm_Δφ² += Δφ²
         L₂Norm_φ̄²  += φ̄²
     end
-    println(L₂Norm_Δφ²)
-    println(L₂Norm_φ̄²)
     return (L₂Norm_Δφ²/L₂Norm_φ̄²)^0.5
 end
 
@@ -687,8 +683,6 @@ function L₂w(aps::Vector{T}) where T<:AbstractElement
         L₂Norm_Δw² += Δw²
         L₂Norm_w̄²  += w̄²
     end
-    println(L₂Norm_Δw²)
-    println(L₂Norm_w̄²)
     return (L₂Norm_Δw²/L₂Norm_w̄²)^0.5
 end
 
