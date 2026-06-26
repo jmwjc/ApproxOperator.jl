@@ -133,13 +133,15 @@ get𝑛𝒑(      ::ReproducingKernel{:Quadratic3D}) = 10
 get𝒑(       ::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (1.,x[1],x[2],x[3],x[1]^2,x[1]*x[2],x[1]*x[3],x[2]^2,x[2]*x[3],x[3]^2)
 get∂𝒑∂x(    ::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (0.,1.,0.,0.,2*x[1],x[2],x[3],0.,0.,0.)
 get∂𝒑∂y(    ::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (0.,0.,1.,0.,0.,x[1],0.,2*x[2],x[3],0.)
-get∂𝒑∂z(    ::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (0.,0.,0.,1.,0.,0.,x[2],0.,x[2],2*x[3])
+
+get∂𝒑∂z(::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (0.,0.,0.,1.,0.,0.,x[1],0.,x[2],2*x[3])
 get∂²𝒑∂x²(  ::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (0.,0.,0.,0.,2.,0.,0.,0.,0.,0.)
 get∂²𝒑∂x∂y( ::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (0.,0.,0.,0.,0.,1.,0.,0.,0.,0.)
 get∂²𝒑∂x∂z( ::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (0.,0.,0.,0.,0.,0.,1.,0.,0.,0.)
 get∂²𝒑∂y²(  ::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (0.,0.,0.,0.,0.,0.,0.,2.,0.,0.)
 get∂²𝒑∂y∂z( ::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (0.,0.,0.,0.,0.,0.,0.,0.,1.,0.)
-get∂³𝒑∂z³(  ::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (0.,0.,0.,0.,0.,0.,0.,0.,0.,2.)
+
+get∂²𝒑∂z²(  ::ReproducingKernel{:Quadratic3D},x::NTuple{3,Float64}) = (0.,0.,0.,0.,0.,0.,0.,0.,0.,2.)
 
 function cal𝗠!(ap::AbstractReproducingKernel,x::Node)
     𝓒 = ap.𝓒
@@ -532,7 +534,8 @@ for 𝒑 in (:(:Linear2D),:(:Quadratic2D),:(:Cubic2D))
     end
 end
 
-for 𝒑 in (:(:Linear3D),:(:Quadratic3D),:(:Cubic3D))
+# for 𝒑 in (:(:Linear3D),:(:Quadratic3D),:(:Cubic3D))
+    for 𝒑 in (:(:Linear3D),:(:Quadratic3D))
     @eval begin
         get∇𝒑(ap::ReproducingKernel{$𝒑},x::Any) = get𝒑(ap,x),get∂𝒑∂x(ap,x),get∂𝒑∂y(ap,x),get∂𝒑∂z(ap,x)
 

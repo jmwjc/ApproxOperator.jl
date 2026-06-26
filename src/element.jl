@@ -48,30 +48,6 @@ function Base.push!(aps::Vector{T},ss::Symbol...;index::Symbol=:𝑠) where T<:A
     end
 end
 
-# function Base.push!(aps::Vector{T}, ss::Symbol...; index::Symbol = :𝑠) where {T<:AbstractElement}
-#     @assert !isempty(aps) "push!: aps 为空"
-#     data = getfield(aps[1].𝓖[1], :data)
-
-#     # 取最后一个积分点的 index（NamedTuple），例如 (𝑔=?, 𝐺=?, 𝐶=?, 𝑠=?)
-#     last_idx = getfield(aps[end].𝓖[end], :index)
-
-#     # index 在 NamedTuple 里的位置（你原来的写法保留）
-#     i = findfirst(x -> x == index, keys(last_idx))
-#     @assert i !== nothing "push!: index=$(index) 不存在于积分点 index 中: $(keys(last_idx))"
-
-#     # 关键：不要再调用 count(aps,index)，直接用最后一个积分点的偏移 + 最后一个 patch 的 nc 计算总长度
-#     # 你们的 𝑠 是每个积分点在“形函数数组”里的起始偏移，构造时通常从 0 开始累加 nc
-#     s_last = getproperty(last_idx, index)
-#     nc_last = getfield(aps[end], :𝓒)[2]  # 𝓒 = (c, nc, patch_nodes)
-
-#     n = s_last + nc_last
-#     @assert n ≥ 0 "push!: 计算得到的 n 非法: n=$n (s_last=$s_last, nc_last=$nc_last)"
-
-#     for s in ss
-#         data[s] = (i, zeros(n))
-#     end
-# end
-
 
 function Base.push!(aps::Vector{T},svs::Pair{Symbol, Vector{Float64}}...;index::Symbol=:𝑠) where T<:AbstractElement
     data = getfield(aps[1].𝓖[1],:data)

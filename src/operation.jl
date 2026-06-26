@@ -123,5 +123,13 @@ function (op::Pair{F,Tuple{Vector{T},Vector{S}}})(f1::AbstractVector,f2::Abstrac
     return f1,f2,k1,k2,k3
 end
 
+function (op::Pair{F,Tuple{Vector{T},Vector{S}}})(f1::AbstractVector,k1::AbstractMatrix,k2::AbstractMatrix) where {F<:Function,T<:AbstractElement,S<:AbstractElement}
+    form, elms = op
+    for (a,b) in zip(elms...)
+        form(a,b,f1,k1,k2)
+    end
+    return f1,k1,k2
+end
+
 
 
