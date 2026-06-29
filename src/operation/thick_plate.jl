@@ -61,12 +61,12 @@ end
 
 function ∫wwdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    𝑤 = ap.𝑤
     E = ap.E
     ν = ap.ν
     h = ap.h
     D = 5/6*h*E/2/(1+ν)
     for ξ in 𝓖
+        𝑤 = ξ.𝑤
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
         for (i,xᵢ) in enumerate(𝓒)
@@ -81,12 +81,12 @@ end
 
 function ∫φφdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    𝑤 = ap.𝑤
     E = ap.E
     ν = ap.ν
     h = ap.h
     D = 5/6*h*E/2/(1+ν)
     for ξ in 𝓖
+        𝑤 = ξ.𝑤
         N = ξ[:𝝭]
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼 
@@ -101,12 +101,12 @@ end
 
 function ∫φwdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    𝑤 = ap.𝑤
     E = ap.E
     ν = ap.ν
     h = ap.h
     D = 5/6*h*E/2/(1+ν)
     for ξ in 𝓖
+        𝑤 = ξ.𝑤
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
         N = ξ[:𝝭]
@@ -124,12 +124,12 @@ end
 function ∫φwdΩ(a₁::T,a₂::T,k::AbstractMatrix) where T<:AbstractElement
     𝓒₁ = a₁.𝓒; 𝓖₁ = a₁.𝓖
     𝓒₂ = a₂.𝓒; 𝓖₂ = a₂.𝓖
-    𝑤 = a₁.𝑤
     E = a₁.E
     ν = a₁.ν
     h = a₁.h
     D = 5/6*h*E/2/(1+ν)
     for (ξ₁,ξ₂) in zip(𝓖₁,𝓖₂)
+        𝑤 = ξ₁.𝑤
         B₁ = ξ₁[:∂𝝭∂x]
         B₂ = ξ₁[:∂𝝭∂y]
         N = ξ₂[:𝝭]
@@ -592,18 +592,88 @@ function ∫αφφdΓ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
+function ∫φφdΩ_DSG(ap::T,k::AbstractMatrix) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    E = ap.E
+    ν = ap.ν
+    h = ap.h
+    D = 5/6*h*E/2/(1+ν)
+    x₁ = 𝓒[1].x
+    x₂ = 𝓒[2].x
+    x₃ = 𝓒[3].x
+    y₁ = 𝓒[1].y
+    y₂ = 𝓒[2].y
+    y₃ = 𝓒[3].y
+    𝐽 = ap.𝐽
+    𝑤 = 𝐽/2
+    a = x₂-x₁
+    b = y₂-y₁
+    c = y₃-y₁
+    d = x₃-x₁
+    B₁₁ = 0.5/𝐽.*(  𝐽, a*c,-b*d)
+    B₁₂ = 0.5/𝐽.*(0.0, b*c,-b*c)
+    B₂₁ = 0.5/𝐽.*(0.0,-a*d, a*d)
+    B₂₂ = 0.5/𝐽.*(  𝐽,-b*d, a*c)
+
+    for (i,xᵢ) in enumerate(𝓒)
+        I = xᵢ.𝐼
+        for (j,xⱼ) in enumerate(𝓒)
+            J = xⱼ.𝐼
+            k[2*I-1,2*J-1] += D*(B₁₁[i]*B₁₁[j]+B₂₁[i]*B₂₁[j])*𝑤
+            k[2*I-1,2*J]   += D*(B₁₁[i]*B₁₂[j]+B₂₁[i]*B₂₂[j])*𝑤
+            k[2*I,2*J-1]   += D*(B₁₂[i]*B₁₁[j]+B₂₂[i]*B₂₁[j])*𝑤
+            k[2*I,2*J]     += D*(B₁₂[i]*B₁₂[j]+B₂₂[i]*B₂₂[j])*𝑤
+        end
+    end
+end
+
+function ∫φwdΩ_DSG(ap::T,k::AbstractMatrix) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    E = ap.E
+    ν = ap.ν
+    h = ap.h
+    D = 5/6*h*E/2/(1+ν)
+    x₁ = 𝓒[1].x
+    x₂ = 𝓒[2].x
+    x₃ = 𝓒[3].x
+    y₁ = 𝓒[1].y
+    y₂ = 𝓒[2].y
+    y₃ = 𝓒[3].y
+    𝐽 = ap.𝐽
+    a = x₂-x₁
+    b = y₂-y₁
+    c = y₃-y₁
+    d = x₃-x₁
+    Bᵠ₁₁ = 0.5/𝐽.*(  𝐽, a*c,-b*d)
+    Bᵠ₁₂ = 0.5/𝐽.*(0.0, b*c,-b*c)
+    Bᵠ₂₁ = 0.5/𝐽.*(0.0,-a*d, a*d)
+    Bᵠ₂₂ = 0.5/𝐽.*(  𝐽,-b*d, a*c)
+ 
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼 
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[2*I-1,J] -= D*(Bᵠ₁₁[i]*B₁[j]+Bᵠ₂₁[i]*B₂[j])*𝑤
+                k[2*I,J]   -= D*(Bᵠ₁₂[i]*B₁[j]+Bᵠ₂₂[i]*B₂[j])*𝑤
+            end
+        end
+    end
+end
 
 function L₂Q(ap::T) where T<:AbstractElement
-    ΔQ²= 0
-    Q̄² = 0
+    ΔQ²= BigFloat(0.0)
+    Q̄² = BigFloat(0.0)
     for ξ in ap.𝓖
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
         Q̄₁ = ξ.Q₁
         Q̄₂ = ξ.Q₂
-        u = 0
-        Q₁ = 0
-        Q₂ = 0
+        Q₁ = 0.0
+        Q₂ = 0.0
         for (i,xᵢ) in enumerate(ap.𝓒)
             Q₁ += N[i]*xᵢ.q₁
             Q₂ += N[i]*xᵢ.q₂
@@ -615,28 +685,27 @@ function L₂Q(ap::T) where T<:AbstractElement
 end
 
 function L₂Q(aps::Vector{T}) where T<:AbstractElement
-    L₂Norm_ΔQ²= 0
-    L₂Norm_Q̄² = 0
+    L₂Norm_ΔQ²= BigFloat(0.0)
+    L₂Norm_Q̄² = BigFloat(0.0)
     for ap in aps
         ΔQ², Q̄² = L₂Q(ap)
         L₂Norm_ΔQ² += ΔQ²
         L₂Norm_Q̄²  += Q̄²
     end
     return (L₂Norm_ΔQ²/L₂Norm_Q̄²)^0.5
-    # return (L₂Norm_ΔQ²)^0.5
 end
 
 
 function L₂φ(ap::T) where T<:AbstractElement
-    Δφ²= 0
-    φ̄² = 0
+    Δφ²= BigFloat(0.0)
+    φ̄² = BigFloat(0.0)
     for ξ in ap.𝓖
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
         φ̄₁ = ξ.φ₁
         φ̄₂ = ξ.φ₂
-        φ₁ = 0
-        φ₂ = 0
+        φ₁ = 0.0
+        φ₂ = 0.0
         for (i,xᵢ) in enumerate(ap.𝓒)
             φ₁ += N[i]*xᵢ.d₁
             φ₂ += N[i]*xᵢ.d₂
@@ -648,8 +717,8 @@ function L₂φ(ap::T) where T<:AbstractElement
 end
 
 function L₂φ(aps::Vector{T}) where T<:AbstractElement
-    L₂Norm_Δφ²= 0
-    L₂Norm_φ̄² = 0
+    L₂Norm_Δφ²= BigFloat(0.0)
+    L₂Norm_φ̄² = BigFloat(0.0)
     for ap in aps
         Δφ², φ̄² = L₂φ(ap)
         L₂Norm_Δφ² += Δφ²
@@ -658,14 +727,52 @@ function L₂φ(aps::Vector{T}) where T<:AbstractElement
     return (L₂Norm_Δφ²/L₂Norm_φ̄²)^0.5
 end
 
+function H₁φ(ap::T) where T<:AbstractElement
+    Δ∇φ²= 0.0
+    ∇φ̄² = 0.0
+    Δφ²= 0.0
+    φ̄² = 0.0
+    for ξ in ap.𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        φ̄₁ = ξ.φ₁
+        ∂φ̄₁∂x = ξ.∂φ₁∂x
+        ∂φ̄₁∂y = ξ.∂φ₁∂y
+        φ̄₂ = ξ.φ₂
+        ∂φ̄₂∂x = ξ.∂φ₂∂x
+        ∂φ̄₂∂y = ξ.∂φ₂∂y
+        φ₁ = 0.0
+        ∂φ₁∂x = 0.0
+        ∂φ₁∂y = 0.0
+        φ₂ = 0.0
+        ∂φ₂∂x = 0.0
+        ∂φ₂∂y = 0.0
+        for (i,xᵢ) in enumerate(ap.𝓒)
+            φ₁ += N[i]*xᵢ.d₁
+            ∂φ₁∂x += B₁[i]*xᵢ.d₁
+            ∂φ₁∂y += B₂[i]*xᵢ.d₁
+            φ₂ += N[i]*xᵢ.d₂
+            ∂φ₂∂x += B₁[i]*xᵢ.d₂
+            ∂φ₂∂y += B₂[i]*xᵢ.d₂
+        end
+        Δ∇φ² += ((∂φ₁∂x - ∂φ̄₁∂x)^2 + (∂φ₁∂y - ∂φ̄₁∂y)^2 + (∂φ₂∂x - ∂φ̄₂∂x)^2 + (∂φ₂∂y - ∂φ̄₂∂y)^2)*𝑤
+        ∇φ̄²  += (∂φ̄₁∂x^2 + ∂φ̄₁∂y^2 + ∂φ̄₂∂x^2 + ∂φ̄₂∂y^2)*𝑤
+        Δφ² +=((φ₁ - φ̄₁)^2 + (φ₂ - φ̄₂)^2)*𝑤
+        φ̄²  += (φ̄₁^2 + φ̄₂^2)*𝑤
+    end
+    return Δ∇φ², ∇φ̄², Δφ², φ̄²
+end
+
 function L₂w(ap::T) where T<:AbstractElement
-    Δw²= 0
-    w̄² = 0
+    Δw²= BigFloat(0.0)
+    w̄² = BigFloat(0.0)
     for ξ in ap.𝓖
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
         w̄ = ξ.w
-        w = 0
+        w = 0.0
         for (i,xᵢ) in enumerate(ap.𝓒)
             w += N[i]*xᵢ.d
         end
@@ -675,15 +782,162 @@ function L₂w(ap::T) where T<:AbstractElement
     return Δw², w̄²
 end
 
+function H₁w(ap::T) where T<:AbstractElement
+    Δ∇w²= BigFloat(0.0)
+    ∇w̄² = BigFloat(0.0)
+    Δw²= BigFloat(0.0)
+    w̄² = BigFloat(0.0)
+    for ξ in ap.𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        w̄ = ξ.w
+        ∂w̄∂x = ξ.∂w∂x
+        ∂w̄∂y = ξ.∂w∂y
+        w = 0.0
+        ∂w∂x = 0.0
+        ∂w∂y = 0.0
+        for (i,xᵢ) in enumerate(ap.𝓒)
+            w += N[i]*xᵢ.d
+            ∂w∂x += B₁[i]*xᵢ.d
+            ∂w∂y += B₂[i]*xᵢ.d
+        end
+        Δw² += (w - w̄)^2*𝑤
+        w̄²  += w̄^2*𝑤
+        Δ∇w² += ((∂w∂x - ∂w̄∂x)^2 + (∂w∂y - ∂w̄∂y)^2)*𝑤
+        ∇w̄² += (∂w̄∂x^2 + ∂w̄∂y^2)*𝑤
+    end
+    return Δ∇w², ∇w̄², Δw², w̄²
+end
+
 function L₂w(aps::Vector{T}) where T<:AbstractElement
-    L₂Norm_Δw²= 0
-    L₂Norm_w̄² = 0
+    L₂Norm_Δw²= BigFloat(0.0)
+    L₂Norm_w̄² = BigFloat(0.0)
     for ap in aps
         Δw², w̄² = L₂w(ap)
         L₂Norm_Δw² += Δw²
         L₂Norm_w̄²  += w̄²
     end
     return (L₂Norm_Δw²/L₂Norm_w̄²)^0.5
+end
+
+function H₁(aps_w::Vector{Tʷ},aps_φ::Vector{Tᵠ}) where {Tʷ,Tᵠ<:AbstractElement}
+    H₁Norm_Δu²= 0.0
+    H₁Norm_ū² = 0.0
+    L₂Norm_Δu²= 0.0
+    L₂Norm_ū² = 0.0
+    for ap in aps_w
+        Δ∇w², ∇w̄², Δw², w̄² = H₁w(ap)
+        H₁Norm_Δu² += Δ∇w²
+        H₁Norm_ū²  += ∇w̄²
+        L₂Norm_Δu² += Δw²
+        L₂Norm_ū²  += w̄²
+    end
+    for ap in aps_φ
+        Δ∇φ², ∇φ̄², Δφ², φ̄² = H₁φ(ap)
+        H₁Norm_Δu² += Δ∇φ²
+        H₁Norm_ū²  += ∇φ̄²
+        L₂Norm_Δu² += Δφ²
+        L₂Norm_ū²  += φ̄²
+    end
+    return (H₁Norm_Δu²/H₁Norm_ū²)^0.5, (L₂Norm_Δu²/L₂Norm_ū²)^0.5
+end
+
+function Hₑ(aps_w::Vector{Tʷ},aps_φ::Vector{Tᵠ},aps_Q::Vector{Tˢ}) where {Tʷ,Tᵠ,Tˢ<:AbstractElement}
+    HₑNorm_Δu² = 0.0
+    HₑNorm_ū² = 0.0
+    for (ap_w,ap_φ,ap_Q) in zip(aps_w,aps_φ,aps_Q)
+        Δu², ū² = Hₑ(ap_w,ap_φ,ap_Q)
+        HₑNorm_Δu² += Δu²
+        HₑNorm_ū² += ū²
+    end
+    return (HₑNorm_Δu²/HₑNorm_ū²)^0.5
+end
+
+function Hₑ(ap_w::Tʷ,ap_φ::Tᵠ,ap_Q::Tˢ) where {Tʷ,Tᵠ,Tˢ<:AbstractElement}
+    Δu² = BigFloat(0.0)
+    ū² = BigFloat(0.0)
+    E = ap_φ.E
+    ν = ap_φ.ν
+    h = ap_φ.h
+    Dᵇᵢᵢᵢᵢ = E*h^3/12/(1-ν^2)
+    Dᵇᵢᵢⱼⱼ = E*ν*h^3/12/(1-ν^2)
+    Dᵇᵢⱼᵢⱼ = E*h^3/24/(1+ν)
+    Dˢ =  5/6*h*E/2/(1+ν)
+    for (ξʷ,ξᵠ,ξˢ) in zip(ap_w.𝓖,ap_φ.𝓖,ap_Q.𝓖)
+        κ̄₁₁ = -ξᵠ.∂φ₁∂x
+        κ̄₂₂ = -ξᵠ.∂φ₂∂y
+        κ̄₁₂ = -ξᵠ.∂φ₁∂y-ξᵠ.∂φ₂∂x
+        γ̄₁ = ξʷ.∂w∂x - ξᵠ.φ₁
+        γ̄₂ = ξʷ.∂w∂y - ξᵠ.φ₂
+        q̄₁ = Dˢ*γ̄₁
+        q̄₂ = Dˢ*γ̄₂
+        q̃₁ = ξˢ.Q₁
+        q̃₂ = ξˢ.Q₂
+        𝑤 = ξᵠ.𝑤
+        if abs(q̄₁-q̃₁)>1e3*eps() || abs(q̄₂-q̃₂)>1e3*eps()
+            error("Some problem in exact solution! q̄₁: $q̄₁, q̃₁: $q̃₁, q̄₂: $q̄₂, q̃₂: $q̃₂")
+        end
+
+        Nʷ = ξʷ[:𝝭]
+        Bʷ₁ = ξʷ[:∂𝝭∂x]
+        Bʷ₂ = ξʷ[:∂𝝭∂y]
+        Nᵠ = ξᵠ[:𝝭]
+        Bᵠ₁ = ξᵠ[:∂𝝭∂x]
+        Bᵠ₂ = ξᵠ[:∂𝝭∂y]
+        Nˢ = ξˢ[:𝝭]
+        κ₁₁ = 0.0
+        κ₂₂ = 0.0
+        κ₁₂ = 0.0
+        γ₁ = 0.0
+        γ₂ = 0.0
+        q₁ = 0.0
+        q₂ = 0.0
+        t₁₀₀ = 0.0
+        t₁₁₀ = 0.0
+        t₁₀₁ = 0.0
+        for (i,xᵢ) in enumerate(ap_w.𝓒)
+            γ₁ += Bʷ₁[i]*xᵢ.d
+            γ₂ += Bʷ₂[i]*xᵢ.d
+        end
+        for (i,xᵢ) in enumerate(ap_φ.𝓒)
+            κ₁₁ -= Bᵠ₁[i]*xᵢ.d₁
+            κ₂₂ -= Bᵠ₂[i]*xᵢ.d₂
+            κ₁₂ -= Bᵠ₁[i]*xᵢ.d₂+Bᵠ₂[i]*xᵢ.d₁
+            γ₁ -= Nᵠ[i]*xᵢ.d₁
+            γ₂ -= Nᵠ[i]*xᵢ.d₂
+            t₁₀₀ += Bᵠ₁[i]
+            t₁₁₀ += Bᵠ₁[i]*xᵢ.t
+            t₁₀₁ += Bᵠ₂[i]*xᵢ.t
+        end
+        # if abs(t₁₀₀) > 1e2*eps() || abs(t₁₁₀-1.0) > 1e2*eps() || abs(t₁₀₁) > 1e2*eps()
+        #     error("Some problem in consistency condition! t₁₀₀: $t₁₀₀, t₁₁₀: $t₁₁₀, t₁₀₁: $t₁₀₁")
+        # end
+        for (i,xᵢ) in enumerate(ap_Q.𝓒)
+            q₁ += Nˢ[i]*xᵢ.q₁
+            q₂ += Nˢ[i]*xᵢ.q₂
+        end
+
+        # Δu² += 0.5*(Dᵇᵢᵢᵢᵢ*(κ₁₁-κ̄₁₁)^2+Dᵇᵢᵢᵢᵢ*(κ₂₂-κ̄₂₂)^2+2*Dᵇᵢᵢⱼⱼ*(κ₁₁-κ̄₁₁)*(κ₂₂-κ̄₂₂)+2*Dᵇᵢⱼᵢⱼ*(κ₁₂-κ̄₁₂)^2 + ((q₁-q̄₁)^2 + (q₂-q̄₂)^2)/Dˢ)*𝑤
+        # ū² += 0.5*(Dᵇᵢᵢᵢᵢ*κ̄₁₁^2+Dᵇᵢᵢᵢᵢ*κ̄₂₂^2+2*Dᵇᵢᵢⱼⱼ*κ̄₁₁*κ̄₂₂+2*Dᵇᵢⱼᵢⱼ*κ̄₁₂^2 + (q̄₁^2 + q̄₂^2)/Dˢ)*𝑤
+        println("qᵢ-Dˢ*γᵢ:")
+        println(q₁)
+        println(Dˢ*γ₁)
+        # println("Δκᵢⱼ:")
+        # println(abs(κ₁₁-κ̄₁₁)/κ̄₁₁)
+        # println(abs(κ₂₂-κ̄₂₂)/κ̄₂₂)
+        # println(abs(κ₁₂-κ̄₁₂)/κ̄₁₂)
+        # println("Δγᵢ:")
+        # println(abs(γ₁-γ̄₁)/γ̄₁)
+        # println(abs(γ₂-γ̄₂)/γ̄₂)
+        # println("Δqᵢ:")
+        # println(abs(q₁-q̄₁)/q̄₁)
+        # println(abs(q₂-q̄₂)/q̄₂)
+        Δu² += 0.5*(Dᵇᵢᵢᵢᵢ*(κ₁₁-κ̄₁₁)^2+Dᵇᵢᵢᵢᵢ*(κ₂₂-κ̄₂₂)^2+2*Dᵇᵢᵢⱼⱼ*(κ₁₁-κ̄₁₁)*(κ₂₂-κ̄₂₂)+2*Dᵇᵢⱼᵢⱼ*(κ₁₂-κ̄₁₂)^2 + ((γ₁-γ̄₁)^2 + (γ₂-γ̄₂)^2)*Dˢ)*𝑤
+        ū² += 0.5*(Dᵇᵢᵢᵢᵢ*κ̄₁₁^2+Dᵇᵢᵢᵢᵢ*κ̄₂₂^2+2*Dᵇᵢᵢⱼⱼ*κ̄₁₁*κ̄₂₂+2*Dᵇᵢⱼᵢⱼ*κ̄₁₂^2 + (γ̄₁^2 + γ̄₂^2)*Dˢ)*𝑤
+    end
+    return Δu², ū²
 end
 
 end

@@ -377,7 +377,7 @@ function ∫uds(aps::Vector{T}) where T<:AbstractElement
             𝑤 = ξ.𝑤
             u[c] += ξ.u*𝑤
         end
-        u[c] /= ap.𝐿
+        u[c] /= ap.𝐽*2
     end
     return u
 end
