@@ -30,7 +30,7 @@ function get𝑿ᵢ()
 end
 
 prequote = quote
-    types = Dict([1=>:Seg2, 2=>:Tri3, 3=>:Quad, 4=>:Tet4, 5=>:Hex8, 8=>:Seg3, 9=>:Tri6, 10=>:Quad9, 11=>:Tet10, 12=>:Hex27, 15=>:Poi1, 16=>:Quad8])
+    types = Dict([1=>:Seg2, 2=>:Tri3, 3=>:Quad4, 4=>:Tet4, 5=>:Hex8, 8=>:Seg3, 9=>:Tri6, 10=>:Quad9, 11=>:Tet10, 12=>:Hex27, 15=>:Poi1, 16=>:Quad8])
     dim, tags = dimTag
     elementTypes = Int32[]
     nodeTags = Vector{UInt64}[]
@@ -444,8 +444,7 @@ end
 integrationByGmsh = quote
     ~, ~, order, ni = gmsh.model.mesh.getElementProperties(elementType)
     if integrationOrder < 0 integrationOrder = order end
-    # integrationType = "CompositeGauss"*string(integrationOrder)
-    integrationType = "Gauss"*string(integrationOrder)
+    integrationType = elementType∈(3,5,10,12,16) ? "CompositeGauss"*string(integrationOrder) : "Gauss"*string(integrationOrder)
     localCoord, weights = gmsh.model.mesh.getIntegrationPoints(elementType,integrationType)
 end
 

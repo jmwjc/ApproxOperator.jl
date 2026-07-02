@@ -1,6 +1,6 @@
 module MindlinPlate 
     
-using ..ApproxOperator: AbstractElement
+using ..ApproxOperator: AbstractElement, Element
 
 function ∫κMγQdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
@@ -60,6 +60,21 @@ function ∫κκdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
 end
 
 function ∫wwdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼 
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I,J] += N[i]*N[j]*𝑤
+            end
+        end
+    end
+end
+
+function ∫∇w∇wdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     E = ap.E
     ν = ap.ν
@@ -592,18 +607,147 @@ function ∫αφφdΓ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
-function ∫φφdΩ_DSG(ap::T,k::AbstractMatrix) where T<:AbstractElement
+function ∫wwdΩ_MITC(ap::Element{:Quad4},k::AbstractMatrix)
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     E = ap.E
     ν = ap.ν
     h = ap.h
     D = 5/6*h*E/2/(1+ν)
-    x₁ = 𝓒[1].x
-    x₂ = 𝓒[2].x
-    x₃ = 𝓒[3].x
-    y₁ = 𝓒[1].y
-    y₂ = 𝓒[2].y
-    y₃ = 𝓒[3].y
+
+    x₁,x₂,x₃,x₄ = (xᵢ.x for xᵢ in 𝓒)
+    y₁,y₂,y₃,y₄ = (xᵢ.y for xᵢ in 𝓒)
+    ∂Nᵃ∂ξ = (-0.5, 0.5, 0.0, 0.0)
+    ∂Nᵇ∂η = ( 0.0,-0.5, 0.5, 0.0)
+    ∂Nᶜ∂ξ = ( 0.0, 0.0, 0.5,-0.5)
+    ∂Nᵈ∂η = (-0.5, 0.0, 0.0, 0.5)
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        ξ̄ = ξ.ξ
+        η̄ = ξ.η
+        ∂N₁∂ξ = - 0.25*(1-η̄)
+        ∂N₂∂ξ =   0.25*(1-η̄)
+        ∂N₃∂ξ =   0.25*(1+η̄)
+        ∂N₄∂ξ = - 0.25*(1+η̄)
+        ∂N₁∂η = - 0.25*(1-ξ̄)
+        ∂N₂∂η = - 0.25*(1+ξ̄)
+        ∂N₃∂η =   0.25*(1+ξ̄)
+        ∂N₄∂η =   0.25*(1-ξ̄)
+        ∂x∂ξ = ∂N₁∂ξ*x₁ + ∂N₂∂ξ*x₂ + ∂N₃∂ξ*x₃ + ∂N₄∂ξ*x₄
+        ∂x∂η = ∂N₁∂η*x₁ + ∂N₂∂η*x₂ + ∂N₃∂η*x₃ + ∂N₄∂η*x₄
+        ∂y∂ξ = ∂N₁∂ξ*y₁ + ∂N₂∂ξ*y₂ + ∂N₃∂ξ*y₃ + ∂N₄∂ξ*y₄
+        ∂y∂η = ∂N₁∂η*y₁ + ∂N₂∂η*y₂ + ∂N₃∂η*y₃ + ∂N₄∂η*y₄
+        detJ = ∂x∂ξ*∂y∂η - ∂x∂η*∂y∂ξ
+        ∂ξ∂x =   ∂y∂η/detJ
+        ∂η∂x = - ∂y∂ξ/detJ
+        ∂ξ∂y = - ∂x∂η/detJ
+        ∂η∂y =   ∂x∂ξ/detJ
+        ∂N̄∂ξ = 0.5*(1-η̄).*∂Nᵃ∂ξ .+ 0.5*(1+η̄).*∂Nᶜ∂ξ
+        ∂N̄∂η = 0.5*(1-ξ̄).*∂Nᵈ∂η .+ 0.5*(1+ξ̄).*∂Nᵇ∂η
+        B̄₁ = ∂ξ∂x.*∂N̄∂ξ .+ ∂η∂x.*∂N̄∂η
+        B̄₂ = ∂ξ∂y.*∂N̄∂ξ .+ ∂η∂y.*∂N̄∂η
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼 
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I,J] += D*(B̄₁[i]*B̄₁[j] + B̄₂[i]*B̄₂[j])*𝑤
+            end
+        end
+    end
+end
+
+
+function ∫φφdΩ_MITC(ap::Element{:Quad4},k::AbstractMatrix)
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    E = ap.E
+    ν = ap.ν
+    h = ap.h
+    D = 5/6*h*E/2/(1+ν)
+    Nᵃ = (0.5,0.5,0.0,0.0)
+    Nᵇ = (0.0,0.5,0.5,0.0)
+    Nᶜ = (0.0,0.0,0.5,0.5)
+    Nᵈ = (0.5,0.0,0.0,0.5)
+
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        ξ̄ = ξ.ξ
+        η̄ = ξ.η
+        N̄₁ = 0.5*(1-η̄).*Nᵃ .+ 0.5*(1+η̄).*Nᶜ
+        N̄₂ = 0.5*(1-ξ̄).*Nᵈ .+ 0.5*(1+ξ̄).*Nᵇ
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[2*I-1,2*J-1] += D*N̄₁[i]*N̄₁[j]*𝑤
+                k[2*I,2*J]     += D*N̄₂[i]*N̄₂[j]*𝑤
+            end
+        end
+    end
+end
+
+function ∫φwdΩ_MITC(ap::Element{:Quad4},k::AbstractMatrix)
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    E = ap.E
+    ν = ap.ν
+    h = ap.h
+    D = 5/6*h*E/2/(1+ν)
+
+    x₁,x₂,x₃,x₄ = (xᵢ.x for xᵢ in 𝓒)
+    y₁,y₂,y₃,y₄ = (xᵢ.y for xᵢ in 𝓒)
+    Nᵃ = (0.5,0.5,0.0,0.0)
+    Nᵇ = (0.0,0.5,0.5,0.0)
+    Nᶜ = (0.0,0.0,0.5,0.5)
+    Nᵈ = (0.5,0.0,0.0,0.5)
+    ∂Nᵃ∂ξ = (-0.5, 0.5, 0.0, 0.0)
+    ∂Nᵇ∂η = ( 0.0,-0.5, 0.5, 0.0)
+    ∂Nᶜ∂ξ = ( 0.0, 0.0, 0.5,-0.5)
+    ∂Nᵈ∂η = (-0.5, 0.0, 0.0, 0.5)
+ 
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        ξ̄ = ξ.ξ
+        η̄ = ξ.η
+        N̄₁ = 0.5*(1-η̄).*Nᵃ .+ 0.5*(1+η̄).*Nᶜ
+        N̄₂ = 0.5*(1-ξ̄).*Nᵈ .+ 0.5*(1+ξ̄).*Nᵇ
+        ∂N₁∂ξ = - 0.25*(1-η̄)
+        ∂N₂∂ξ =   0.25*(1-η̄)
+        ∂N₃∂ξ =   0.25*(1+η̄)
+        ∂N₄∂ξ = - 0.25*(1+η̄)
+        ∂N₁∂η = - 0.25*(1-ξ̄)
+        ∂N₂∂η = - 0.25*(1+ξ̄)
+        ∂N₃∂η =   0.25*(1+ξ̄)
+        ∂N₄∂η =   0.25*(1-ξ̄)
+        ∂x∂ξ = ∂N₁∂ξ*x₁ + ∂N₂∂ξ*x₂ + ∂N₃∂ξ*x₃ + ∂N₄∂ξ*x₄
+        ∂x∂η = ∂N₁∂η*x₁ + ∂N₂∂η*x₂ + ∂N₃∂η*x₃ + ∂N₄∂η*x₄
+        ∂y∂ξ = ∂N₁∂ξ*y₁ + ∂N₂∂ξ*y₂ + ∂N₃∂ξ*y₃ + ∂N₄∂ξ*y₄
+        ∂y∂η = ∂N₁∂η*y₁ + ∂N₂∂η*y₂ + ∂N₃∂η*y₃ + ∂N₄∂η*y₄
+        detJ = ∂x∂ξ*∂y∂η - ∂x∂η*∂y∂ξ
+        ∂ξ∂x =   ∂y∂η/detJ
+        ∂η∂x = - ∂y∂ξ/detJ
+        ∂ξ∂y = - ∂x∂η/detJ
+        ∂η∂y =   ∂x∂ξ/detJ
+        ∂N̄∂ξ = 0.5*(1-η̄).*∂Nᵃ∂ξ .+ 0.5*(1+η̄).*∂Nᶜ∂ξ
+        ∂N̄∂η = 0.5*(1-ξ̄).*∂Nᵈ∂η .+ 0.5*(1+ξ̄).*∂Nᵇ∂η
+        B̄₁ = ∂ξ∂x.*∂N̄∂ξ .+ ∂η∂x.*∂N̄∂η
+        B̄₂ = ∂ξ∂y.*∂N̄∂ξ .+ ∂η∂y.*∂N̄∂η
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼 
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[2*I-1,J] -= D*N̄₁[i]*B̄₁[j]*𝑤
+                k[2*I,J]   -= D*N̄₂[i]*B̄₂[j]*𝑤
+            end
+        end
+    end
+end
+
+function ∫φφdΩ_DSG(ap::Element{:Tri3},k::AbstractMatrix)
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    E = ap.E
+    ν = ap.ν
+    h = ap.h
+    D = 5/6*h*E/2/(1+ν)
+    x₁,x₂,x₃ = (xᵢ.x for xᵢ in 𝓒)
+    y₁,y₂,y₃ = (xᵢ.y for xᵢ in 𝓒)
     𝐽 = ap.𝐽
     𝑤 = 𝐽/2
     a = x₂-x₁
@@ -627,18 +771,14 @@ function ∫φφdΩ_DSG(ap::T,k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
-function ∫φwdΩ_DSG(ap::T,k::AbstractMatrix) where T<:AbstractElement
+function ∫φwdΩ_DSG(ap::Element{:Tri3},k::AbstractMatrix)
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     E = ap.E
     ν = ap.ν
     h = ap.h
     D = 5/6*h*E/2/(1+ν)
-    x₁ = 𝓒[1].x
-    x₂ = 𝓒[2].x
-    x₃ = 𝓒[3].x
-    y₁ = 𝓒[1].y
-    y₂ = 𝓒[2].y
-    y₃ = 𝓒[3].y
+    x₁,x₂,x₃ = (xᵢ.x for xᵢ in 𝓒)
+    y₁,y₂,y₃ = (xᵢ.y for xᵢ in 𝓒)
     𝐽 = ap.𝐽
     a = x₂-x₁
     b = y₂-y₁
@@ -678,6 +818,8 @@ function L₂Q(ap::T) where T<:AbstractElement
             Q₁ += N[i]*xᵢ.q₁
             Q₂ += N[i]*xᵢ.q₂
         end
+        println(Q₁)
+        println(Q̄₁)
         ΔQ² +=((Q₁ - Q̄₁)^2 + (Q₂ - Q̄₂)^2)*𝑤
         Q̄²  += (Q̄₁^2 + Q̄₂^2)*𝑤
     end
@@ -693,6 +835,45 @@ function L₂Q(aps::Vector{T}) where T<:AbstractElement
         L₂Norm_Q̄²  += Q̄²
     end
     return (L₂Norm_ΔQ²/L₂Norm_Q̄²)^0.5
+end
+
+function L₂γ(a::T,b::S) where {T,S<:AbstractElement}
+    Δγ²= BigFloat(0.0)
+    γ̄² = BigFloat(0.0)
+    for (ξʷ,ξᵠ) in zip(a.𝓖,b.𝓖)
+        𝑤 = ξʷ.𝑤
+        N = ξᵠ[:𝝭]
+        B₁ = ξʷ[:∂𝝭∂x]
+        B₂ = ξʷ[:∂𝝭∂y]
+        γ̄₁ = ξʷ.γ₁
+        γ̄₂ = ξʷ.γ₂
+        γ₁ = 0.0
+        γ₂ = 0.0
+        for (i,xᵢ) in enumerate(a.𝓒)
+            γ₁ += B₁[i]*xᵢ.d
+            γ₂ += B₂[i]*xᵢ.d
+        end
+        for (i,xᵢ) in enumerate(b.𝓒)
+            γ₁ -= N[i]*xᵢ.d₁
+            γ₂ -= N[i]*xᵢ.d₂
+        end
+        println(γ₁)
+        println(γ̄₁)
+        Δγ² += ((γ₁ - γ̄₁)^2 + (γ₂ - γ̄₂)^2)*𝑤
+        γ̄²  += (γ̄₁^2 + γ̄₂^2)*𝑤
+    end
+    return Δγ², γ̄²
+end
+
+function L₂γ(as::Vector{T},bs::Vector{S}) where {T,S<:AbstractElement}
+    L₂Norm_Δγ²= BigFloat(0.0)
+    L₂Norm_γ̄² = BigFloat(0.0)
+    for (a,b) in zip(as,bs)
+        Δγ², γ̄² = L₂γ(a,b)
+        L₂Norm_Δγ² += Δγ²
+        L₂Norm_γ̄²  += γ̄²
+    end
+    return (L₂Norm_Δγ²/L₂Norm_γ̄²)^0.5
 end
 
 
