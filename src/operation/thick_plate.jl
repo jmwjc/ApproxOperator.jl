@@ -818,8 +818,6 @@ function L₂Q(ap::T) where T<:AbstractElement
             Q₁ += N[i]*xᵢ.q₁
             Q₂ += N[i]*xᵢ.q₂
         end
-        println(Q₁)
-        println(Q̄₁)
         ΔQ² +=((Q₁ - Q̄₁)^2 + (Q₂ - Q̄₂)^2)*𝑤
         Q̄²  += (Q̄₁^2 + Q̄₂^2)*𝑤
     end
@@ -857,8 +855,6 @@ function L₂γ(a::T,b::S) where {T,S<:AbstractElement}
             γ₁ -= N[i]*xᵢ.d₁
             γ₂ -= N[i]*xᵢ.d₂
         end
-        println(γ₁)
-        println(γ̄₁)
         Δγ² += ((γ₁ - γ̄₁)^2 + (γ₂ - γ̄₂)^2)*𝑤
         γ̄²  += (γ̄₁^2 + γ̄₂^2)*𝑤
     end
@@ -1025,6 +1021,56 @@ function H₁(aps_w::Vector{Tʷ},aps_φ::Vector{Tᵠ}) where {Tʷ,Tᵠ<:Abstract
     return (H₁Norm_Δu²/H₁Norm_ū²)^0.5, (L₂Norm_Δu²/L₂Norm_ū²)^0.5
 end
 
+function Hₑ(aps::Vector{T}) where T<:AbstractElement
+    HₑNorm_Δu² = 0.0
+    HₑNorm_ū² = 0.0
+    for ap in aps
+        Δu², ū² = Hₑ(ap)
+        HₑNorm_Δu² += Δu²
+        HₑNorm_ū² += ū²
+    end
+    return (HₑNorm_Δu²/HₑNorm_ū²)^0.5
+end
+
+function Hₑ(ap::T) where T<:AbstractElement
+    Δu² = BigFloat(0.0)
+    ū² = BigFloat(0.0)
+    E = ap.E
+    ν = ap.ν
+    h = ap.h
+    Dᵇᵢᵢᵢᵢ = E*h^3/12/(1-ν^2)
+    Dᵇᵢᵢⱼⱼ = E*ν*h^3/12/(1-ν^2)
+    Dᵇᵢⱼᵢⱼ = E*h^3/24/(1+ν)
+    Dˢ =  5/6*h*E/2/(1+ν)
+    for ξ in ap.𝓖
+        κ̄₁₁ = -ξ.∂φ₁∂x
+        κ̄₂₂ = -ξ.∂φ₂∂y
+        κ̄₁₂ = -ξ.∂φ₁∂y-ξ.∂φ₂∂x
+        γ̄₁ = ξ.∂w∂x - ξ.φ₁
+        γ̄₂ = ξ.∂w∂y - ξ.φ₂
+        𝑤 = ξ.𝑤
+
+        N = ξ[:𝝭]
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        κ₁₁ = 0.0
+        κ₂₂ = 0.0
+        κ₁₂ = 0.0
+        γ₁ = 0.0
+        γ₂ = 0.0
+        for (i,xᵢ) in enumerate(ap.𝓒)
+            γ₁ += B₁[i]*xᵢ.d - N[i]*xᵢ.d₁
+            γ₂ += B₂[i]*xᵢ.d - N[i]*xᵢ.d₂
+            κ₁₁ -= B₁[i]*xᵢ.d₁
+            κ₂₂ -= B₂[i]*xᵢ.d₂
+            κ₁₂ -= B₁[i]*xᵢ.d₂+B₂[i]*xᵢ.d₁
+        end
+        Δu² += 0.5*(Dᵇᵢᵢᵢᵢ*(κ₁₁-κ̄₁₁)^2+Dᵇᵢᵢᵢᵢ*(κ₂₂-κ̄₂₂)^2+2*Dᵇᵢᵢⱼⱼ*(κ₁₁-κ̄₁₁)*(κ₂₂-κ̄₂₂)+2*Dᵇᵢⱼᵢⱼ*(κ₁₂-κ̄₁₂)^2 + ((γ₁-γ̄₁)^2 + (γ₂-γ̄₂)^2)*Dˢ)*𝑤
+        ū² += 0.5*(Dᵇᵢᵢᵢᵢ*κ̄₁₁^2+Dᵇᵢᵢᵢᵢ*κ̄₂₂^2+2*Dᵇᵢᵢⱼⱼ*κ̄₁₁*κ̄₂₂+2*Dᵇᵢⱼᵢⱼ*κ̄₁₂^2 + (γ̄₁^2 + γ̄₂^2)*Dˢ)*𝑤
+    end
+    return Δu², ū²
+end
+
 function Hₑ(aps_w::Vector{Tʷ},aps_φ::Vector{Tᵠ},aps_Q::Vector{Tˢ}) where {Tʷ,Tᵠ,Tˢ<:AbstractElement}
     HₑNorm_Δu² = 0.0
     HₑNorm_ū² = 0.0
@@ -1100,21 +1146,6 @@ function Hₑ(ap_w::Tʷ,ap_φ::Tᵠ,ap_Q::Tˢ) where {Tʷ,Tᵠ,Tˢ<:AbstractElem
             q₂ += Nˢ[i]*xᵢ.q₂
         end
 
-        # Δu² += 0.5*(Dᵇᵢᵢᵢᵢ*(κ₁₁-κ̄₁₁)^2+Dᵇᵢᵢᵢᵢ*(κ₂₂-κ̄₂₂)^2+2*Dᵇᵢᵢⱼⱼ*(κ₁₁-κ̄₁₁)*(κ₂₂-κ̄₂₂)+2*Dᵇᵢⱼᵢⱼ*(κ₁₂-κ̄₁₂)^2 + ((q₁-q̄₁)^2 + (q₂-q̄₂)^2)/Dˢ)*𝑤
-        # ū² += 0.5*(Dᵇᵢᵢᵢᵢ*κ̄₁₁^2+Dᵇᵢᵢᵢᵢ*κ̄₂₂^2+2*Dᵇᵢᵢⱼⱼ*κ̄₁₁*κ̄₂₂+2*Dᵇᵢⱼᵢⱼ*κ̄₁₂^2 + (q̄₁^2 + q̄₂^2)/Dˢ)*𝑤
-        println("qᵢ-Dˢ*γᵢ:")
-        println(q₁)
-        println(Dˢ*γ₁)
-        # println("Δκᵢⱼ:")
-        # println(abs(κ₁₁-κ̄₁₁)/κ̄₁₁)
-        # println(abs(κ₂₂-κ̄₂₂)/κ̄₂₂)
-        # println(abs(κ₁₂-κ̄₁₂)/κ̄₁₂)
-        # println("Δγᵢ:")
-        # println(abs(γ₁-γ̄₁)/γ̄₁)
-        # println(abs(γ₂-γ̄₂)/γ̄₂)
-        # println("Δqᵢ:")
-        # println(abs(q₁-q̄₁)/q̄₁)
-        # println(abs(q₂-q̄₂)/q̄₂)
         Δu² += 0.5*(Dᵇᵢᵢᵢᵢ*(κ₁₁-κ̄₁₁)^2+Dᵇᵢᵢᵢᵢ*(κ₂₂-κ̄₂₂)^2+2*Dᵇᵢᵢⱼⱼ*(κ₁₁-κ̄₁₁)*(κ₂₂-κ̄₂₂)+2*Dᵇᵢⱼᵢⱼ*(κ₁₂-κ̄₁₂)^2 + ((γ₁-γ̄₁)^2 + (γ₂-γ̄₂)^2)*Dˢ)*𝑤
         ū² += 0.5*(Dᵇᵢᵢᵢᵢ*κ̄₁₁^2+Dᵇᵢᵢᵢᵢ*κ̄₂₂^2+2*Dᵇᵢᵢⱼⱼ*κ̄₁₁*κ̄₂₂+2*Dᵇᵢⱼᵢⱼ*κ̄₁₂^2 + (γ̄₁^2 + γ̄₂^2)*Dˢ)*𝑤
     end
