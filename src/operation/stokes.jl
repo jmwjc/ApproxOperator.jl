@@ -107,5 +107,4 @@ function update_velocity(a::T) where T<:AbstractElement
         ξ.∂u₂∂y = ∂u₂∂y_val
     end
 end
-
 end
