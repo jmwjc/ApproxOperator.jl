@@ -50,10 +50,10 @@ function ∫κκdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
             I = xᵢ.𝐼 
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                k[2*I-1,2*J-1] += (Dᵢᵢᵢᵢ*B₁[i]*B₁[j] + Dᵢⱼᵢⱼ*B₂[i]*B₂[j])*𝑤
-                k[2*I-1,2*J]   += (Dᵢᵢⱼⱼ*B₁[i]*B₂[j] + Dᵢⱼᵢⱼ*B₂[i]*B₁[j])*𝑤
-                k[2*I,2*J-1]   += (Dᵢᵢⱼⱼ*B₂[i]*B₁[j] + Dᵢⱼᵢⱼ*B₁[i]*B₂[j])*𝑤
-                k[2*I,2*J]     += (Dᵢᵢᵢᵢ*B₂[i]*B₂[j] + Dᵢⱼᵢⱼ*B₁[i]*B₁[j])*𝑤
+                k[2*I-1,2*J-1] += (-Dᵢᵢᵢᵢ*B₁[i]*B₁[j] - Dᵢⱼᵢⱼ*B₂[i]*B₂[j])*𝑤
+                k[2*I-1,2*J]   += (-Dᵢᵢⱼⱼ*B₁[i]*B₂[j] - Dᵢⱼᵢⱼ*B₂[i]*B₁[j])*𝑤
+                k[2*I,2*J-1]   += (-Dᵢᵢⱼⱼ*B₂[i]*B₁[j] - Dᵢⱼᵢⱼ*B₁[i]*B₂[j])*𝑤
+                k[2*I,2*J]     += (-Dᵢᵢᵢᵢ*B₂[i]*B₂[j] - Dᵢⱼᵢⱼ*B₁[i]*B₁[j])*𝑤
             end
         end
     end
@@ -729,32 +729,32 @@ function L₂φ(aps::Vector{T}) where T<:AbstractElement
     return (L₂Norm_Δφ²/L₂Norm_φ̄²)^0.5
 end
 
-function L₂(ap::T) where T<:AbstractElement
-    Δu²= 0
-    ū² = 0
+function L₂w(ap::T) where T<:AbstractElement
+    Δw²= 0
+    w̄² = 0
     for ξ in ap.𝓖
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
-        ū = ξ.u
-        u = 0
+        w̄ = ξ.w
+        w = 0
         for (i,xᵢ) in enumerate(ap.𝓒)
-            u += N[i]*xᵢ.d
+            w += N[i]*xᵢ.d
         end
-        Δu² +=(u - ū)^2*𝑤
-        ū²  += ū^2*𝑤
+        Δw² +=(w - w̄)^2*𝑤
+        w̄²  += w̄^2*𝑤
     end
-    return Δu², ū²
+    return Δw², w̄²
 end
 
-function L₂(aps::Vector{T}) where T<:AbstractElement
-    L₂Norm_Δu²= 0
-    L₂Norm_ū² = 0
+function L₂w(aps::Vector{T}) where T<:AbstractElement
+    L₂Norm_Δw²= 0
+    L₂Norm_w̄² = 0
     for ap in aps
-        Δu², ū² = L₂(ap)
-        L₂Norm_Δu² += Δu²
-        L₂Norm_ū²  += ū²
+        Δw², w̄² = L₂w(ap)
+        L₂Norm_Δw² += Δw²
+        L₂Norm_w̄²  += w̄²
     end
-    return (L₂Norm_Δu²/L₂Norm_ū²)^0.5
+    return (L₂Norm_Δw²/L₂Norm_w̄²)^0.5
 end
 
 function ∫wwGdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
@@ -872,6 +872,45 @@ function ∫ρIφφdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
             end
         end
     end
+end
+
+function L₂w(elements::Vector{T}, vʷ::Vector{Float64}, w_exact_func::Function) where T<:AbstractElement
+    diff_w_sq = 0.0
+    norm_w_sq = 0.0
+    for el in elements
+        for ξ in el.𝓖
+            N = ξ[:𝝭]
+            𝑤 = ξ.𝑤
+            x, y, z = ξ.x, ξ.y, ξ.z
+            w_exact = w_exact_func(x, y, z)
+            w_num = LinearAlgebra.dot(N, vʷ[el.𝓒])
+            diff_w_sq += (w_num - w_exact)^2 * 𝑤
+            norm_w_sq += w_exact^2 * 𝑤
+        end
+    end
+    return sqrt(diff_w_sq) / max(sqrt(norm_w_sq), eps(Float64))
+end
+
+function L₂φ(elements::Vector{T}, vᵠ::Vector{Float64}, φx_exact_func::Function, φy_exact_func::Function) where T<:AbstractElement
+    diff_𝜙_sq = 0.0
+    norm_𝜙_sq = 0.0
+    for el in elements
+        for ξ in el.𝓖
+            N = ξ[:𝝭]
+            𝑤 = ξ.𝑤
+            x, y, z = ξ.x, ξ.y, ξ.z
+            𝜙1_exact = φx_exact_func(x, y, z)
+            𝜙2_exact = φy_exact_func(x, y, z)
+            
+            𝜙_local = vᵠ[el.𝓒]
+            𝜙1_num = LinearAlgebra.dot(N, 𝜙_local[1:2:end])
+            𝜙2_num = LinearAlgebra.dot(N, 𝜙_local[2:2:end])
+            
+            diff_𝜙_sq += ((𝜙1_num - 𝜙1_exact)^2 + (𝜙2_num - 𝜙2_exact)^2) * 𝑤
+            norm_𝜙_sq += (𝜙1_exact^2 + 𝜙2_exact^2) * 𝑤
+        end
+    end
+    return sqrt(diff_𝜙_sq) / max(sqrt(norm_𝜙_sq), eps(Float64))
 end
 
 end
