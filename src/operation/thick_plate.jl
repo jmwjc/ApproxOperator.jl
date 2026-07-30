@@ -38,10 +38,9 @@ function ∫κκdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     E = ap.E
     ν = ap.ν
-    h = ap.h
-    Dᵢᵢᵢᵢ = E*h^3/12/(1-ν^2)
-    Dᵢᵢⱼⱼ = E*ν*h^3/12/(1-ν^2)
-    Dᵢⱼᵢⱼ = E*h^3/24/(1+ν)
+    Dᵢᵢᵢᵢ = E/12/(1-ν^2)
+    Dᵢᵢⱼⱼ = E*ν/12/(1-ν^2)
+    Dᵢⱼᵢⱼ = E/24/(1+ν)
     for ξ in 𝓖
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
@@ -79,7 +78,7 @@ function ∫∇w∇wdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     E = ap.E
     ν = ap.ν
     h = ap.h
-    D = 5/6*h*E/2/(1+ν)
+    D = 5/6/h^2*E/2/(1+ν)
     for ξ in 𝓖
         𝑤 = ξ.𝑤
         B₁ = ξ[:∂𝝭∂x]
@@ -99,7 +98,7 @@ function ∫φφdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     E = ap.E
     ν = ap.ν
     h = ap.h
-    D = 5/6*h*E/2/(1+ν)
+    D = 5/6/h^2*E/2/(1+ν)
     for ξ in 𝓖
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
@@ -119,7 +118,7 @@ function ∫φwdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     E = ap.E
     ν = ap.ν
     h = ap.h
-    D = 5/6*h*E/2/(1+ν)
+    D = 5/6/h^2*E/2/(1+ν)
     for ξ in 𝓖
         𝑤 = ξ.𝑤
         B₁ = ξ[:∂𝝭∂x]
@@ -142,7 +141,7 @@ function ∫φwdΩ(a₁::T,a₂::T,k::AbstractMatrix) where T<:AbstractElement
     E = a₁.E
     ν = a₁.ν
     h = a₁.h
-    D = 5/6*h*E/2/(1+ν)
+    D = 5/6/h^2*E/2/(1+ν)
     for (ξ₁,ξ₂) in zip(𝓖₁,𝓖₂)
         𝑤 = ξ₁.𝑤
         B₁ = ξ₁[:∂𝝭∂x]
@@ -328,7 +327,7 @@ function ∫QQdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     E = ap.E
     ν = ap.ν
     h = ap.h
-    D = 5/6*h*E/2/(1+ν)
+    D = 5/6/h^2*E/2/(1+ν)
     for ξ in 𝓖
         N = ξ[:𝝭]
         𝑤 = ξ.𝑤
@@ -433,9 +432,9 @@ function ∫MMdΩ(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
         E = ξ.E
         ν = ξ.ν
         h = ξ.h
-        C⁻¹ᵢᵢᵢᵢ = 1/E*12/h^3
-        C⁻¹ᵢᵢⱼⱼ = -ν/E*12/h^3
-        C⁻¹ᵢⱼᵢⱼ = 2*(1+ν)/E*12/h^3
+        C⁻¹ᵢᵢᵢᵢ = 1/E*12
+        C⁻¹ᵢᵢⱼⱼ = -ν/E*12
+        C⁻¹ᵢⱼᵢⱼ = 2*(1+ν)/E*12
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
@@ -500,6 +499,27 @@ function ∫MφdΓ(aₘ::T,aᵩ::S,k::AbstractMatrix{Float64},f::AbstractVector{
             f[3*I-2] += N[i]*(n₁*n₁₁*g₁ + n₁*n₁₂*g₂)*𝑤
             f[3*I-1] += N[i]*(n₂*n₁₂*g₁ + n₂*n₂₂*g₂)*𝑤
             f[3*I]   += N[i]*((n₁*n₁₂+n₂*n₁₁)*g₁ + (n₁*n₂₂+n₂*n₁₂)*g₂)*𝑤 
+        end
+    end
+end
+
+function ∫M∇φdΩ(aₘ::T,aᵩ::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+    𝓒ₘ = aₘ.𝓒;𝓖ₘ = aₘ.𝓖
+    𝓒ᵩ = aᵩ.𝓒;𝓖ᵩ = aᵩ.𝓖
+    for (ξₘ,ξᵩ) in zip(𝓖ₘ,𝓖ᵩ)
+        𝑤 = ξₘ.𝑤
+        N = ξₘ[:𝝭]
+        B₁ = ξᵩ[:∂𝝭∂x]
+        B₂ = ξᵩ[:∂𝝭∂y]
+        for (i,xᵢ) in enumerate(𝓒ₘ)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒ᵩ)
+                J = xⱼ.𝐼
+                k[3*I-2,2*J-1] -= N[i]*B₁[j]*𝑤
+                k[3*I-1,2*J]   -= N[i]*B₂[j]*𝑤
+                k[3*I,2*J-1]   -= N[i]*B₂[j]*𝑤
+                k[3*I,2*J]     -= N[i]*B₁[j]*𝑤
+            end
         end
     end
 end
@@ -607,12 +627,12 @@ function ∫αφφdΓ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
-function ∫wwdΩ_MITC(ap::Element{:Quad4},k::AbstractMatrix)
+function ∫∇w∇wdΩ_MITC(ap::Element{:Quad4},k::AbstractMatrix)
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     E = ap.E
     ν = ap.ν
     h = ap.h
-    D = 5/6*h*E/2/(1+ν)
+    D = 5/6/h^2*E/2/(1+ν)
 
     x₁,x₂,x₃,x₄ = (xᵢ.x for xᵢ in 𝓒)
     y₁,y₂,y₃,y₄ = (xᵢ.y for xᵢ in 𝓒)
@@ -661,7 +681,7 @@ function ∫φφdΩ_MITC(ap::Element{:Quad4},k::AbstractMatrix)
     E = ap.E
     ν = ap.ν
     h = ap.h
-    D = 5/6*h*E/2/(1+ν)
+    D = 5/6/h^2*E/2/(1+ν)
     Nᵃ = (0.5,0.5,0.0,0.0)
     Nᵇ = (0.0,0.5,0.5,0.0)
     Nᶜ = (0.0,0.0,0.5,0.5)
@@ -689,7 +709,7 @@ function ∫φwdΩ_MITC(ap::Element{:Quad4},k::AbstractMatrix)
     E = ap.E
     ν = ap.ν
     h = ap.h
-    D = 5/6*h*E/2/(1+ν)
+    D = 5/6/h^2*E/2/(1+ν)
 
     x₁,x₂,x₃,x₄ = (xᵢ.x for xᵢ in 𝓒)
     y₁,y₂,y₃,y₄ = (xᵢ.y for xᵢ in 𝓒)
@@ -745,7 +765,7 @@ function ∫φφdΩ_DSG(ap::Element{:Tri3},k::AbstractMatrix)
     E = ap.E
     ν = ap.ν
     h = ap.h
-    D = 5/6*h*E/2/(1+ν)
+    D = 5/6/h^2*E/2/(1+ν)
     x₁,x₂,x₃ = (xᵢ.x for xᵢ in 𝓒)
     y₁,y₂,y₃ = (xᵢ.y for xᵢ in 𝓒)
     𝐽 = ap.𝐽
@@ -776,7 +796,7 @@ function ∫φwdΩ_DSG(ap::Element{:Tri3},k::AbstractMatrix)
     E = ap.E
     ν = ap.ν
     h = ap.h
-    D = 5/6*h*E/2/(1+ν)
+    D = 5/6/h^2*E/2/(1+ν)
     x₁,x₂,x₃ = (xᵢ.x for xᵢ in 𝓒)
     y₁,y₂,y₃ = (xᵢ.y for xᵢ in 𝓒)
     𝐽 = ap.𝐽
@@ -833,6 +853,39 @@ function L₂Q(aps::Vector{T}) where T<:AbstractElement
         L₂Norm_Q̄²  += Q̄²
     end
     return (L₂Norm_ΔQ²/L₂Norm_Q̄²)^0.5
+end
+
+function L₂γ(ap::T) where T<:AbstractElement
+    Δγ²= BigFloat(0.0)
+    γ̄² = BigFloat(0.0)
+    for ξ in ap.𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        γ̄₁ = ξ.γ₁
+        γ̄₂ = ξ.γ₂
+        γ₁ = 0.0
+        γ₂ = 0.0
+        for (i,xᵢ) in enumerate(ap.𝓒)
+            γ₁ += B₁[i]*xᵢ.d - N[i]*xᵢ.d₁
+            γ₂ += B₂[i]*xᵢ.d - N[i]*xᵢ.d₂
+        end
+        Δγ² += ((γ₁ - γ̄₁)^2 + (γ₂ - γ̄₂)^2)*𝑤
+        γ̄²  += (γ̄₁^2 + γ̄₂^2)*𝑤
+    end
+    return Δγ², γ̄²
+end
+
+function L₂γ(aps::Vector{T}) where T<:AbstractElement
+    L₂Norm_Δγ²= BigFloat(0.0)
+    L₂Norm_γ̄² = BigFloat(0.0)
+    for ap in aps
+        Δγ², γ̄² = L₂γ(ap)
+        L₂Norm_Δγ² += Δγ²
+        L₂Norm_γ̄²  += γ̄²
+    end
+    return (L₂Norm_Δγ²/L₂Norm_γ̄²)^0.5
 end
 
 function L₂γ(a::T,b::S) where {T,S<:AbstractElement}
