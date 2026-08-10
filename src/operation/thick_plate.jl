@@ -50,10 +50,10 @@ function ∫κκdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
             I = xᵢ.𝐼 
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                k[2*I-1,2*J-1] += (-Dᵢᵢᵢᵢ*B₁[i]*B₁[j] - Dᵢⱼᵢⱼ*B₂[i]*B₂[j])*𝑤
-                k[2*I-1,2*J]   += (-Dᵢᵢⱼⱼ*B₁[i]*B₂[j] - Dᵢⱼᵢⱼ*B₂[i]*B₁[j])*𝑤
-                k[2*I,2*J-1]   += (-Dᵢᵢⱼⱼ*B₂[i]*B₁[j] - Dᵢⱼᵢⱼ*B₁[i]*B₂[j])*𝑤
-                k[2*I,2*J]     += (-Dᵢᵢᵢᵢ*B₂[i]*B₂[j] - Dᵢⱼᵢⱼ*B₁[i]*B₁[j])*𝑤
+                k[2*I-1,2*J-1] += (Dᵢᵢᵢᵢ*B₁[i]*B₁[j] + Dᵢⱼᵢⱼ*B₂[i]*B₂[j])*𝑤
+                k[2*I-1,2*J]   += (Dᵢᵢⱼⱼ*B₁[i]*B₂[j] + Dᵢⱼᵢⱼ*B₂[i]*B₁[j])*𝑤
+                k[2*I,2*J-1]   += (Dᵢᵢⱼⱼ*B₂[i]*B₁[j] + Dᵢⱼᵢⱼ*B₁[i]*B₂[j])*𝑤
+                k[2*I,2*J]     += (Dᵢᵢᵢᵢ*B₂[i]*B₂[j] + Dᵢⱼᵢⱼ*B₁[i]*B₁[j])*𝑤
             end
         end
     end
@@ -79,14 +79,29 @@ function ∫wwdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
+# function ∫wwdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
+#     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+#     for ξ in 𝓖
+#         𝑤 = ξ.𝑤
+#         N = ξ[:𝝭]
+#         for (i,xᵢ) in enumerate(𝓒)
+#             I = xᵢ.𝐼 
+#             for (j,xⱼ) in enumerate(𝓒)
+#                 J = xⱼ.𝐼
+#                 k[I,J] += N[i]*N[j]*𝑤
+#             end
+#         end
+#     end
+# end
+
 function ∫φφdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    𝑤 = ap.𝑤
     E = ap.E
     ν = ap.ν
     h = ap.h
     D = 5/6*h*E/2/(1+ν)
     for ξ in 𝓖
+        𝑤 = ξ.𝑤
         N = ξ[:𝝭]
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼 
@@ -94,6 +109,29 @@ function ∫φφdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
                 J = xⱼ.𝐼
                 k[2*I-1,2*J-1] += D*N[i]*N[j]*𝑤
                 k[2*I,2*J]     += D*N[i]*N[j]*𝑤
+            end
+        end
+    end
+end
+
+function ∫φwdΩ(a₁::T,a₂::T,k::AbstractMatrix) where T<:AbstractElement
+    𝓒₁ = a₁.𝓒; 𝓖₁ = a₁.𝓖
+    𝓒₂ = a₂.𝓒; 𝓖₂ = a₂.𝓖
+    E = a₁.E
+    ν = a₁.ν
+    h = a₁.h
+    D = 5/6*h*E/2/(1+ν)
+    for (ξ₁,ξ₂) in zip(𝓖₁,𝓖₂)
+        𝑤 = ξ₁.𝑤
+        B₁ = ξ₁[:∂𝝭∂x]
+        B₂ = ξ₁[:∂𝝭∂y]
+        N = ξ₂[:𝝭]
+        for (i,xᵢ) in enumerate(𝓒₁)
+            I = xᵢ.𝐼 
+            for (j,xⱼ) in enumerate(𝓒₂)
+                J = xⱼ.𝐼
+                k[2*I-1,J] -= D*N[i]*B₁[j]*𝑤
+                k[2*I,J]   -= D*N[i]*B₂[j]*𝑤
             end
         end
     end
@@ -107,6 +145,28 @@ function ∫φwdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     h = ap.h
     D = 5/6*h*E/2/(1+ν)
     for ξ in 𝓖
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        N = ξ[:𝝭]
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼 
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[2*I-1,J] -= D*N[i]*B₁[j]*𝑤
+                k[2*I,J]   -= D*N[i]*B₂[j]*𝑤
+            end
+        end
+    end
+end
+
+function ∫φwdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    E = ap.E
+    ν = ap.ν
+    h = ap.h
+    D = 5/6*h*E/2/(1+ν)
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
         N = ξ[:𝝭]
@@ -184,29 +244,6 @@ function ∫ψwdΩBui(ap::T,k::AbstractMatrix) where T<:AbstractElement
                 J = xⱼ.𝐼
                 k[2*I-1,J] += D*B₁[i]*B₁[j]*𝑤
                 k[2*I,J]   += D*B₂[i]*B₂[j]*𝑤
-            end
-        end
-    end
-end
-
-function ∫φwdΩ(a₁::T,a₂::T,k::AbstractMatrix) where T<:AbstractElement
-    𝓒₁ = a₁.𝓒; 𝓖₁ = a₁.𝓖
-    𝓒₂ = a₂.𝓒; 𝓖₂ = a₂.𝓖
-    𝑤 = a₁.𝑤
-    E = a₁.E
-    ν = a₁.ν
-    h = a₁.h
-    D = 5/6*h*E/2/(1+ν)
-    for (ξ₁,ξ₂) in zip(𝓖₁,𝓖₂)
-        B₁ = ξ₁[:∂𝝭∂x]
-        B₂ = ξ₁[:∂𝝭∂y]
-        N = ξ₂[:𝝭]
-        for (i,xᵢ) in enumerate(𝓒₁)
-            I = xᵢ.𝐼 
-            for (j,xⱼ) in enumerate(𝓒₂)
-                J = xⱼ.𝐼
-                k[2*I-1,J] -= D*N[i]*B₁[j]*𝑤
-                k[2*I,J]   -= D*N[i]*B₂[j]*𝑤
             end
         end
     end
@@ -660,6 +697,22 @@ function ∫αφφdΓ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
+function ∫αwwdΓ(ap::T,k::AbstractMatrix) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    α = ap.α
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I,J] += α*N[i]*N[j]*𝑤
+            end
+        end
+    end
+end
+
 function L₂Q(ap::T) where T<:AbstractElement
     ΔQ²= 0
     Q̄² = 0
@@ -698,16 +751,15 @@ end
 
 
 function L₂φ(ap::T) where T<:AbstractElement
-    Δφ²= 0
-    φ̄² = 0
+    Δφ²= BigFloat(0.0)
+    φ̄² = BigFloat(0.0)
     for ξ in ap.𝓖
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
         φ̄₁ = ξ.φ₁
         φ̄₂ = ξ.φ₂
-        u = 0
-        φ₁ = 0
-        φ₂ = 0
+        φ₁ = 0.0
+        φ₂ = 0.0
         for (i,xᵢ) in enumerate(ap.𝓒)
             φ₁ += N[i]*xᵢ.d₁
             φ₂ += N[i]*xᵢ.d₂
@@ -872,45 +924,6 @@ function ∫ρIφφdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
             end
         end
     end
-end
-
-function L₂w(elements::Vector{T}, vʷ::Vector{Float64}, w_exact_func::Function) where T<:AbstractElement
-    diff_w_sq = 0.0
-    norm_w_sq = 0.0
-    for el in elements
-        for ξ in el.𝓖
-            N = ξ[:𝝭]
-            𝑤 = ξ.𝑤
-            x, y, z = ξ.x, ξ.y, ξ.z
-            w_exact = w_exact_func(x, y, z)
-            w_num = LinearAlgebra.dot(N, vʷ[el.𝓒])
-            diff_w_sq += (w_num - w_exact)^2 * 𝑤
-            norm_w_sq += w_exact^2 * 𝑤
-        end
-    end
-    return sqrt(diff_w_sq) / max(sqrt(norm_w_sq), eps(Float64))
-end
-
-function L₂φ(elements::Vector{T}, vᵠ::Vector{Float64}, φx_exact_func::Function, φy_exact_func::Function) where T<:AbstractElement
-    diff_𝜙_sq = 0.0
-    norm_𝜙_sq = 0.0
-    for el in elements
-        for ξ in el.𝓖
-            N = ξ[:𝝭]
-            𝑤 = ξ.𝑤
-            x, y, z = ξ.x, ξ.y, ξ.z
-            𝜙1_exact = φx_exact_func(x, y, z)
-            𝜙2_exact = φy_exact_func(x, y, z)
-            
-            𝜙_local = vᵠ[el.𝓒]
-            𝜙1_num = LinearAlgebra.dot(N, 𝜙_local[1:2:end])
-            𝜙2_num = LinearAlgebra.dot(N, 𝜙_local[2:2:end])
-            
-            diff_𝜙_sq += ((𝜙1_num - 𝜙1_exact)^2 + (𝜙2_num - 𝜙2_exact)^2) * 𝑤
-            norm_𝜙_sq += (𝜙1_exact^2 + 𝜙2_exact^2) * 𝑤
-        end
-    end
-    return sqrt(diff_𝜙_sq) / max(sqrt(norm_𝜙_sq), eps(Float64))
 end
 
 end
