@@ -818,16 +818,6 @@ function ∫∇φσ∇φdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
                     σ₂₂ * B₂[i] * B₂[j] +
                     σ₁₂ * (B₁[i] * B₂[j] + B₂[i] * B₁[j])
                 ) * 𝑤
-                k[2*I-1, 2*J]   += h^3 / 12 * (
-                    σ₁₁ * B₁[i] * B₁[j] +
-                    σ₂₂ * B₂[i] * B₂[j] +
-                    σ₁₂ * (B₁[i] * B₂[j] + B₂[i] * B₁[j])
-                ) * 𝑤
-                k[2*I, 2*J-1]   += h^3 / 12 * (
-                    σ₁₁ * B₁[i] * B₁[j] +
-                    σ₂₂ * B₂[i] * B₂[j] +
-                    σ₁₂ * (B₁[i] * B₂[j] + B₂[i] * B₁[j])
-                ) * 𝑤
                 k[2*I, 2*J]     += h^3 / 12 * (
                     σ₁₁ * B₁[i] * B₁[j] +
                     σ₂₂ * B₂[i] * B₂[j] +
