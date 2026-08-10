@@ -1370,4 +1370,69 @@ function Hₑ(ap_w::Tʷ,ap_φ::Tᵠ,ap_Q::Tˢ) where {Tʷ,Tᵠ,Tˢ<:AbstractElem
     return Δu², ū²
 end
 
+function ∫∇wσ∇wdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    h = ap.h
+    for ξ in 𝓖
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        𝑤 = ξ.𝑤
+        σ₁₁ = ξ.σ₁₁
+        σ₂₂ = ξ.σ₂₂
+        σ₁₂ = ξ.σ₁₂
+        for (i, xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j, xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I, J] += h*(
+                    σ₁₁ * B₁[i] * B₁[j] +
+                    σ₂₂ * B₂[i] * B₂[j] +
+                    σ₁₂ * (B₁[i] * B₂[j] + B₂[i] * B₁[j])
+                ) * 𝑤
+            end
+        end
+    end
+end
+
+function ∫∇φσ∇φdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    h = ap.h
+    for ξ in 𝓖
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        𝑤 = ξ.𝑤
+        σ₁₁ = ξ.σ₁₁
+        σ₂₂ = ξ.σ₂₂
+        σ₁₂ = ξ.σ₁₂
+        for (i, xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j, xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[2*I-1, 2*J-1] += h^3 / 12 * (
+                    σ₁₁ * B₁[i] * B₁[j] +
+                    σ₂₂ * B₂[i] * B₂[j] +
+                    σ₁₂ * (B₁[i] * B₂[j] + B₂[i] * B₁[j])
+                ) * 𝑤
+                k[2*I-1, 2*J]   += h^3 / 12 * (
+                    σ₁₁ * B₁[i] * B₁[j] +
+                    σ₂₂ * B₂[i] * B₂[j] +
+                    σ₁₂ * (B₁[i] * B₂[j] + B₂[i] * B₁[j])
+                ) * 𝑤
+                k[2*I, 2*J-1]   += h^3 / 12 * (
+                    σ₁₁ * B₁[i] * B₁[j] +
+                    σ₂₂ * B₂[i] * B₂[j] +
+                    σ₁₂ * (B₁[i] * B₂[j] + B₂[i] * B₁[j])
+                ) * 𝑤
+                k[2*I, 2*J]     += h^3 / 12 * (
+                    σ₁₁ * B₁[i] * B₁[j] +
+                    σ₂₂ * B₂[i] * B₂[j] +
+                    σ₁₂ * (B₁[i] * B₂[j] + B₂[i] * B₁[j])
+                ) * 𝑤
+            end
+        end
+    end
+end
+
 end
