@@ -38,6 +38,7 @@ function ∫κκdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     E = ap.E
     ν = ap.ν
+    h = ap.h
     Dᵢᵢᵢᵢ = E*h^3/12/(1-ν^2)
     Dᵢᵢⱼⱼ = E*ν*h^3/12/(1-ν^2)
     Dᵢⱼᵢⱼ = E*h^3/24/(1+ν)
