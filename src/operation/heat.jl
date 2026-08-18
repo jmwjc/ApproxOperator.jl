@@ -98,9 +98,9 @@ function ∫∫𝒑∇udxdy(aₚ::T,aᵤ::S,k::AbstractMatrix) where {T<:Abstrac
         B₁ = ξᵤ[:∂𝝭∂x]
         B₂ = ξᵤ[:∂𝝭∂y]
         𝑤 = ξᵤ.𝑤
-        for (i,xᵢ) in enumerate(𝓒ᵤ)
+        for (i,xᵢ) in enumerate(𝓒ₚ)
             I = xᵢ.𝐼
-            for (j,xⱼ) in enumerate(𝓒ₚ)
+            for (j,xⱼ) in enumerate(𝓒ᵤ)
                 J = xⱼ.𝐼
                 k[2*I-1,J] -= N[i]*B₁[j]*𝑤
                 k[2*I,J]   -= N[i]*B₂[j]*𝑤
@@ -296,7 +296,7 @@ function ∫∇𝑛vgds(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:Abst
     end
 end
 
-function ∫pᵢnᵢgⱼds(aₚ::T,aᵤ::S,k::AbstractMatrix,f::AbstractVector) where {T<:AbstractElement,S<:AbstractElement}
+function ∫pᵢnᵢgds(aₚ::T,aᵤ::S,k::AbstractMatrix,f::AbstractVector) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ᵤ = aᵤ.𝓒;𝓖ᵤ = aᵤ.𝓖
     𝓒ₚ = aₚ.𝓒;𝓖ₚ = aₚ.𝓖
     for (ξᵤ,ξₚ) in zip(𝓖ᵤ,𝓖ₚ)

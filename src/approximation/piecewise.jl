@@ -18,6 +18,7 @@ get𝑛𝑝(::PiecewiseParametric{:Constant}) = 1
 get𝑛𝑝(::PiecewiseTangent{:Constant}) = 1
 get𝑛𝑝(::PiecewisePolynomial{:Linear1D}) = 2
 get𝑛𝑝(::PiecewiseParametric{:Linear1D}) = 2
+get𝑛𝑝(::PiecewiseTangent{:SemiLinear1D}) = 1
 get𝑛𝑝(::PiecewiseTangent{:Linear1D}) = 2
 get𝑛𝑝(::PiecewisePolynomial{:Quadratic1D}) = 3
 get𝑛𝑝(::PiecewiseParametric{:Quadratic1D}) = 3
@@ -611,4 +612,12 @@ function set𝝭!(::PiecewiseTangent{:Linear1D},𝒙::Node)
     𝝭[1] = 1.0
     # 𝝭[2] = nₘ > 0.0 ? 0.5*(1.0-𝒙.ξ) : 0.5*(1.0-𝒙.ξ)
     𝝭[2] = nₘ > 0.0 ? 𝒙.ξ : -𝒙.ξ
+end
+
+function set𝝭!(::PiecewiseTangent{:SemiLinear1D},𝒙::Node)
+    n₁ = 𝒙.n₁
+    n₂ = 𝒙.n₂
+    nₘ = abs(n₁) ≥ abs(n₂) ? sign(n₁) : sign(n₂)
+    𝝭 = 𝒙[:𝝭]
+    𝝭[1] = nₘ > 0.0 ? 𝒙.ξ : -𝒙.ξ
 end
