@@ -39,9 +39,9 @@ function ∫κκdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     E = ap.E
     ν = ap.ν
     h = ap.h
-    Dᵢᵢᵢᵢ = E*h^3/12/(1-ν^2)
-    Dᵢᵢⱼⱼ = E*ν*h^3/12/(1-ν^2)
-    Dᵢⱼᵢⱼ = E*h^3/24/(1+ν)
+    Dᵢᵢᵢᵢ = E/12/(1-ν^2)
+    Dᵢᵢⱼⱼ = E*ν/12/(1-ν^2)
+    Dᵢⱼᵢⱼ = E/24/(1+ν)
     for ξ in 𝓖
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
@@ -79,7 +79,7 @@ function ∫∇w∇wdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     E = ap.E
     ν = ap.ν
     h = ap.h
-    D = 5/6*h*E/2/(1+ν)
+    D = 5/6/h^2*E/2/(1+ν)
     for ξ in 𝓖
         𝑤 = ξ.𝑤
         B₁ = ξ[:∂𝝭∂x]
@@ -94,29 +94,13 @@ function ∫∇w∇wdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
-# function ∫wwdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
-#     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-#     for ξ in 𝓖
-#         𝑤 = ξ.𝑤
-#         N = ξ[:𝝭]
-#         for (i,xᵢ) in enumerate(𝓒)
-#             I = xᵢ.𝐼 
-#             for (j,xⱼ) in enumerate(𝓒)
-#                 J = xⱼ.𝐼
-#                 k[I,J] += N[i]*N[j]*𝑤
-#             end
-#         end
-#     end
-# end
-
 function ∫φφdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     E = ap.E
     ν = ap.ν
     h = ap.h
-    D = 5/6*h*E/2/(1+ν)
+    D = 5/6/h^2*E/2/(1+ν)
     for ξ in 𝓖
-        𝑤 = ξ.𝑤
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
         for (i,xᵢ) in enumerate(𝓒)
@@ -135,7 +119,7 @@ function ∫φwdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     E = ap.E
     ν = ap.ν
     h = ap.h
-    D = 5/6*h*E/2/(1+ν)
+    D = 5/6/h^2*E/2/(1+ν)
     for ξ in 𝓖
         𝑤 = ξ.𝑤
         B₁ = ξ[:∂𝝭∂x]
@@ -158,7 +142,7 @@ function ∫φwdΩ(a₁::T,a₂::T,k::AbstractMatrix) where T<:AbstractElement
     E = a₁.E
     ν = a₁.ν
     h = a₁.h
-    D = 5/6*h*E/2/(1+ν)
+    D = 5/6/h^2*E/2/(1+ν)
     for (ξ₁,ξ₂) in zip(𝓖₁,𝓖₂)
         𝑤 = ξ₁.𝑤
         B₁ = ξ₁[:∂𝝭∂x]
@@ -644,60 +628,6 @@ function ∫αφφdΓ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
-function ∫αwwdΓ(ap::T,k::AbstractMatrix) where T<:AbstractElement
-    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    α = ap.α
-    for ξ in 𝓖
-        𝑤 = ξ.𝑤
-        N = ξ[:𝝭]
-        for (i,xᵢ) in enumerate(𝓒)
-            I = xᵢ.𝐼
-            for (j,xⱼ) in enumerate(𝓒)
-                J = xⱼ.𝐼
-                k[I,J] += α*N[i]*N[j]*𝑤
-            end
-        end
-    end
-end
-
-function ∫αwwdΓ(ap::T,k::AbstractMatrix) where T<:AbstractElement
-    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    α = ap.α
-    for ξ in 𝓖
-        𝑤 = ξ.𝑤
-        N = ξ[:𝝭]
-        for (i,xᵢ) in enumerate(𝓒)
-            I = xᵢ.𝐼
-            for (j,xⱼ) in enumerate(𝓒)
-                J = xⱼ.𝐼
-                k[I,J] += α*N[i]*N[j]*𝑤
-            end
-        end
-    end
-end
-
-function ∫αφφdΓ(ap::T,k::AbstractMatrix) where T<:AbstractElement
-    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    α = ap.α
-    for ξ in 𝓖
-        𝑤 = ξ.𝑤
-        N = ξ[:𝝭]
-        n₁₁ = ξ.n₁₁
-        n₁₂ = ξ.n₁₂
-        n₂₂ = ξ.n₂₂
-        for (i,xᵢ) in enumerate(𝓒)
-            I = xᵢ.𝐼
-            for (j,xⱼ) in enumerate(𝓒)
-                J = xⱼ.𝐼
-                k[2*I-1,2*J-1] += α*N[i]*n₁₁*N[j]*𝑤
-                k[2*I,2*J-1]   += α*N[i]*n₁₂*N[j]*𝑤
-                k[2*I-1,2*J]   += α*N[i]*n₁₂*N[j]*𝑤
-                k[2*I,2*J]     += α*N[i]*n₂₂*N[j]*𝑤
-            end
-        end
-    end
-end
-
 function ∫∇w∇wdΩ_MITC(ap::Element{:Quad4},k::AbstractMatrix)
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     E = ap.E
@@ -890,6 +820,97 @@ function ∫φwdΩ_DSG(ap::Element{:Tri3},k::AbstractMatrix)
                 J = xⱼ.𝐼
                 k[2*I-1,J] -= D*(Bᵠ₁₁[i]*B₁[j]+Bᵠ₂₁[i]*B₂[j])*𝑤
                 k[2*I,J]   -= D*(Bᵠ₁₂[i]*B₁[j]+Bᵠ₂₂[i]*B₂[j])*𝑤
+            end
+        end
+    end
+end
+
+function ∫∇wσ∇wdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    h = ap.h
+    for ξ in 𝓖
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        𝑤 = ξ.𝑤
+        σ₁₁ = ξ.σ₁₁
+        σ₂₂ = ξ.σ₂₂
+        σ₁₂ = ξ.σ₁₂
+        for (i, xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j, xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I, J] += (
+                    σ₁₁ * B₁[i] * B₁[j] +
+                    σ₂₂ * B₂[i] * B₂[j] +
+                    σ₁₂ * (B₁[i] * B₂[j] + B₂[i] * B₁[j])
+                )/h^2 * 𝑤
+            end
+        end
+    end
+end
+
+function ∫∇φσ∇φdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    h = ap.h
+    for ξ in 𝓖
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        𝑤 = ξ.𝑤
+        σ₁₁ = ξ.σ₁₁
+        σ₂₂ = ξ.σ₂₂
+        σ₁₂ = ξ.σ₁₂
+        for (i, xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j, xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[2*I-1, 2*J-1] += (
+                    σ₁₁ * B₁[i] * B₁[j] +
+                    σ₂₂ * B₂[i] * B₂[j] +
+                    σ₁₂ * (B₁[i] * B₂[j] + B₂[i] * B₁[j])
+                )/12 * 𝑤
+                k[2*I, 2*J]     += (
+                    σ₁₁ * B₁[i] * B₁[j] +
+                    σ₂₂ * B₂[i] * B₂[j] +
+                    σ₁₂ * (B₁[i] * B₂[j] + B₂[i] * B₁[j])
+                )/12 * 𝑤
+            end
+        end
+    end
+end
+
+function ∫ρwwdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    ρ = ap.ρ
+    h = ap.h
+    for ξ in 𝓖
+        N = ξ[:𝝭]
+        𝑤 = ξ.𝑤
+        for (i, xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j, xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I, J] += ρ*N[i]*N[j]/h^2*𝑤
+            end
+        end
+    end
+end
+
+function ∫ρφφdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    ρ = ap.ρ
+    for ξ in 𝓖
+        N = ξ[:𝝭]
+        𝑤 = ξ.𝑤
+        for (i, xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j, xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[2I-1, 2J-1] += ρ*N[i]*N[j]/12*𝑤
+                k[2I,   2J]   += ρ*N[i]*N[j]/12*𝑤
             end
         end
     end
@@ -1279,109 +1300,5 @@ function Hₑ(ap_w::Tʷ,ap_φ::Tᵠ,ap_Q::Tˢ) where {Tʷ,Tᵠ,Tˢ<:AbstractElem
     end
     return Δu², ū²
 end
-
-function ∫∇wσ∇wdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
-    𝓒 = ap.𝓒
-    𝓖 = ap.𝓖
-    h = ap.h
-    for ξ in 𝓖
-        B₁ = ξ[:∂𝝭∂x]
-        B₂ = ξ[:∂𝝭∂y]
-        𝑤 = ξ.𝑤
-        σ₁₁ = ξ.σ₁₁
-        σ₂₂ = ξ.σ₂₂
-        σ₁₂ = ξ.σ₁₂
-        for (i, xᵢ) in enumerate(𝓒)
-            I = xᵢ.𝐼
-            for (j, xⱼ) in enumerate(𝓒)
-                J = xⱼ.𝐼
-                k[I, J] += h*(
-                    σ₁₁ * B₁[i] * B₁[j] +
-                    σ₂₂ * B₂[i] * B₂[j] +
-                    σ₁₂ * (B₁[i] * B₂[j] + B₂[i] * B₁[j])
-                ) * 𝑤
-            end
-        end
-    end
-end
-
-function ∫∇φσ∇φdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
-    𝓒 = ap.𝓒
-    𝓖 = ap.𝓖
-    h = ap.h
-    for ξ in 𝓖
-        B₁ = ξ[:∂𝝭∂x]
-        B₂ = ξ[:∂𝝭∂y]
-        𝑤 = ξ.𝑤
-        σ₁₁ = ξ.σ₁₁
-        σ₂₂ = ξ.σ₂₂
-        σ₁₂ = ξ.σ₁₂
-        for (i, xᵢ) in enumerate(𝓒)
-            I = xᵢ.𝐼
-            for (j, xⱼ) in enumerate(𝓒)
-                J = xⱼ.𝐼
-                k[2*I-1, 2*J-1] += h^3 / 12 * (
-                    σ₁₁ * B₁[i] * B₁[j] +
-                    σ₂₂ * B₂[i] * B₂[j] +
-                    σ₁₂ * (B₁[i] * B₂[j] + B₂[i] * B₁[j])
-                ) * 𝑤
-                k[2*I-1, 2*J]   += h^3 / 12 * (
-                    σ₁₁ * B₁[i] * B₁[j] +
-                    σ₂₂ * B₂[i] * B₂[j] +
-                    σ₁₂ * (B₁[i] * B₂[j] + B₂[i] * B₁[j])
-                ) * 𝑤
-                k[2*I, 2*J-1]   += h^3 / 12 * (
-                    σ₁₁ * B₁[i] * B₁[j] +
-                    σ₂₂ * B₂[i] * B₂[j] +
-                    σ₁₂ * (B₁[i] * B₂[j] + B₂[i] * B₁[j])
-                ) * 𝑤
-                k[2*I, 2*J]     += h^3 / 12 * (
-                    σ₁₁ * B₁[i] * B₁[j] +
-                    σ₂₂ * B₂[i] * B₂[j] +
-                    σ₁₂ * (B₁[i] * B₂[j] + B₂[i] * B₁[j])
-                ) * 𝑤
-            end
-        end
-    end
-end
-
-function ∫ρwwdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
-    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    ρ = ap.ρ
-    h = ap.h
-    I₀ = ρ * h
-    for ξ in 𝓖
-        𝑤 = ξ.𝑤
-        N = ξ[:𝝭]
-        for (i, xᵢ) in enumerate(𝓒)
-            I = xᵢ.𝐼
-            for (j, xⱼ) in enumerate(𝓒)
-                J = xⱼ.𝐼
-                k[I, J] += I₀ * N[i] * N[j] * 𝑤
-            end
-        end
-    end
-end
-
-
-function ∫ρφφdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
-    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    ρ = ap.ρ
-    h = ap.h
-    I₂ = ρ * h^3 / 12
-    for ξ in 𝓖
-        𝑤 = ξ.𝑤
-        N = ξ[:𝝭]
-        for (i, xᵢ) in enumerate(𝓒)
-            I = xᵢ.𝐼
-            for (j, xⱼ) in enumerate(𝓒)
-                J = xⱼ.𝐼
-                k[2*I-1, 2*J-1] += I₂ * N[i] * N[j] * 𝑤
-                k[2*I, 2*J]     += I₂ * N[i] * N[j] * 𝑤
-            end
-        end
-    end
-end
-
 
 end
