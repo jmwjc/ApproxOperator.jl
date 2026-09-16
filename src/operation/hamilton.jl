@@ -109,7 +109,7 @@ function ∫∫∇q∇pdxdt(a₁::T,a₂::S,k::AbstractMatrix{Float64}) where {T
     end
 end
 
-function ∫∫δppdΩdt(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+function ∫∫ppdΩdt(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         N = ξ[:𝝭]
@@ -118,24 +118,56 @@ function ∫∫δppdΩdt(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElem
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                k[I,J] -= N[i]*N[j]*𝑤
+                k[I,J] += N[i]*N[j]*𝑤
             end    
         end
     end
 end
 
-function ∫∫u̇pdxdt(a₁::T,a₂::S,k::AbstractMatrix{Float64}) where {T,S<:AbstractElement}
+function ∫∫sₓsₓdxdt(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        N = ξ[:𝝭]
+        𝑤 = ξ.𝑤
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I,J] += N[i]*N[j]*𝑤
+            end    
+        end
+    end
+end
+
+function ∫∫sₓuₓdxdt(a₁::T,a₂::S,k::AbstractMatrix{Float64}) where {T,S<:AbstractElement}
     𝓒₁ = a₁.𝓒; 𝓖₁ = a₁.𝓖
     𝓒₂ = a₂.𝓒; 𝓖₂ = a₂.𝓖
     for (ξ₁,ξ₂) in zip(𝓖₁,𝓖₂)
-        N = ξ₂[:𝝭]
-        Bₜ = ξ₁[:∂𝝭∂y]
+        N = ξ₁[:𝝭]
+        Bₓ = ξ₂[:∂𝝭∂x]
         𝑤 = ξ₁.𝑤
         for (i,xᵢ) in enumerate(𝓒₁)
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒₂)
                 J = xⱼ.𝐼
-                k[I,J] += Bₜ[i]*N[j]*𝑤
+                k[I,J] -= N[i]*Bₓ[j]*𝑤
+            end    
+        end
+    end
+end
+
+function ∫∫pu̇dxdt(a₁::T,a₂::S,k::AbstractMatrix{Float64}) where {T,S<:AbstractElement}
+    𝓒₁ = a₁.𝓒; 𝓖₁ = a₁.𝓖
+    𝓒₂ = a₂.𝓒; 𝓖₂ = a₂.𝓖
+    for (ξ₁,ξ₂) in zip(𝓖₁,𝓖₂)
+        N = ξ₁[:𝝭]
+        Bₜ = ξ₂[:∂𝝭∂y]
+        𝑤 = ξ₁.𝑤
+        for (i,xᵢ) in enumerate(𝓒₁)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒₂)
+                J = xⱼ.𝐼
+                k[I,J] -= N[i]*Bₜ[j]*𝑤
             end    
         end
     end
@@ -181,6 +213,26 @@ function ∫pnₜuds(a₁::T,a₂::S,k::AbstractMatrix{Float64},f::AbstractVecto
                 k[I,J] -= Nₜ[i]*Nᵤ[j]*nₜ*𝑤
             end    
             f[I] -= Nₜ[i]*nₜ*g*𝑤
+        end
+    end
+end
+
+function ∫sₓnₓgdt(a₁::T,a₂::S,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where {T,S<:AbstractElement}
+    𝓒₁ = a₁.𝓒; 𝓖₁ = a₁.𝓖
+    𝓒₂ = a₂.𝓒; 𝓖₂ = a₂.𝓖
+    for (ξ₁,ξ₂) in zip(𝓖₁,𝓖₂)
+        Nₛ = ξ₁[:𝝭]
+        Nᵤ = ξ₂[:𝝭]
+        g = ξ₂.g
+        nₓ = ξ₁.n₁
+        𝑤 = ξ₁.𝑤
+        for (i,xᵢ) in enumerate(𝓒₁)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒₂)
+                J = xⱼ.𝐼
+                k[I,J] += Nₛ[i]*Nᵤ[j]*nₓ*𝑤
+            end    
+            f[I] += Nₛ[i]*nₓ*g*𝑤
         end
     end
 end
