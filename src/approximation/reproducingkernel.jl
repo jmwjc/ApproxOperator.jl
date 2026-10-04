@@ -22,6 +22,11 @@ get𝒑(   ::ReproducingKernel{:Linear2D},x::NTuple{3,Float64}) = (1.,x[1],x[2])
 get∂𝒑∂x(::ReproducingKernel{:Linear2D},x::NTuple{3,Float64}) = (0.,1.,0.)
 get∂𝒑∂y(::ReproducingKernel{:Linear2D},x::NTuple{3,Float64}) = (0.,0.,1.)
 
+get𝑛𝒑(  ::ReproducingKernel{:Bilinear2D}) = 4
+get𝒑(   ::ReproducingKernel{:Bilinear2D},x::NTuple{3,Float64}) = (1.,x[1],x[2],x[1]*x[2])
+get∂𝒑∂x(::ReproducingKernel{:Bilinear2D},x::NTuple{3,Float64}) = (0.,1.,0.,x[2])
+get∂𝒑∂y(::ReproducingKernel{:Bilinear2D},x::NTuple{3,Float64}) = (0.,0.,1.,x[1])
+
 get𝑛𝒑(      ::ReproducingKernel{:Quadratic2D}) = 6
 get𝒑(       ::ReproducingKernel{:Quadratic2D},x::NTuple{3,Float64}) = (1.,x[1],x[2],x[1]^2,x[1]*x[2],x[2]^2)
 get∂𝒑∂x(    ::ReproducingKernel{:Quadratic2D},x::NTuple{3,Float64}) = (0.,1.,0.,2*x[1],x[2],0.)
