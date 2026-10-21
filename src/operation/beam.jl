@@ -250,4 +250,53 @@ function ∫δdᵢgᵢdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Flo
     end
 end
 
+# ===================== 域内 L₂ 误差（6 个自由度分量）=====================
+# 用法（与 sample.jl 的 L₂w、L₂φ 相同的套路）：
+#   1. 用高阶积分生成误差单元：
+#        elements = getElements(nodes, entities["Ω"], 10)
+#   2. 把精确场 prescribe! 到积分点上（函数或常数均可）：
+#        prescribe!(elements, :u₁=>u₁, :u₂=>u₂, :u₃=>u₃,
+#                             :φ₁=>φ₁, :φ₂=>φ₂, :φ₃=>φ₃)
+#   3. 计算形函数：
+#        set𝝭!(elements)
+#   4. 把有限元解写回节点（d₁..d₃ = u₁..u₃，d₄..d₆ = φ₁..φ₃）：
+#        push!(nodes, :d₁=>[...], ..., :d₆=>[...])
+#   5. 调用：
+#        Δ², d̄² = L₂d(elements)
+#      Δ²[c] = ∫(dᶜ_FE − dᶜ_exact)² dΩ，d̄²[c] = ∫(dᶜ_exact)² dΩ；
+#      各分量相对 L₂ 误差为 sqrt.(Δ² ./ d̄²)。
+function L₂d(ap::T) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    Δ² = zeros(6)
+    d̄² = zeros(6)
+    for ξ in 𝓖
+        N = ξ[:𝝭]
+        𝑤 = ξ.𝑤
+        d̄ = [ξ.u₁, ξ.u₂, ξ.u₃, ξ.φ₁, ξ.φ₂, ξ.φ₃]   # 精确解（积分点）
+        d  = zeros(6)                              # 有限元解 Σ N_I d_I
+        for (i,xᵢ) in enumerate(𝓒)
+            d[1] += N[i]*xᵢ.d₁
+            d[2] += N[i]*xᵢ.d₂
+            d[3] += N[i]*xᵢ.d₃
+            d[4] += N[i]*xᵢ.d₄
+            d[5] += N[i]*xᵢ.d₅
+            d[6] += N[i]*xᵢ.d₆
+        end
+        Δ² .+= (d .- d̄).^2 .* 𝑤
+        d̄² .+= d̄.^2 .* 𝑤
+    end
+    return Δ², d̄²
+end
+
+function L₂d(aps::Vector{T}) where T<:AbstractElement
+    Δ² = zeros(6)
+    d̄² = zeros(6)
+    for ap in aps
+        Δ²ₑ, d̄²ₑ = L₂d(ap)
+        Δ² .+= Δ²ₑ
+        d̄² .+= d̄²ₑ
+    end
+    return Δ², d̄²
+end
+
 end
