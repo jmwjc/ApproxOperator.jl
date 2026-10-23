@@ -5,6 +5,20 @@ const 𝐈₃ = [1.0 0.0 0.0;
             0.0 1.0 0.0;
             0.0 0.0 1.0]
 
+# ===================== 算子命名约定 =====================
+# 与 thin_shell.jl 的 ∫εᵢⱼNᵢⱼdΩ 风格一致，用广义应变/广义内力命名：
+#
+#   ∫εᵘNᵘdΩ  → Kᵘᵘ：位移-位移块
+#   ∫εᵘNᵠdΩ  → Kᵘᵠ：位移-转角块（行 u，列 φ）
+#   ∫εᵠNᵘdΩ  → Kᵠᵘ：转角-位移块（行 φ，列 u）
+#   ∫εᵠNᵠdΩ  → Kᵠᵠ：转角-转角块
+#
+# 上标 u、φ 表示该块对应的自由度块，不是某个具体的应变分量。
+# 每个算子只装配一个 3nₚ×3nₚ 的子块；整体刚度矩阵由使用者在算例中拼装：
+#
+#   K = [Kᵘᵘ Kᵘᵠ;
+#        Kᵠᵘ Kᵠᵠ]
+#
 # 局部 3×3 块 → 整体 3×3 块：Kᵍ = Rᵀ Kˡ R
 function 𝐑ᵀ𝐊𝐑(𝐊::AbstractMatrix{Float64},𝐑::AbstractMatrix{Float64})
     𝐊ᵍ = zeros(3,3)
@@ -56,11 +70,8 @@ function 𝐐(ap::T) where T<:AbstractElement
     return 𝐐ᵢ
 end
 
-function ∫δdᵘKᵘᵘdᵘds(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
-    𝐊ᵘᵘ!(ap,k,𝐈₃)
-end
-
-function ∫δdᵘKᵍᵘᵘdᵘds(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+# ===================== Kᵘᵘ =====================
+function ∫εᵘNᵘdΩ(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝐊ᵘᵘ!(ap,k,𝐑(ap))
 end
 
@@ -74,7 +85,7 @@ function 𝐊ᵘᵘ!(ap::T,k::AbstractMatrix{Float64},𝐑::AbstractMatrix{Float
         A = ξ.A
         k₂ = ξ.k₂
         k₃ = ξ.k₃
-        # 5.1 Kᵘᵘ = BB·𝐊，𝐊 = diag(EA, k₂GA, k₃GA)
+        # Kᵘᵘ = BB·𝐊，𝐊 = diag(EA, k₂GA, k₃GA)
         𝐊 = 𝐑ᵀ𝐊𝐑([E*A      0.0      0.0;
                   0.0    k₂*G*A     0.0;
                   0.0      0.0    k₃*G*A],𝐑)
@@ -82,33 +93,22 @@ function 𝐊ᵘᵘ!(ap::T,k::AbstractMatrix{Float64},𝐑::AbstractMatrix{Float
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                # 形函数乘积（积分权重 𝑤 已并入）
                 𝐵𝐵 = B[i]*B[j]*𝑤
-                k[3*I-2,3*J-2] += 𝐊[1,1]*𝐵𝐵
-                k[3*I-2,3*J-1] += 𝐊[1,2]*𝐵𝐵
-                k[3*I-2,3*J]   += 𝐊[1,3]*𝐵𝐵
-                k[3*I-1,3*J-2] += 𝐊[2,1]*𝐵𝐵
-                k[3*I-1,3*J-1] += 𝐊[2,2]*𝐵𝐵
-                k[3*I-1,3*J]   += 𝐊[2,3]*𝐵𝐵
-                k[3*I,3*J-2]   += 𝐊[3,1]*𝐵𝐵
-                k[3*I,3*J-1]   += 𝐊[3,2]*𝐵𝐵
-                k[3*I,3*J]     += 𝐊[3,3]*𝐵𝐵
+                for a in 1:3, b in 1:3
+                    k[3*I-3+a,3*J-3+b] += 𝐊[a,b]*𝐵𝐵
+                end
             end
         end
     end
 end
 
-function ∫δdᵘKᵘᵠdᵠds(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
-    𝐊ᵘᵠ!(ap,k,𝐈₃)
-end
-
-function ∫δdᵘKᵍᵘᵠdᵠds(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+# ===================== Kᵘᵠ =====================
+function ∫εᵘNᵠdΩ(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝐊ᵘᵠ!(ap,k,𝐑(ap))
 end
 
 function 𝐊ᵘᵠ!(ap::T,k::AbstractMatrix{Float64},𝐑::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    nᵤ = size(k,1) ÷ 2
     for ξ in 𝓖
         B = ξ[:∂𝝭∂x]
         N = ξ[:𝝭]
@@ -120,7 +120,7 @@ function 𝐊ᵘᵠ!(ap::T,k::AbstractMatrix{Float64},𝐑::AbstractMatrix{Float
         Iz = ξ.Iz
         k₂ = ξ.k₂
         k₃ = ξ.k₃
-        # 5.2 Kᵘᵠ = BB·𝐊¹ + BN·𝐊²；左下转置块 Kᵠᵘ = BB·𝐊¹ᵀ + NB·𝐊²ᵀ
+        # Kᵘᵠ = BB·𝐊¹ + BN·𝐊²
         𝐊¹ = 𝐑ᵀ𝐊𝐑([0.0    E*Iy   -E*Iz;
                   -G*Iy     0.0     0.0;
                    G*Iz     0.0     0.0],𝐑)
@@ -131,44 +131,62 @@ function 𝐊ᵘᵠ!(ap::T,k::AbstractMatrix{Float64},𝐑::AbstractMatrix{Float
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                # 形函数乘积（积分权重 𝑤 已并入）
                 𝐵𝐵 = B[i]*B[j]*𝑤
                 𝐵𝑁 = B[i]*N[j]*𝑤
-                𝑁𝐵 = N[i]*B[j]*𝑤
-                k[3*I-2,nᵤ+3*J-2] += 𝐵𝐵*𝐊¹[1,1] + 𝐵𝑁*𝐊²[1,1]
-                k[3*I-2,nᵤ+3*J-1] += 𝐵𝐵*𝐊¹[1,2] + 𝐵𝑁*𝐊²[1,2]
-                k[3*I-2,nᵤ+3*J]   += 𝐵𝐵*𝐊¹[1,3] + 𝐵𝑁*𝐊²[1,3]
-                k[3*I-1,nᵤ+3*J-2] += 𝐵𝐵*𝐊¹[2,1] + 𝐵𝑁*𝐊²[2,1]
-                k[3*I-1,nᵤ+3*J-1] += 𝐵𝐵*𝐊¹[2,2] + 𝐵𝑁*𝐊²[2,2]
-                k[3*I-1,nᵤ+3*J]   += 𝐵𝐵*𝐊¹[2,3] + 𝐵𝑁*𝐊²[2,3]
-                k[3*I,nᵤ+3*J-2]   += 𝐵𝐵*𝐊¹[3,1] + 𝐵𝑁*𝐊²[3,1]
-                k[3*I,nᵤ+3*J-1]   += 𝐵𝐵*𝐊¹[3,2] + 𝐵𝑁*𝐊²[3,2]
-                k[3*I,nᵤ+3*J]     += 𝐵𝐵*𝐊¹[3,3] + 𝐵𝑁*𝐊²[3,3]
-                k[nᵤ+3*I-2,3*J-2] += 𝐵𝐵*𝐊¹[1,1] + 𝑁𝐵*𝐊²[1,1]
-                k[nᵤ+3*I-2,3*J-1] += 𝐵𝐵*𝐊¹[2,1] + 𝑁𝐵*𝐊²[2,1]
-                k[nᵤ+3*I-2,3*J]   += 𝐵𝐵*𝐊¹[3,1] + 𝑁𝐵*𝐊²[3,1]
-                k[nᵤ+3*I-1,3*J-2] += 𝐵𝐵*𝐊¹[1,2] + 𝑁𝐵*𝐊²[1,2]
-                k[nᵤ+3*I-1,3*J-1] += 𝐵𝐵*𝐊¹[2,2] + 𝑁𝐵*𝐊²[2,2]
-                k[nᵤ+3*I-1,3*J]   += 𝐵𝐵*𝐊¹[3,2] + 𝑁𝐵*𝐊²[3,2]
-                k[nᵤ+3*I,3*J-2]   += 𝐵𝐵*𝐊¹[1,3] + 𝑁𝐵*𝐊²[1,3]
-                k[nᵤ+3*I,3*J-1]   += 𝐵𝐵*𝐊¹[2,3] + 𝑁𝐵*𝐊²[2,3]
-                k[nᵤ+3*I,3*J]     += 𝐵𝐵*𝐊¹[3,3] + 𝑁𝐵*𝐊²[3,3]
+                for a in 1:3, b in 1:3
+                    k[3*I-3+a,3*J-3+b] += 𝐵𝐵*𝐊¹[a,b] + 𝐵𝑁*𝐊²[a,b]
+                end
             end
         end
     end
 end
 
-function ∫δdᵠKᵠᵠdᵠds(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
-    𝐊ᵠᵠ!(ap,k,𝐈₃)
+# ===================== Kᵠᵘ = (Kᵘᵠ)ᵀ =====================
+function ∫εᵠNᵘdΩ(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝐊ᵠᵘ!(ap,k,𝐑(ap))
 end
 
-function ∫δdᵠKᵍᵠᵠdᵠds(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+function 𝐊ᵠᵘ!(ap::T,k::AbstractMatrix{Float64},𝐑::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        B = ξ[:∂𝝭∂x]
+        N = ξ[:𝝭]
+        𝑤 = ξ.𝑤
+        E = ξ.E
+        G = ξ.G
+        A = ξ.A
+        Iy = ξ.Iy
+        Iz = ξ.Iz
+        k₂ = ξ.k₂
+        k₃ = ξ.k₃
+        # Kᵠᵘ = BB·𝐊¹ᵀ + NB·𝐊²ᵀ
+        𝐊¹ = 𝐑ᵀ𝐊𝐑([0.0    E*Iy   -E*Iz;
+                  -G*Iy     0.0     0.0;
+                   G*Iz     0.0     0.0],𝐑)
+        𝐊² = 𝐑ᵀ𝐊𝐑([   0.0      0.0       0.0;
+                       0.0      0.0   -k₂*G*A;
+                       0.0   k₃*G*A       0.0],𝐑)
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                𝐵𝐵 = B[i]*B[j]*𝑤
+                𝑁𝐵 = N[i]*B[j]*𝑤
+                for a in 1:3, b in 1:3
+                    k[3*I-3+a,3*J-3+b] += 𝐵𝐵*𝐊¹[b,a] + 𝑁𝐵*𝐊²[b,a]
+                end
+            end
+        end
+    end
+end
+
+# ===================== Kᵠᵠ =====================
+function ∫εᵠNᵠdΩ(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝐊ᵠᵠ!(ap,k,𝐑(ap))
 end
 
 function 𝐊ᵠᵠ!(ap::T,k::AbstractMatrix{Float64},𝐑::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    nᵤ = size(k,1) ÷ 2
     for ξ in 𝓖
         B = ξ[:∂𝝭∂x]
         N = ξ[:𝝭]
@@ -183,10 +201,10 @@ function 𝐊ᵠᵠ!(ap::T,k::AbstractMatrix{Float64},𝐑::AbstractMatrix{Float
         Iyz = ξ.Iyz
         k₂ = ξ.k₂
         k₃ = ξ.k₃
-        # 5.3 Kᵠᵠ = BB·𝐊¹ + BN·𝐊² + NB·𝐊²ᵀ + NN·𝐊³
-        #     𝐊¹ 配 BB 项：扭转 G(Iyy+Izz) 与弯曲 EIyy、EIzz、EIyz
-        #     𝐊² 配 BN 项（NB 项取其转置）：扭转-弯曲翘曲耦合 GIz、GIy
-        #     𝐊³ 配 NN 项：剪切柔度 k₃GA(φ₂)、k₂GA(φ₃)
+        # Kᵠᵠ = BB·𝐊¹ + BN·𝐊² + NB·𝐊²ᵀ + NN·𝐊³
+        #   𝐊¹：扭转 G(Iyy+Izz) 与弯曲 EIyy、EIzz、EIyz
+        #   𝐊²：扭转-弯曲翘曲耦合 GIz、GIy
+        #   𝐊³：剪切柔度 k₃GA(φ₂)、k₂GA(φ₃)
         𝐊¹ = 𝐑ᵀ𝐊𝐑([G*(Iyy+Izz)     0.0       0.0;
                         0.0       E*Iyy    -E*Iyz;
                         0.0      -E*Iyz     E*Izz],𝐑)
@@ -200,27 +218,21 @@ function 𝐊ᵠᵠ!(ap::T,k::AbstractMatrix{Float64},𝐑::AbstractMatrix{Float
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                # 形函数乘积（积分权重 𝑤 已并入）
                 𝐵𝐵 = B[i]*B[j]*𝑤
                 𝐵𝑁 = B[i]*N[j]*𝑤
                 𝑁𝐵 = N[i]*B[j]*𝑤
                 𝑁𝑁 = N[i]*N[j]*𝑤
-                k[nᵤ+3*I-2,nᵤ+3*J-2] += 𝐵𝐵*𝐊¹[1,1] + 𝐵𝑁*𝐊²[1,1] + 𝑁𝐵*𝐊²[1,1] + 𝑁𝑁*𝐊³[1,1]
-                k[nᵤ+3*I-2,nᵤ+3*J-1] += 𝐵𝐵*𝐊¹[1,2] + 𝐵𝑁*𝐊²[1,2] + 𝑁𝐵*𝐊²[2,1] + 𝑁𝑁*𝐊³[1,2]
-                k[nᵤ+3*I-2,nᵤ+3*J]   += 𝐵𝐵*𝐊¹[1,3] + 𝐵𝑁*𝐊²[1,3] + 𝑁𝐵*𝐊²[3,1] + 𝑁𝑁*𝐊³[1,3]
-                k[nᵤ+3*I-1,nᵤ+3*J-2] += 𝐵𝐵*𝐊¹[2,1] + 𝐵𝑁*𝐊²[2,1] + 𝑁𝐵*𝐊²[1,2] + 𝑁𝑁*𝐊³[2,1]
-                k[nᵤ+3*I-1,nᵤ+3*J-1] += 𝐵𝐵*𝐊¹[2,2] + 𝐵𝑁*𝐊²[2,2] + 𝑁𝐵*𝐊²[2,2] + 𝑁𝑁*𝐊³[2,2]
-                k[nᵤ+3*I-1,nᵤ+3*J]   += 𝐵𝐵*𝐊¹[2,3] + 𝐵𝑁*𝐊²[2,3] + 𝑁𝐵*𝐊²[3,2] + 𝑁𝑁*𝐊³[2,3]
-                k[nᵤ+3*I,nᵤ+3*J-2]   += 𝐵𝐵*𝐊¹[3,1] + 𝐵𝑁*𝐊²[3,1] + 𝑁𝐵*𝐊²[1,3] + 𝑁𝑁*𝐊³[3,1]
-                k[nᵤ+3*I,nᵤ+3*J-1]   += 𝐵𝐵*𝐊¹[3,2] + 𝐵𝑁*𝐊²[3,2] + 𝑁𝐵*𝐊²[2,3] + 𝑁𝑁*𝐊³[3,2]
-                k[nᵤ+3*I,nᵤ+3*J]     += 𝐵𝐵*𝐊¹[3,3] + 𝐵𝑁*𝐊²[3,3] + 𝑁𝐵*𝐊²[3,3] + 𝑁𝑁*𝐊³[3,3]
+                for a in 1:3, b in 1:3
+                    k[3*I-3+a,3*J-3+b] += 𝐵𝐵*𝐊¹[a,b] + 𝐵𝑁*𝐊²[a,b] +
+                                          𝑁𝐵*𝐊²[b,a] + 𝑁𝑁*𝐊³[a,b]
+                end
             end
         end
     end
 end
 
-# 罚函数施加本质边界条件：∫δdᵢα(gᵢ−dᵢ)dΓ
-function ∫δdᵢgᵢdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+# 罚函数施加本质边界条件：∫α dᵢ(gᵢ−dᵢ)dΓ
+function ∫dᵢgᵢdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     nᵤ = size(k,1) ÷ 2
     for ξ in 𝓖
