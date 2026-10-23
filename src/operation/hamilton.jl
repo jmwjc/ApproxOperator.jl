@@ -247,7 +247,7 @@ function ∫∫∇δu∇udxdt(ap::T,k::AbstractMatrix) where T<:AbstractElement
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                k[I,J] -= c^2*B₁[i]*B₁[j]*𝑤
+                k[I,J] += c^2*B₁[i]*B₁[j]*𝑤
             end
         end
     end
