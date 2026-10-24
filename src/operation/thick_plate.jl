@@ -136,7 +136,7 @@ function ∫φwdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
-function ∫φwdΩ(a₁::T,a₂::T,k::AbstractMatrix) where T<:AbstractElement
+function ∫φwdΩ(a₁::T,a₂::S,k::AbstractMatrix) where {T,S<:AbstractElement}
     𝓒₁ = a₁.𝓒; 𝓖₁ = a₁.𝓖
     𝓒₂ = a₂.𝓒; 𝓖₂ = a₂.𝓖
     E = a₁.E
