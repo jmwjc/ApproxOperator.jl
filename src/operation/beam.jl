@@ -231,15 +231,38 @@ function 𝐊ᵠᵠ!(ap::T,k::AbstractMatrix{Float64},𝐑::AbstractMatrix{Float
     end
 end
 
-# 罚函数施加本质边界条件：∫α dᵢ(gᵢ−dᵢ)dΓ
-function ∫dᵢgᵢdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+# 罚函数施加本质边界条件（位移部分）：∫α uᵢ(gᵢ−uᵢ)dΓ
+# 只写入位移块 Kᵘᵘ（3nₚ×3nₚ）与位移荷载 fᵘ（3nₚ）
+function ∫uᵢgᵢdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    nᵤ = size(k,1) ÷ 2
     for ξ in 𝓖
         N = ξ[:𝝭]
         𝑤 = ξ.𝑤
         α = ξ.α
         g₁ = ξ.g₁; g₂ = ξ.g₂; g₃ = ξ.g₃
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[3*I-2,3*J-2] += α*N[i]*N[j]*𝑤
+                k[3*I-1,3*J-1] += α*N[i]*N[j]*𝑤
+                k[3*I,3*J]     += α*N[i]*N[j]*𝑤
+            end
+            f[3*I-2] += α*N[i]*g₁*𝑤
+            f[3*I-1] += α*N[i]*g₂*𝑤
+            f[3*I]   += α*N[i]*g₃*𝑤
+        end
+    end
+end
+
+# 罚函数施加本质边界条件（转角部分）：∫α φᵢ(gᵢ−φᵢ)dΓ
+# 只写入转角块 Kᵠᵠ（3nₚ×3nₚ）与转角荷载 fᵠ（3nₚ）
+function ∫φᵢgᵢdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        N = ξ[:𝝭]
+        𝑤 = ξ.𝑤
+        α = ξ.α
         g₄ = ξ.g₄; g₅ = ξ.g₅; g₆ = ξ.g₆
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
@@ -248,16 +271,10 @@ function ∫dᵢgᵢdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float
                 k[3*I-2,3*J-2] += α*N[i]*N[j]*𝑤
                 k[3*I-1,3*J-1] += α*N[i]*N[j]*𝑤
                 k[3*I,3*J]     += α*N[i]*N[j]*𝑤
-                k[nᵤ+3*I-2,nᵤ+3*J-2] += α*N[i]*N[j]*𝑤
-                k[nᵤ+3*I-1,nᵤ+3*J-1] += α*N[i]*N[j]*𝑤
-                k[nᵤ+3*I,nᵤ+3*J]     += α*N[i]*N[j]*𝑤
             end
-            f[3*I-2]    += α*N[i]*g₁*𝑤
-            f[3*I-1]    += α*N[i]*g₂*𝑤
-            f[3*I]      += α*N[i]*g₃*𝑤
-            f[nᵤ+3*I-2] += α*N[i]*g₄*𝑤
-            f[nᵤ+3*I-1] += α*N[i]*g₅*𝑤
-            f[nᵤ+3*I]   += α*N[i]*g₆*𝑤
+            f[3*I-2] += α*N[i]*g₄*𝑤
+            f[3*I-1] += α*N[i]*g₅*𝑤
+            f[3*I]   += α*N[i]*g₆*𝑤
         end
     end
 end
