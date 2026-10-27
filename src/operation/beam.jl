@@ -280,7 +280,6 @@ function ∫φᵢgᵢdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Floa
 end
 
 # ===================== 域内 L₂ 误差（6 个自由度分量）=====================
-# 用法（与 sample.jl 的 L₂w、L₂φ 相同的套路）：
 #   1. 用高阶积分生成误差单元：
 #        elements = getElements(nodes, entities["Ω"], 10)
 #   2. 把精确场 prescribe! 到积分点上（函数或常数均可）：
