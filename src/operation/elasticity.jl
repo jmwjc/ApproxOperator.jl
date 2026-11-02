@@ -856,6 +856,29 @@ function ∫vᵢgᵢds(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float6
     end
 end
 
+function ∫vᵢgᵢds(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        n₁₁ = ξ.n₁₁
+        n₂₂ = ξ.n₂₂
+        n₁₂ = ξ.n₁₂
+        α = ξ.α
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[2*I-1,2*J-1] += α*N[i]*n₁₁*N[j]*𝑤
+                k[2*I,2*J-1]   += α*N[i]*n₁₂*N[j]*𝑤
+                k[2*I-1,2*J]   += α*N[i]*n₁₂*N[j]*𝑤
+                k[2*I,2*J]     += α*N[i]*n₂₂*N[j]*𝑤
+            end
+        end
+    end
+end
+
+
 function ∫vᵢgᵢdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖

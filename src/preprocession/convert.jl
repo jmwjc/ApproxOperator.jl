@@ -1,4 +1,111 @@
 
+_quadratic_edge_key(i::Int,j::Int) = i < j ? (i,j) : (j,i)
+_quadratic_edge_key(xᵢ::𝑿ᵢ,xⱼ::𝑿ᵢ) = _quadratic_edge_key(xᵢ.𝐼,xⱼ.𝐼)
+
+function _quadratic_midpoint_node!(
+    nodes::Vector{𝑿ᵢ},
+    midside_nodes::Dict{Tuple{Int,Int},Int},
+    xᵢ::𝑿ᵢ,
+    xⱼ::𝑿ᵢ,
+)
+    key = _quadratic_edge_key(xᵢ,xⱼ)
+    if haskey(midside_nodes,key)
+        return nodes[midside_nodes[key]]
+    end
+
+    data = getfield(nodes[1],:data)
+    xₘ = 0.5*(xᵢ.x+xⱼ.x)
+    yₘ = 0.5*(xᵢ.y+xⱼ.y)
+    zₘ = 0.5*(xᵢ.z+xⱼ.z)
+    for (s,(i,v)) in data
+        i == 1 || continue
+        if s == :x
+            push!(v,xₘ)
+        elseif s == :y
+            push!(v,yₘ)
+        elseif s == :z
+            push!(v,zₘ)
+        else
+            push!(v,0.0)
+        end
+    end
+    𝐼 = length(nodes) + 1
+    push!(nodes,𝑿ᵢ((𝐼=𝐼,),data))
+    midside_nodes[key] = 𝐼
+    return nodes[𝐼]
+end
+
+function Tri3toTri6!(
+    nodes::Vector{𝑿ᵢ},
+    as::Vector{T},
+    midside_nodes::Dict{Tuple{Int,Int},Int}=Dict{Tuple{Int,Int},Int}(),
+) where T<:AbstractElement
+    elms = Element{:Tri6}[]
+    data𝓖 = getfield(as[1].𝓖[1],:data)
+    s = 0
+    for a in as
+        𝓒 = a.𝓒
+        𝓖 = a.𝓖
+        if length(𝓒) == 6
+            𝓒_ = 𝓒
+            midside_nodes[_quadratic_edge_key(𝓒[1],𝓒[2])] = 𝓒[4].𝐼
+            midside_nodes[_quadratic_edge_key(𝓒[2],𝓒[3])] = 𝓒[5].𝐼
+            midside_nodes[_quadratic_edge_key(𝓒[3],𝓒[1])] = 𝓒[6].𝐼
+        elseif length(𝓒) == 3
+            𝓒_ = [
+                𝓒[1],
+                𝓒[2],
+                𝓒[3],
+                _quadratic_midpoint_node!(nodes,midside_nodes,𝓒[1],𝓒[2]),
+                _quadratic_midpoint_node!(nodes,midside_nodes,𝓒[2],𝓒[3]),
+                _quadratic_midpoint_node!(nodes,midside_nodes,𝓒[3],𝓒[1]),
+            ]
+        else
+            error("Tri3toTri6! expects 3-node or 6-node triangle elements.")
+        end
+        𝓖_ = 𝑿ₛ[]
+        for ξ in 𝓖
+            push!(𝓖_,𝑿ₛ((𝑔=ξ.𝑔,𝐺=ξ.𝐺,𝐶=ξ.𝐶,𝑠=s),data𝓖))
+            s += length(𝓒_)
+        end
+        push!(elms,Element{:Tri6}(𝓒_,𝓖_))
+    end
+    return elms, midside_nodes
+end
+
+function Seg2toSeg3!(
+    nodes::Vector{𝑿ᵢ},
+    as::Vector{T},
+    midside_nodes::Dict{Tuple{Int,Int},Int}=Dict{Tuple{Int,Int},Int}(),
+) where T<:AbstractElement
+    elms = Element{:Seg3}[]
+    data𝓖 = getfield(as[1].𝓖[1],:data)
+    s = 0
+    for a in as
+        𝓒 = a.𝓒
+        𝓖 = a.𝓖
+        if length(𝓒) == 3
+            𝓒_ = 𝓒
+            midside_nodes[_quadratic_edge_key(𝓒[1],𝓒[2])] = 𝓒[3].𝐼
+        elseif length(𝓒) == 2
+            𝓒_ = [
+                𝓒[1],
+                𝓒[2],
+                _quadratic_midpoint_node!(nodes,midside_nodes,𝓒[1],𝓒[2]),
+            ]
+        else
+            error("Seg2toSeg3! expects 2-node or 3-node segment elements.")
+        end
+        𝓖_ = 𝑿ₛ[]
+        for ξ in 𝓖
+            push!(𝓖_,𝑿ₛ((𝑔=ξ.𝑔,𝐺=ξ.𝐺,𝐶=ξ.𝐶,𝑠=s),data𝓖))
+            s += length(𝓒_)
+        end
+        push!(elms,Element{:Seg3}(𝓒_,𝓖_))
+    end
+    return elms
+end
+
 
 function Seg2toTri3(seg2::Vector{T},tri3::Vector{S}) where {T,S<:AbstractElement}
     elms = Element{:Tri3}[]

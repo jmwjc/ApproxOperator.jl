@@ -1,5 +1,5 @@
 
-function set𝝭!(::Element{:Quad},x::Node)
+function set𝝭!(::Element{:Quad4},x::Node)
     ξ = x.ξ
     η = x.η
     𝝭 = x[:𝝭]
@@ -9,7 +9,7 @@ function set𝝭!(::Element{:Quad},x::Node)
     𝝭[4] = 0.25*(1.0-ξ)*(1.0+η)
 end
 
-function set∇𝝭!(ap::Element{:Quad},x::Node)
+function set∇𝝭!(ap::Element{:Quad4},x::Node)
     ξ = x.ξ
     η = x.η
     𝝭 = x[:𝝭]
@@ -20,8 +20,8 @@ function set∇𝝭!(ap::Element{:Quad},x::Node)
     𝓒 = ap.𝓒
     x₁,x₂,x₃,x₄ = (xᵢ.x for xᵢ in 𝓒)
     y₁,y₂,y₃,y₄ = (xᵢ.y for xᵢ in 𝓒)
-    ∂N₁∂ξ,∂N₂∂ξ,∂N₃∂ξ,∂N₄∂ξ = get∂𝝭∂ξ(ap,x.ξ)
-    ∂N₁∂η,∂N₂∂η,∂N₃∂η,∂N₄∂η = get∂𝝭∂η(ap,x.η)
+    ∂N₁∂ξ,∂N₂∂ξ,∂N₃∂ξ,∂N₄∂ξ = get∂𝝭∂ξ(ap,x.η)
+    ∂N₁∂η,∂N₂∂η,∂N₃∂η,∂N₄∂η = get∂𝝭∂η(ap,x.ξ)
     ∂x∂ξ = ∂N₁∂ξ*x₁ + ∂N₂∂ξ*x₂ + ∂N₃∂ξ*x₃ + ∂N₄∂ξ*x₄
     ∂x∂η = ∂N₁∂η*x₁ + ∂N₂∂η*x₂ + ∂N₃∂η*x₃ + ∂N₄∂η*x₄
     ∂y∂ξ = ∂N₁∂ξ*y₁ + ∂N₂∂ξ*y₂ + ∂N₃∂ξ*y₃ + ∂N₄∂ξ*y₄
@@ -43,14 +43,14 @@ function set∇𝝭!(ap::Element{:Quad},x::Node)
     ∂𝝭∂y[4] = ∂N₄∂ξ*∂ξ∂y + ∂N₄∂η*∂η∂y
 end
 
-function get∂𝝭∂ξ(::Element{:Quad},η::Float64)
+function get∂𝝭∂ξ(::Element{:Quad4},η::Float64)
     ∂N₁∂ξ = - 0.25*(1-η)
     ∂N₂∂ξ =   0.25*(1-η)
     ∂N₃∂ξ =   0.25*(1+η)
     ∂N₄∂ξ = - 0.25*(1+η)
     return (∂N₁∂ξ,∂N₂∂ξ,∂N₃∂ξ,∂N₄∂ξ)
 end
-function get∂𝝭∂η(::Element{:Quad},ξ::Float64)
+function get∂𝝭∂η(::Element{:Quad4},ξ::Float64)
     ∂N₁∂η = - 0.25*(1-ξ)
     ∂N₂∂η = - 0.25*(1+ξ)
     ∂N₃∂η =   0.25*(1+ξ)
