@@ -99,9 +99,9 @@ function ∫∫𝒑∇udxdy(aₚ::T,aᵤ::S,k::AbstractMatrix) where {T<:Abstrac
         B₁ = ξᵤ[:∂𝝭∂x]
         B₂ = ξᵤ[:∂𝝭∂y]
         𝑤 = ξᵤ.𝑤
-        for (i,xᵢ) in enumerate(𝓒ᵤ)
+        for (i,xᵢ) in enumerate(𝓒ₚ)
             I = xᵢ.𝐼
-            for (j,xⱼ) in enumerate(𝓒ₚ)
+            for (j,xⱼ) in enumerate(𝓒ᵤ)
                 J = xⱼ.𝐼
                 k[2*I-1,J] -= N[i]*B₁[j]*𝑤
                 k[2*I,J]   -= N[i]*B₂[j]*𝑤
@@ -212,6 +212,45 @@ function ∫λgdΓ(a::T,b::S,k::AbstractMatrix,f::AbstractVector) where {T<:Abst
     end
 end
 
+function ∫λudΓ(a::T,b::S,k::AbstractMatrix) where {T<:AbstractElement,S<:AbstractElement}
+    𝓒₁= a.𝓒; 𝓖₁= a.𝓖
+    𝓒₂= b.𝓒; 𝓖₂= b.𝓖
+    for (ξ₁,ξ₂) in zip(𝓖₁,𝓖₂)
+        𝑤 = ξ₁.𝑤
+        N = ξ₁[:𝝭]
+        N̄ = ξ₂[:𝝭]
+        n₁ = ξ₁.n₁
+        n₂ = ξ₁.n₂
+        nₘ = abs(n₁) ≥ abs(n₂) ? sign(n₁) : sign(n₂)
+        for (i,xᵢ) in enumerate(𝓒₁)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒₂)
+                J = xⱼ.𝐼
+                # println(I,J)
+                # println(N[i])
+                # println(N̄[j])
+                k[I,J] += nₘ*N[i]*N̄[j]*𝑤
+            end
+        end
+    end
+end
+
+function ∫λgdΓ(a::T,f::AbstractVector) where T<:AbstractElement
+    𝓒= a.𝓒; 𝓖= a.𝓖
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        g = ξ.g
+        n₁ = ξ.n₁
+        n₂ = ξ.n₂
+        nₘ = abs(n₁) ≥ abs(n₂) ? sign(n₁) : sign(n₂)
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            f[I] += nₘ*N[i]*g*𝑤
+        end
+    end
+end
+
 function ∫∇𝑛vgdΓ(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -258,7 +297,7 @@ function ∫∇𝑛vgds(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:Abst
     end
 end
 
-function ∫pᵢnᵢgⱼds(aₚ::T,aᵤ::S,k::AbstractMatrix,f::AbstractVector) where {T<:AbstractElement,S<:AbstractElement}
+function ∫pᵢnᵢgds(aₚ::T,aᵤ::S,k::AbstractMatrix,f::AbstractVector) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ᵤ = aᵤ.𝓒;𝓖ᵤ = aᵤ.𝓖
     𝓒ₚ = aₚ.𝓒;𝓖ₚ = aₚ.𝓖
     for (ξᵤ,ξₚ) in zip(𝓖ᵤ,𝓖ₚ)

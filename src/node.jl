@@ -23,6 +23,7 @@ struct Node{T,N}
 end
 
 const 𝑿ᵢ = Node{(:𝐼,),1}
+const 𝑿ⱼ = Node{(:𝐼,:𝐽),2}
 const 𝑿ₛ = Node{(:𝑔,:𝐺,:𝐶,:𝑠),4}
 
 function Base.getproperty(p::Node{T,N},s::Symbol) where {T,N}
