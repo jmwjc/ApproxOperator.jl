@@ -1,44 +1,20 @@
-using ApproxOperator
-import ApproxOperator.GmshImport: getPhysicalGroups, get𝑿ᵢ, getElements
-import ApproxOperator.Heat: ∫vtdΓ, ∫vgdΓ, ∫vbdΩ, L₂, ∫∫∇v∇udxdy
+# Test suite for ApproxOperator.jl.
+#
+# Run with `julia --project=. -e 'using Pkg; Pkg.test()'` or, inside the test
+# directory, `julia --project=.. runtests.jl`.
+#
+# The suite is intentionally organised from "does the pipeline work at all"
+# (patch test) to "is each shape function mathematically consistent"
+# (consistency tests). Every test file must be listed here: a test that is not
+# included is a test that will silently rot.
 
 using Test
-import Gmsh: gmsh
 
 @testset "ApproxOperator.jl" begin
-    𝑢(x,y,z) = x + y
-    
-    gmsh.initialize()
-    gmsh.open("patchtest.msh")
-    
-    entities = getPhysicalGroups()
-    nodes = get𝑿ᵢ()
-    
-    nₚ = length(nodes)
-    k = zeros(nₚ,nₚ)
-    f = zeros(nₚ)
-    
-    elements = getElements(nodes, entities["Ω"])
-    prescribe!(elements, :k=>1.0)
-    set∇𝝭!(elements)
-    𝑎 = ∫∫∇v∇udxdy=>elements
-    𝑎(k)
-    
-    elements = getElements(nodes, entities["Γᵍ"])
-    prescribe!(elements, :g=>𝑢)
-    prescribe!(elements, :α=>1e7)
-    set𝝭!(elements)
-    𝑓 = ∫vgdΓ=>elements
-    𝑓(k,f)
-    
-    d = k\f
-    push!(nodes, :d=>d)
-    
-    elements = getElements(nodes, entities["Ω"], 10)
-    prescribe!(elements, :u=>𝑢)
-    set∇𝝭!(elements)
-    L₂error = L₂(elements)
-    println("L₂ error: ", L₂error)
-    @test L₂error ≈ 0.0 atol=1e-6
-    gmsh.finalize()
+    include("patchtest.jl")
+    include("importer_characterisation.jl")
+    include("shape_function_consistency.jl")
+    include("operators_material_parameter.jl")
+    include("restored_modules.jl")
+    include("package_hygiene.jl")
 end

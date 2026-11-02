@@ -2,11 +2,25 @@ module MindlinPlate
     
 using ..ApproxOperator: AbstractElement, Element
 
-function ∫κMγQdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
+"""
+    ∫κMγQdΩ(ap, k; E, ν, h)
+
+Reissner–Mindlin plate bilinear form,
+`∫ (κ(w,φ)·M(κ) + γ(w,φ)·Q(γ)) dΩ`.
+
+Uses the shear correction factor 5/6. The bending and shear stiffnesses are
+`D = Eh³/(12(1-ν²))` and `Dˢ = 5hE/(12(1+ν))`.
+
+# Keyword arguments
+- `E` : Young's modulus
+- `ν` : Poisson ratio
+- `h` : plate thickness
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`.
+"""
+function ∫κMγQdΩ(ap::T,k::AbstractMatrix; E::Real, ν::Real, h::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E = ap.E
-    ν = ap.ν
-    h = ap.h
     for ξ in 𝓖
         N = ξ[:𝝭]
         B₁ = ξ[:∂𝝭∂x]
@@ -34,11 +48,22 @@ function ∫κMγQdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
-function ∫κκdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
+"""
+    ∫κκdΩ(ap, k; E, ν, h)
+
+Bending-only block `∫ κ(δφ)·κ(φ) dΩ` of the Mindlin plate, carrying the
+bending stiffness.
+
+# Keyword arguments
+- `E` : Young's modulus
+- `ν` : Poisson ratio
+- `h` : plate thickness
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`.
+"""
+function ∫κκdΩ(ap::T,k::AbstractMatrix; E::Real, ν::Real, h::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E = ap.E
-    ν = ap.ν
-    h = ap.h
     Dᵢᵢᵢᵢ = E/12/(1-ν^2)
     Dᵢᵢⱼⱼ = E*ν/12/(1-ν^2)
     Dᵢⱼᵢⱼ = E/24/(1+ν)
@@ -59,6 +84,18 @@ function ∫κκdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
+"""
+    ∫wwdΩ(ap::T,k::AbstractMatrix)
+
+Bending stiffness of the Mindlin plate in deflection form,
+`∫ κ(δw)·κ(w) dΩ` with `κ = ∇²w`.
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set∇²𝝭!` — reads `ξ[:∂²𝝭∂x²]`, `ξ[:∂²𝝭∂x∂y]`, `ξ[:∂²𝝭∂y²]`, `ξ.𝑤`.
+"""
 function ∫wwdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -74,11 +111,22 @@ function ∫wwdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
-function ∫∇w∇wdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
+"""
+    ∫∇w∇wdΩ(ap, k; E, ν, h)
+
+Shear block `∫ ∇w·∇w dΩ` of the Mindlin plate. Together with
+[`∫φφdΩ`](@ref) and [`∫φwdΩ`](@ref) it forms the shear contribution.
+
+# Keyword arguments
+- `E` : Young's modulus
+- `ν` : Poisson ratio
+- `h` : plate thickness
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`.
+"""
+function ∫∇w∇wdΩ(ap::T,k::AbstractMatrix; E::Real, ν::Real, h::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E = ap.E
-    ν = ap.ν
-    h = ap.h
     D = 5/6/h^2*E/2/(1+ν)
     for ξ in 𝓖
         𝑤 = ξ.𝑤
@@ -94,11 +142,21 @@ function ∫∇w∇wdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
-function ∫φφdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
+"""
+    ∫φφdΩ(ap, k; E, ν, h)
+
+Rotation–rotation shear block `∫ φ·φ dΩ` of the Mindlin plate.
+
+# Keyword arguments
+- `E` : Young's modulus
+- `ν` : Poisson ratio
+- `h` : plate thickness
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`.
+"""
+function ∫φφdΩ(ap::T,k::AbstractMatrix; E::Real, ν::Real, h::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E = ap.E
-    ν = ap.ν
-    h = ap.h
     D = 5/6/h^2*E/2/(1+ν)
     for ξ in 𝓖
         𝑤 = ξ.𝑤
@@ -114,11 +172,25 @@ function ∫φφdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
-function ∫φwdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
+"""
+    ∫φwdΩ(ap, k; E, ν, h)
+    ∫φwdΩ(a₁, a₂, k; E, ν, h)
+
+Rotation–deflection coupling `∫ φ·∇w dΩ` of the Mindlin plate.
+
+The two-element-set overload takes the rotation and deflection approximations
+separately.
+
+# Keyword arguments
+- `E` : Young's modulus
+- `ν` : Poisson ratio
+- `h` : plate thickness
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`.
+"""
+function ∫φwdΩ(ap::T,k::AbstractMatrix; E::Real, ν::Real, h::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E = ap.E
-    ν = ap.ν
-    h = ap.h
     D = 5/6/h^2*E/2/(1+ν)
     for ξ in 𝓖
         𝑤 = ξ.𝑤
@@ -136,12 +208,17 @@ function ∫φwdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
-function ∫φwdΩ(a₁::T,a₂::S,k::AbstractMatrix) where {T,S<:AbstractElement}
+"""
+    ∫φwdΩ(a₁::T,a₂::S,k::AbstractMatrix; E, ν, h)
+
+Overload of `∫φwdΩ` — see the documented sibling with the same name.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.𝑤`.
+"""
+function ∫φwdΩ(a₁::T,a₂::S,k::AbstractMatrix; E::Real, ν::Real, h::Real) where {T,S<:AbstractElement}
     𝓒₁ = a₁.𝓒; 𝓖₁ = a₁.𝓖
     𝓒₂ = a₂.𝓒; 𝓖₂ = a₂.𝓖
-    E = a₁.E
-    ν = a₁.ν
-    h = a₁.h
     D = 5/6/h^2*E/2/(1+ν)
     for (ξ₁,ξ₂) in zip(𝓖₁,𝓖₂)
         𝑤 = ξ₁.𝑤
@@ -159,6 +236,18 @@ function ∫φwdΩ(a₁::T,a₂::S,k::AbstractMatrix) where {T,S<:AbstractElemen
     end
 end
 
+"""
+    ∫wqdΩ(ap::T,f::AbstractVector)
+
+Transverse load vector, `f[I] += ∫ q Nᵢ dΩ`. The load `q` is prescribed
+with `prescribe!(el, :q => f)`.
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.q`, `ξ.𝑤`.
+"""
 function ∫wqdΩ(ap::T,f::AbstractVector) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -172,6 +261,17 @@ function ∫wqdΩ(ap::T,f::AbstractVector) where T<:AbstractElement
     end
 end
 
+"""
+    ∫φmdΩ(ap::T,f::AbstractVector)
+
+Distributed couple load, `f[I] += ∫ m Nᵢ dΩ`.
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.m`, `ξ.𝑤`.
+"""
 function ∫φmdΩ(ap::T,f::AbstractVector) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -187,6 +287,17 @@ function ∫φmdΩ(ap::T,f::AbstractVector) where T<:AbstractElement
     end
 end
 
+"""
+    ∫wVdΓ(ap::T,f::AbstractVector)
+
+Kirchhoff shear boundary load, `f[I] += ∫ V Nᵢ dΓ`.
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.V`, `ξ.𝑤`.
+"""
 function ∫wVdΓ(ap::T,f::AbstractVector) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -200,6 +311,17 @@ function ∫wVdΓ(ap::T,f::AbstractVector) where T<:AbstractElement
     end
 end
 
+"""
+    ∫φMdΓ(ap::T,f::AbstractVector)
+
+Boundary moment load, `f[I] += ∫ M Nᵢ dΓ`.
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.M`, `ξ.𝑤`.
+"""
 function ∫φMdΓ(ap::T,f::AbstractVector) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -215,6 +337,18 @@ function ∫φMdΓ(ap::T,f::AbstractVector) where T<:AbstractElement
     end
 end
 
+"""
+    ∫Q∇wdΩ(ap::T,k::AbstractMatrix)
+
+Mixed shear force coupling, `∫ Q·∇w dΩ`. The two-element-set overload
+takes the shear and deflection approximations separately.
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ[:𝝭]`, `ξ.𝑤`.
+"""
 function ∫Q∇wdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -233,6 +367,18 @@ function ∫Q∇wdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
+"""
+    ∫Q∇wdΩ(a::T,b::S,k::AbstractMatrix)
+
+Mixed shear force coupling, `∫ Q·∇w dΩ`. The two-element-set overload
+takes the shear and deflection approximations separately.
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ[:𝝭]`, `ξ.𝑤`.
+"""
 function ∫Q∇wdΩ(a::T,b::S,k::AbstractMatrix) where {T<:AbstractElement,S<:AbstractElement}
     𝓒₁ = a.𝓒; 𝓖₁ = a.𝓖
     𝓒₂ = b.𝓒; 𝓖₂ = b.𝓖
@@ -252,6 +398,18 @@ function ∫Q∇wdΩ(a::T,b::S,k::AbstractMatrix) where {T<:AbstractElement,S<:A
     end
 end
 
+"""
+    ∫∇QwdΩ(ap::T,k::AbstractMatrix)
+
+Mixed shear force coupling in gradient form, `∫ ∇Q · w dΩ`.
+The transpose of [`∫Q∇wdΩ`](@ref) for the rotated variable ordering.
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ[:𝝭]`, `ξ.𝑤`.
+"""
 function ∫∇QwdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -270,6 +428,18 @@ function ∫∇QwdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
+"""
+    ∫∇QwdΩ(a::T,b::S,k::AbstractMatrix)
+
+Mixed shear force coupling in gradient form, `∫ ∇Q · w dΩ`.
+The transpose of [`∫Q∇wdΩ`](@ref) for the rotated variable ordering.
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ[:𝝭]`, `ξ.𝑤`.
+"""
 function ∫∇QwdΩ(a::T,b::S,k::AbstractMatrix) where {T<:AbstractElement,S<:AbstractElement}
     𝓒₁ = a.𝓒; 𝓖₁ = a.𝓖
     𝓒₂ = b.𝓒; 𝓖₂ = b.𝓖
@@ -289,6 +459,17 @@ function ∫∇QwdΩ(a::T,b::S,k::AbstractMatrix) where {T<:AbstractElement,S<:A
     end
 end
 
+"""
+    ∫QφdΩ(ap::T,k::AbstractMatrix)
+
+Mixed shear–rotation coupling, `∫ Q·φ dΩ`.
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.𝑤`.
+"""
 function ∫QφdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -305,6 +486,17 @@ function ∫QφdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
+"""
+    ∫QφdΩ(a::T,b::S,k::AbstractMatrix)
+
+Mixed shear–rotation coupling, `∫ Q·φ dΩ`.
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.𝑤`.
+"""
 function ∫QφdΩ(a::T,b::S,k::AbstractMatrix) where {T<:AbstractElement,S<:AbstractElement}
     𝓒₁ = a.𝓒; 𝓖₁ = a.𝓖
     𝓒₂ = b.𝓒; 𝓖₂ = b.𝓖
@@ -323,11 +515,22 @@ function ∫QφdΩ(a::T,b::S,k::AbstractMatrix) where {T<:AbstractElement,S<:Abs
     end
 end
 
-function ∫QQdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
+"""
+    ∫QQdΩ(ap, k; E, ν, h)
+
+Shear-force mass term `∫ Q·Q dΩ`, used in mixed and stabilised Mindlin
+formulations.
+
+# Keyword arguments
+- `E` : Young's modulus
+- `ν` : Poisson ratio
+- `h` : plate thickness
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`.
+"""
+function ∫QQdΩ(ap::T,k::AbstractMatrix; E::Real, ν::Real, h::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E = ap.E
-    ν = ap.ν
-    h = ap.h
     D = 5/6/h^2*E/2/(1+ν)
     for ξ in 𝓖
         N = ξ[:𝝭]
@@ -343,6 +546,18 @@ function ∫QQdΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
+"""
+    ∫QwdΓ(ap::T,k::AbstractMatrix)
+
+Mixed shear force on the boundary, `∫ (Q·n) w dΓ`; the overloads differ in
+whether the boundary value and the two element sets are supplied.
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.n₁`, `ξ.n₂`, `ξ.𝑤`.
+"""
 function ∫QwdΓ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -361,6 +576,18 @@ function ∫QwdΓ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
+"""
+    ∫QwdΓ(a::T,b::S,k::AbstractMatrix,f::AbstractVector)
+
+Mixed shear force on the boundary, `∫ (Q·n) w dΓ`; the overloads differ in
+whether the boundary value and the two element sets are supplied.
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.n₁`, `ξ.n₂`, `ξ.𝑤`.
+"""
 function ∫QwdΓ(a::T,b::S,k::AbstractMatrix,f::AbstractVector) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ᵛ = a.𝓒; 𝓖ᵛ= a.𝓖
     𝓒ʷ = b.𝓒; 𝓖ʷ= b.𝓖
@@ -384,6 +611,18 @@ function ∫QwdΓ(a::T,b::S,k::AbstractMatrix,f::AbstractVector) where {T<:Abstr
     end
 end
 
+"""
+    ∫QwdΓ(a::T,b::S,k::AbstractMatrix)
+
+Mixed shear force on the boundary, `∫ (Q·n) w dΓ`; the overloads differ in
+whether the boundary value and the two element sets are supplied.
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.n₁`, `ξ.n₂`, `ξ.𝑤`.
+"""
 function ∫QwdΓ(a::T,b::S,k::AbstractMatrix) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ᵛ = a.𝓒; 𝓖ᵛ= a.𝓖
     𝓒ʷ = b.𝓒; 𝓖ʷ= b.𝓖
@@ -404,6 +643,18 @@ function ∫QwdΓ(a::T,b::S,k::AbstractMatrix) where {T<:AbstractElement,S<:Abst
     end
 end
 
+"""
+    ∫QwdΓ(ap::T,k::AbstractMatrix,f::AbstractVector)
+
+Mixed shear force on the boundary, `∫ (Q·n) w dΓ`; the overloads differ in
+whether the boundary value and the two element sets are supplied.
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.n₁`, `ξ.n₂`, `ξ.𝑤`.
+"""
 function ∫QwdΓ(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -425,14 +676,25 @@ function ∫QwdΓ(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:AbstractEl
     end
 end
 
-function ∫MMdΩ(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+"""
+    ∫MMdΩ(ap, k; E, ν, h)
+
+Bending-moment mass term `∫ M·M dΩ`, the dual counterpart of
+[`∫QQdΩ`](@ref) in mixed plate formulations.
+
+# Keyword arguments
+- `E` : Young's modulus
+- `ν` : Poisson ratio
+- `h` : plate thickness
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`.
+"""
+function ∫MMdΩ(ap::T,k::AbstractMatrix{Float64}; E::Real, ν::Real, h::Real) where T<:AbstractElement
     𝓒 = ap.𝓒;𝓖 = ap.𝓖
     for ξ in 𝓖
         N = ξ[:𝝭]
         𝑤 = ξ.𝑤
-        E = ξ.E
-        ν = ξ.ν
-        h = ξ.h
         C⁻¹ᵢᵢᵢᵢ = 1/E*12
         C⁻¹ᵢᵢⱼⱼ = -ν/E*12
         C⁻¹ᵢⱼᵢⱼ = 2*(1+ν)/E*12
@@ -450,6 +712,17 @@ function ∫MMdΩ(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
     end
 end
 
+"""
+    ∫MφdΓ(aₘ::T,aᵩ::S,k::AbstractMatrix{Float64})
+
+Bending moment on the boundary, `∫ (M·n) φ dΓ`.
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.n₁`, `ξ.n₂`, `ξ.𝑤`.
+"""
 function ∫MφdΓ(aₘ::T,aᵩ::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ₘ = aₘ.𝓒;𝓖ₘ = aₘ.𝓖
     𝓒ᵩ = aᵩ.𝓒;𝓖ᵩ = aᵩ.𝓖
@@ -472,6 +745,17 @@ function ∫MφdΓ(aₘ::T,aᵩ::S,k::AbstractMatrix{Float64}) where {T<:Abstrac
     end
 end
 
+"""
+    ∫MφdΓ(aₘ::T,aᵩ::S,k::AbstractMatrix{Float64},f::AbstractVector{Float64})
+
+Bending moment on the boundary, `∫ (M·n) φ dΓ`.
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.n₁`, `ξ.n₂`, `ξ.𝑤`.
+"""
 function ∫MφdΓ(aₘ::T,aᵩ::S,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ₘ = aₘ.𝓒;𝓖ₘ = aₘ.𝓖
     𝓒ᵩ = aᵩ.𝓒;𝓖ᵩ = aᵩ.𝓖
@@ -504,6 +788,17 @@ function ∫MφdΓ(aₘ::T,aᵩ::S,k::AbstractMatrix{Float64},f::AbstractVector{
     end
 end
 
+"""
+    ∫M∇φdΩ(aₘ::T,aᵩ::S,k::AbstractMatrix{Float64})
+
+Mixed bending moment coupling, `∫ M:∇φ dΩ`.
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:𝝭]`, `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`.
+"""
 function ∫M∇φdΩ(aₘ::T,aᵩ::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ₘ = aₘ.𝓒;𝓖ₘ = aₘ.𝓖
     𝓒ᵩ = aᵩ.𝓒;𝓖ᵩ = aᵩ.𝓖
@@ -525,6 +820,17 @@ function ∫M∇φdΩ(aₘ::T,aᵩ::S,k::AbstractMatrix{Float64}) where {T<:Abst
     end
 end
 
+"""
+    ∫∇MφdΩ(aₘ::T,aᵩ::S,k::AbstractMatrix{Float64})
+
+Mixed bending moment coupling in gradient form, `∫ ∇·M · φ dΩ`.
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:𝝭]`, `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`.
+"""
 function ∫∇MφdΩ(aₘ::T,aᵩ::S,k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ₘ = aₘ.𝓒;𝓖ₘ = aₘ.𝓖
     𝓒ᵩ = aᵩ.𝓒;𝓖ᵩ = aᵩ.𝓖
@@ -546,9 +852,20 @@ function ∫∇MφdΩ(aₘ::T,aᵩ::S,k::AbstractMatrix{Float64}) where {T<:Abst
     end
 end
 
-function ∫αwwdΓ(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:AbstractElement
+"""
+    ∫αwwdΓ(ap, k[, f]; α)
+
+Penalty term on the deflection, `α ∫ w w̄ dΓ`, for a weak simply-supported or
+clamped edge.
+
+# Keyword arguments
+- `α` : penalty coefficient
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.g`, `ξ.𝑤`.
+"""
+function ∫αwwdΓ(ap::T,k::AbstractMatrix,f::AbstractVector; α::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    α = ap.α
     for ξ in 𝓖
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
@@ -564,9 +881,16 @@ function ∫αwwdΓ(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:Abstract
     end
 end
 
-function ∫αwwdΓ(ap::T,k::AbstractMatrix) where T<:AbstractElement
+"""
+    ∫αwwdΓ(ap::T,k::AbstractMatrix; α)
+
+Overload of `∫αwwdΓ` — see the documented sibling with the same name.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.𝑤`.
+"""
+function ∫αwwdΓ(ap::T,k::AbstractMatrix; α::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    α = ap.α
     for ξ in 𝓖
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
@@ -580,9 +904,19 @@ function ∫αwwdΓ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
-function ∫αφφdΓ(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:AbstractElement
+"""
+    ∫αφφdΓ(ap, k[, f]; α)
+
+Penalty term on the rotation, `α ∫ φ φ̄ dΓ`, for a weakly clamped edge.
+
+# Keyword arguments
+- `α` : penalty coefficient
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.g`, `ξ.𝑤`.
+"""
+function ∫αφφdΓ(ap::T,k::AbstractMatrix,f::AbstractVector; α::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    α = ap.α
     for ξ in 𝓖
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
@@ -606,9 +940,16 @@ function ∫αφφdΓ(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:Abstra
     end
 end
 
-function ∫αφφdΓ(ap::T,k::AbstractMatrix) where T<:AbstractElement
+"""
+    ∫αφφdΓ(ap::T,k::AbstractMatrix; α)
+
+Overload of `∫αφφdΓ` — see the documented sibling with the same name.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.𝑤`.
+"""
+function ∫αφφdΓ(ap::T,k::AbstractMatrix; α::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    α = ap.α
     for ξ in 𝓖
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
@@ -628,11 +969,25 @@ function ∫αφφdΓ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
-function ∫∇w∇wdΩ_MITC(ap::Element{:Quad4},k::AbstractMatrix)
+"""
+    ∫∇w∇wdΩ_MITC(ap::Element{:Quad4}, k; E, ν, h)
+
+Shear block of the **MITC4** element: the transverse shear is sampled at the
+mid-side points instead of the Gauss points, which removes shear locking.
+
+Requires a `Quad4` element; the sampling points are taken from the element's
+edge DOFs.
+
+# Keyword arguments
+- `E` : Young's modulus
+- `ν` : Poisson ratio
+- `h` : plate thickness
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`.
+"""
+function ∫∇w∇wdΩ_MITC(ap::Element{:Quad4},k::AbstractMatrix; E::Real, ν::Real, h::Real)
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E = ap.E
-    ν = ap.ν
-    h = ap.h
     D = 5/6/h^2*E/2/(1+ν)
 
     x₁,x₂,x₃,x₄ = (xᵢ.x for xᵢ in 𝓒)
@@ -677,11 +1032,21 @@ function ∫∇w∇wdΩ_MITC(ap::Element{:Quad4},k::AbstractMatrix)
 end
 
 
-function ∫φφdΩ_MITC(ap::Element{:Quad4},k::AbstractMatrix)
+"""
+    ∫φφdΩ_MITC(ap::Element{:Quad4}, k; E, ν, h)
+
+Rotation–rotation shear block of the **MITC4** element (mid-side sampling).
+
+# Keyword arguments
+- `E` : Young's modulus
+- `ν` : Poisson ratio
+- `h` : plate thickness
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`.
+"""
+function ∫φφdΩ_MITC(ap::Element{:Quad4},k::AbstractMatrix; E::Real, ν::Real, h::Real)
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E = ap.E
-    ν = ap.ν
-    h = ap.h
     D = 5/6/h^2*E/2/(1+ν)
     Nᵃ = (0.5,0.5,0.0,0.0)
     Nᵇ = (0.0,0.5,0.5,0.0)
@@ -705,11 +1070,22 @@ function ∫φφdΩ_MITC(ap::Element{:Quad4},k::AbstractMatrix)
     end
 end
 
-function ∫φwdΩ_MITC(ap::Element{:Quad4},k::AbstractMatrix)
+"""
+    ∫φwdΩ_MITC(ap::Element{:Quad4}, k; E, ν, h)
+
+Rotation–deflection shear coupling of the **MITC4** element (mid-side
+sampling).
+
+# Keyword arguments
+- `E` : Young's modulus
+- `ν` : Poisson ratio
+- `h` : plate thickness
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`.
+"""
+function ∫φwdΩ_MITC(ap::Element{:Quad4},k::AbstractMatrix; E::Real, ν::Real, h::Real)
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E = ap.E
-    ν = ap.ν
-    h = ap.h
     D = 5/6/h^2*E/2/(1+ν)
 
     x₁,x₂,x₃,x₄ = (xᵢ.x for xᵢ in 𝓒)
@@ -761,11 +1137,23 @@ function ∫φwdΩ_MITC(ap::Element{:Quad4},k::AbstractMatrix)
     end
 end
 
-function ∫φφdΩ_DSG(ap::Element{:Tri3},k::AbstractMatrix)
+"""
+    ∫φφdΩ_DSG(ap::Element{:Tri3}, k; E, ν, h)
+
+Rotation–rotation block of the **DSG** (Discrete Shear Gap) triangle.
+The shear gap is integrated exactly on the element boundary, which avoids
+shear locking on `Tri3`.
+
+# Keyword arguments
+- `E` : Young's modulus
+- `ν` : Poisson ratio
+- `h` : plate thickness
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`.
+"""
+function ∫φφdΩ_DSG(ap::Element{:Tri3},k::AbstractMatrix; E::Real, ν::Real, h::Real)
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E = ap.E
-    ν = ap.ν
-    h = ap.h
     D = 5/6/h^2*E/2/(1+ν)
     x₁,x₂,x₃ = (xᵢ.x for xᵢ in 𝓒)
     y₁,y₂,y₃ = (xᵢ.y for xᵢ in 𝓒)
@@ -792,11 +1180,21 @@ function ∫φφdΩ_DSG(ap::Element{:Tri3},k::AbstractMatrix)
     end
 end
 
-function ∫φwdΩ_DSG(ap::Element{:Tri3},k::AbstractMatrix)
+"""
+    ∫φwdΩ_DSG(ap::Element{:Tri3}, k; E, ν, h)
+
+Rotation–deflection coupling of the **DSG** triangle.
+
+# Keyword arguments
+- `E` : Young's modulus
+- `ν` : Poisson ratio
+- `h` : plate thickness
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`.
+"""
+function ∫φwdΩ_DSG(ap::Element{:Tri3},k::AbstractMatrix; E::Real, ν::Real, h::Real)
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E = ap.E
-    ν = ap.ν
-    h = ap.h
     D = 5/6/h^2*E/2/(1+ν)
     x₁,x₂,x₃ = (xᵢ.x for xᵢ in 𝓒)
     y₁,y₂,y₃ = (xᵢ.y for xᵢ in 𝓒)
@@ -825,10 +1223,21 @@ function ∫φwdΩ_DSG(ap::Element{:Tri3},k::AbstractMatrix)
     end
 end
 
-function ∫∇wσ∇wdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
+"""
+    ∫∇wσ∇wdΩ(ap, k; h)
+
+Deflection-gradient block of a `u/p` or `u/σ` mixed formulation,
+`∫ ∇w·σ·∇w dΩ`, where `σ` comes from its own element set.
+
+# Keyword arguments
+- `h` : plate thickness
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`.
+"""
+function ∫∇wσ∇wdΩ(ap::T, k::AbstractMatrix; h::Real) where T<:AbstractElement
     𝓒 = ap.𝓒
     𝓖 = ap.𝓖
-    h = ap.h
     for ξ in 𝓖
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
@@ -850,10 +1259,20 @@ function ∫∇wσ∇wdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
-function ∫∇φσ∇φdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
+"""
+    ∫∇φσ∇φdΩ(ap, k; h)
+
+Rotation-gradient block of a mixed formulation, `∫ ∇φ·σ·∇φ dΩ`.
+
+# Keyword arguments
+- `h` : plate thickness
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`.
+"""
+function ∫∇φσ∇φdΩ(ap::T, k::AbstractMatrix; h::Real) where T<:AbstractElement
     𝓒 = ap.𝓒
     𝓖 = ap.𝓖
-    h = ap.h
     for ξ in 𝓖
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
@@ -880,11 +1299,21 @@ function ∫∇φσ∇φdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
-function ∫ρwwdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
+"""
+    ∫ρwwdΩ(ap, k; ρ, h)
+
+Deflection mass matrix of the Mindlin plate, `∫ ρ w w / h² dΩ`.
+
+# Keyword arguments
+- `ρ` : mass density
+- `h` : plate thickness
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.𝑤`.
+"""
+function ∫ρwwdΩ(ap::T, k::AbstractMatrix; ρ::Real, h::Real) where T<:AbstractElement
     𝓒 = ap.𝓒
     𝓖 = ap.𝓖
-    ρ = ap.ρ
-    h = ap.h
     for ξ in 𝓖
         N = ξ[:𝝭]
         𝑤 = ξ.𝑤
@@ -898,10 +1327,20 @@ function ∫ρwwdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
-function ∫ρφφdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
+"""
+    ∫ρφφdΩ(ap, k; ρ)
+
+Rotary-inertia mass matrix, `∫ ρ φ·φ dΩ`.
+
+# Keyword arguments
+- `ρ` : mass density
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.𝑤`.
+"""
+function ∫ρφφdΩ(ap::T, k::AbstractMatrix; ρ::Real) where T<:AbstractElement
     𝓒 = ap.𝓒
     𝓖 = ap.𝓖
-    ρ = ap.ρ
     for ξ in 𝓖
         N = ξ[:𝝭]
         𝑤 = ξ.𝑤
@@ -916,6 +1355,17 @@ function ∫ρφφdΩ(ap::T, k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
+"""
+    L₂Q(ap::T)
+
+Relative L₂ error of the shear force, `‖Q-Q̄‖/‖Q̄‖`.
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.Q₁`, `ξ.Q₂`, `ξ.𝑤`.
+"""
 function L₂Q(ap::T) where T<:AbstractElement
     ΔQ²= BigFloat(0.0)
     Q̄² = BigFloat(0.0)
@@ -936,6 +1386,17 @@ function L₂Q(ap::T) where T<:AbstractElement
     return ΔQ², Q̄²
 end
 
+"""
+    L₂Q(aps::Vector{T})
+
+Relative L₂ error of the shear force, `‖Q-Q̄‖/‖Q̄‖`.
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.Q₁`, `ξ.Q₂`, `ξ.𝑤`.
+"""
 function L₂Q(aps::Vector{T}) where T<:AbstractElement
     L₂Norm_ΔQ²= BigFloat(0.0)
     L₂Norm_Q̄² = BigFloat(0.0)
@@ -947,6 +1408,17 @@ function L₂Q(aps::Vector{T}) where T<:AbstractElement
     return (L₂Norm_ΔQ²/L₂Norm_Q̄²)^0.5
 end
 
+"""
+    L₂γ(ap::T)
+
+Relative L₂ error of the transverse shear strain, `‖γ-γ̄‖/‖γ̄‖`.
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set∇𝝭!` and `set𝝭!` — reads the gradients, `ξ.γ₁`, `ξ.γ₂`, `ξ.𝑤`.
+"""
 function L₂γ(ap::T) where T<:AbstractElement
     Δγ²= BigFloat(0.0)
     γ̄² = BigFloat(0.0)
@@ -969,6 +1441,17 @@ function L₂γ(ap::T) where T<:AbstractElement
     return Δγ², γ̄²
 end
 
+"""
+    L₂γ(aps::Vector{T})
+
+Relative L₂ error of the transverse shear strain, `‖γ-γ̄‖/‖γ̄‖`.
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set∇𝝭!` and `set𝝭!` — reads the gradients, `ξ.γ₁`, `ξ.γ₂`, `ξ.𝑤`.
+"""
 function L₂γ(aps::Vector{T}) where T<:AbstractElement
     L₂Norm_Δγ²= BigFloat(0.0)
     L₂Norm_γ̄² = BigFloat(0.0)
@@ -980,6 +1463,17 @@ function L₂γ(aps::Vector{T}) where T<:AbstractElement
     return (L₂Norm_Δγ²/L₂Norm_γ̄²)^0.5
 end
 
+"""
+    L₂γ(a::T,b::S)
+
+Relative L₂ error of the transverse shear strain, `‖γ-γ̄‖/‖γ̄‖`.
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set∇𝝭!` and `set𝝭!` — reads the gradients, `ξ.γ₁`, `ξ.γ₂`, `ξ.𝑤`.
+"""
 function L₂γ(a::T,b::S) where {T,S<:AbstractElement}
     Δγ²= BigFloat(0.0)
     γ̄² = BigFloat(0.0)
@@ -1006,6 +1500,17 @@ function L₂γ(a::T,b::S) where {T,S<:AbstractElement}
     return Δγ², γ̄²
 end
 
+"""
+    L₂γ(as::Vector{T},bs::Vector{S})
+
+Relative L₂ error of the transverse shear strain, `‖γ-γ̄‖/‖γ̄‖`.
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set∇𝝭!` and `set𝝭!` — reads the gradients, `ξ.γ₁`, `ξ.γ₂`, `ξ.𝑤`.
+"""
 function L₂γ(as::Vector{T},bs::Vector{S}) where {T,S<:AbstractElement}
     L₂Norm_Δγ²= BigFloat(0.0)
     L₂Norm_γ̄² = BigFloat(0.0)
@@ -1018,6 +1523,20 @@ function L₂γ(as::Vector{T},bs::Vector{S}) where {T,S<:AbstractElement}
 end
 
 
+"""
+    L₂φ(ap::T)
+
+Relative L₂ error of the rotation field.
+
+
+    ‖φʰ - φ̄‖_L₂ / ‖φ̄‖_L₂,   φʰ = Σᵢ Nᵢ φᵢ
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.φ₁`, `ξ.φ₂`, `ξ.𝑤`.
+"""
 function L₂φ(ap::T) where T<:AbstractElement
     Δφ²= BigFloat(0.0)
     φ̄² = BigFloat(0.0)
@@ -1042,6 +1561,20 @@ function L₂φ(ap::T) where T<:AbstractElement
     return Δφ², φ̄²
 end
 
+"""
+    L₂φ(aps::Vector{T})
+
+Relative L₂ error of the rotation field.
+
+
+    Element-set overload of `L₂φ(ap)`.
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.φ₁`, `ξ.φ₂`, `ξ.𝑤`.
+"""
 function L₂φ(aps::Vector{T}) where T<:AbstractElement
     L₂Norm_Δφ²= BigFloat(0.0)
     L₂Norm_φ̄² = BigFloat(0.0)
@@ -1053,6 +1586,21 @@ function L₂φ(aps::Vector{T}) where T<:AbstractElement
     return (L₂Norm_Δφ²/L₂Norm_φ̄²)^0.5
 end
 
+"""
+    H₁φ(ap::T)
+
+Relative H¹ error of the rotation field, combining the L₂ and gradient
+parts.
+
+
+    ‖(φʰ - φ̄, ∇φʰ - ∇φ̄)‖ / ‖(φ̄, ∇φ̄)‖
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:𝝭]`, gradients, `ξ.φ₁`, `ξ.φ₂`, `ξ.𝑤`.
+"""
 function H₁φ(ap::T) where T<:AbstractElement
     Δ∇φ²= 0.0
     ∇φ̄² = 0.0
@@ -1091,6 +1639,20 @@ function H₁φ(ap::T) where T<:AbstractElement
     return Δ∇φ², ∇φ̄², Δφ², φ̄²
 end
 
+"""
+    L₂w(ap::T)
+
+Relative L₂ error of the deflection.
+
+
+    ‖wʰ - w̄‖_L₂ / ‖w̄‖_L₂,   wʰ = Σᵢ Nᵢ wᵢ
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.w`, `ξ.𝑤`.
+"""
 function L₂w(ap::T) where T<:AbstractElement
     Δw²= BigFloat(0.0)
     w̄² = BigFloat(0.0)
@@ -1108,6 +1670,20 @@ function L₂w(ap::T) where T<:AbstractElement
     return Δw², w̄²
 end
 
+"""
+    H₁w(ap::T)
+
+Relative H¹ error of the deflection (L₂ plus the gradient part).
+
+
+    ‖(wʰ - w̄, ∇wʰ - ∇w̄)‖ / ‖(w̄, ∇w̄)‖
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:𝝭]`, `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.w`, `ξ.∂w∂x`, ...
+"""
 function H₁w(ap::T) where T<:AbstractElement
     Δ∇w²= BigFloat(0.0)
     ∇w̄² = BigFloat(0.0)
@@ -1137,6 +1713,20 @@ function H₁w(ap::T) where T<:AbstractElement
     return Δ∇w², ∇w̄², Δw², w̄²
 end
 
+"""
+    L₂w(aps::Vector{T})
+
+Relative L₂ error of the deflection.
+
+
+    Element-set overload of `L₂w(ap)`.
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.w`, `ξ.𝑤`.
+"""
 function L₂w(aps::Vector{T}) where T<:AbstractElement
     L₂Norm_Δw²= BigFloat(0.0)
     L₂Norm_w̄² = BigFloat(0.0)
@@ -1148,6 +1738,21 @@ function L₂w(aps::Vector{T}) where T<:AbstractElement
     return (L₂Norm_Δw²/L₂Norm_w̄²)^0.5
 end
 
+"""
+    H₁(aps_w::Vector{Tʷ},aps_φ::Vector{Tᵠ})
+
+Relative H¹ error of the mixed `(w, φ)` solution.
+
+
+    Relative H¹ error of the pair `(w, φ)`, combining the deflection and
+    rotation errors over the two element sets.
+
+# Keyword arguments
+See the signature above.
+
+# Element requirements
+`set∇𝝭!` — reads the gradients and the exact field.
+"""
 function H₁(aps_w::Vector{Tʷ},aps_φ::Vector{Tᵠ}) where {Tʷ,Tᵠ<:AbstractElement}
     H₁Norm_Δu²= 0.0
     H₁Norm_ū² = 0.0
@@ -1170,6 +1775,23 @@ function H₁(aps_w::Vector{Tʷ},aps_φ::Vector{Tᵠ}) where {Tʷ,Tᵠ<:Abstract
     return (H₁Norm_Δu²/H₁Norm_ū²)^0.5, (L₂Norm_Δu²/L₂Norm_ū²)^0.5
 end
 
+"""
+    Hₑ(ap; E, ν, h)
+
+Relative energy-norm error of a Mindlin plate solution against an exact field:
+
+    ‖e‖_E / ‖u‖_E,   ‖v‖_E² = ∫ (κ(v)·M(κ) + γ(v)·Q(γ)) dΩ
+
+The exact field is supplied through `prescribe!`.
+
+# Keyword arguments
+- `E` : Young's modulus
+- `ν` : Poisson ratio
+- `h` : plate thickness
+
+# Element requirements
+`set∇𝝭!` and `set𝝭!` — reads `ξ[:𝝭]`, `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`, and the exact field.
+"""
 function Hₑ(aps::Vector{T}) where T<:AbstractElement
     HₑNorm_Δu² = 0.0
     HₑNorm_ū² = 0.0
@@ -1181,12 +1803,17 @@ function Hₑ(aps::Vector{T}) where T<:AbstractElement
     return (HₑNorm_Δu²/HₑNorm_ū²)^0.5
 end
 
-function Hₑ(ap::T) where T<:AbstractElement
+"""
+    Hₑ(ap::T; E, ν, h)
+
+Overload of `Hₑ` — see the documented sibling with the same name.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.𝑤`.
+"""
+function Hₑ(ap::T; E::Real, ν::Real, h::Real) where T<:AbstractElement
     Δu² = BigFloat(0.0)
     ū² = BigFloat(0.0)
-    E = ap.E
-    ν = ap.ν
-    h = ap.h
     Dᵇᵢᵢᵢᵢ = E*h^3/12/(1-ν^2)
     Dᵇᵢᵢⱼⱼ = E*ν*h^3/12/(1-ν^2)
     Dᵇᵢⱼᵢⱼ = E*h^3/24/(1+ν)
@@ -1220,6 +1847,17 @@ function Hₑ(ap::T) where T<:AbstractElement
     return Δu², ū²
 end
 
+"""
+    Hₑ(aps_w::Vector{Tʷ},aps_φ::Vector{Tᵠ},aps_Q::Vector{Tˢ})
+
+Overload of `Hₑ` — see the documented sibling with the same name.
+
+
+    Element-set overload of `Hₑ(ap_w, ap_φ, ap_Q)`, summed over the elements.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.𝑤`.
+"""
 function Hₑ(aps_w::Vector{Tʷ},aps_φ::Vector{Tᵠ},aps_Q::Vector{Tˢ}) where {Tʷ,Tᵠ,Tˢ<:AbstractElement}
     HₑNorm_Δu² = 0.0
     HₑNorm_ū² = 0.0
@@ -1231,6 +1869,19 @@ function Hₑ(aps_w::Vector{Tʷ},aps_φ::Vector{Tᵠ},aps_Q::Vector{Tˢ}) where 
     return (HₑNorm_Δu²/HₑNorm_ū²)^0.5
 end
 
+"""
+    Hₑ(ap_w::Tʷ,ap_φ::Tᵠ,ap_Q::Tˢ)
+
+Overload of `Hₑ` — see the documented sibling with the same name.
+
+
+    ‖e‖_E / ‖u‖_E for the mixed `(w, φ, Q)` formulation:
+
+        ‖v‖_E² = ∫ (κ(v)·M(κ) + γ(v)·Q(γ)) dΩ
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.𝑤`.
+"""
 function Hₑ(ap_w::Tʷ,ap_φ::Tᵠ,ap_Q::Tˢ) where {Tʷ,Tᵠ,Tˢ<:AbstractElement}
     Δu² = BigFloat(0.0)
     ū² = BigFloat(0.0)

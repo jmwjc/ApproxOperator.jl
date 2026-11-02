@@ -45,7 +45,7 @@ end
 function set∇𝝭!(::PiecewisePolynomial{:Constant},𝒙::Node)
     𝝭 = 𝒙[:𝝭]
     ∂𝝭∂x = 𝒙[:∂𝝭∂x]
-    ∂𝝭∂y = 𝒙[:∂𝝭∂x]
+    ∂𝝭∂y = 𝒙[:∂𝝭∂y]
     𝝭[1] = 1.0
     ∂𝝭∂x[1] = 0.0
     ∂𝝭∂y[1] = 0.0

@@ -1,6 +1,9 @@
 module GmshImport
-    
-using ..ApproxOperator: AbstractElement, Element, Node, 𝑿ᵢ, 𝑿ₛ, SpatialPartition, get𝑛𝑝
+
+using ..ApproxOperator: AbstractElement, Element, Node, 𝑿ᵢ, 𝑿ₛ, SpatialPartition
+include("coordinates.jl")
+include("elements.jl")
+using .MeshCoordinates
 import Gmsh: gmsh
 
 function getPhysicalGroups()
@@ -14,7 +17,34 @@ function getPhysicalGroups()
     return entities
 end
 
-function get𝑿ᵢ()
+"""
+    get𝑿ᵢ(; centroid = nothing, elementType = :auto) -> Vector{𝑿ᵢ}
+
+Read the mesh nodes from Gmsh.
+
+# Keyword arguments
+- `centroid`    : `nothing` (the default) returns only the mesh nodes. Passing a
+                  Gmsh `(dim, tags)` pair — typically `entities["Ω"]` — appends
+                  one extra node at the centroid of every element of that
+                  entity. See [`addCentroidNodes!`](@ref).
+- `elementType` : when `centroid` is given, restrict the centroids to one Gmsh
+                  element type; `:auto` processes every type Gmsh reports.
+
+# Example
+```julia
+# Mesh nodes only.
+nodes = get𝑿ᵢ()
+
+# Mesh nodes plus one centroid per element of Ω.
+nodes = get𝑿ᵢ(centroid = entities["Ω"])
+```
+
+The centroid nodes are appended after the mesh nodes, so every mesh node keeps
+its `𝐼` and existing code that indexes `nodes` is unaffected. All nodes share
+one `data` dictionary, which is what `prescribe!` and `getElements` rely on.
+"""
+function get𝑿ᵢ(; centroid::Union{Nothing,Pair{Int,Vector{Int}}} = nothing,
+                 elementType::Union{Symbol,Integer} = :auto)
     nodeTags, coord = gmsh.model.mesh.getNodes()
     nₚ = length(nodeTags)
     x = zeros(nₚ)
@@ -26,936 +56,304 @@ function get𝑿ᵢ()
         z[I] = coord[3*i]
     end
     data = Dict([:x=>(1,x),:y=>(1,y),:z=>(1,z)])
-    return [𝑿ᵢ((𝐼=i,), data) for i in 1:nₚ ]
+    nodes = [𝑿ᵢ((𝐼=i,), data) for i in 1:nₚ]
+    centroid === nothing && return nodes
+    return addCentroidNodes!(nodes, centroid; elementType = elementType)
 end
 
-prequote = quote
-    types = Dict([1=>:Seg2, 2=>:Tri3, 3=>:Quad4, 4=>:Tet4, 5=>:Hex8, 8=>:Seg3, 9=>:Tri6, 10=>:Quad9, 11=>:Tet10, 12=>:Hex27, 15=>:Poi1, 16=>:Quad8])
+"""
+    addCentroidNodes!(nodes, dimTag; elementType = :auto) -> Vector{𝑿ᵢ}
+
+Append one node at the **centroid of every element** of the Gmsh entity
+`dimTag`, and return the extended node list.
+
+The existing nodes are left in place and keep their `𝐼`; each appended node gets
+the next free `𝐼` and the same `data` dictionary as the original nodes, so the
+result can be passed straight to `getElements`.
+
+# Arguments
+- `nodes`       : node list, normally the result of [`get𝑿ᵢ`](@ref)
+- `dimTag`      : Gmsh `(dim, tags)` pair, e.g. `entities["Ω"]`
+- `elementType` : Gmsh element type to restrict to, or `:auto` to take every
+                  type Gmsh reports for the entity
+
+# Centroid definition
+The centroid is the arithmetic mean of the element's **corner** nodes,
+
+    𝒙_c = (1/n_c) Σ_c 𝒙_c
+
+not of all its nodes. For a quadratic element the mean of all nodes is pulled
+towards the mid-side points and is not the geometric centre; the corner mean is.
+
+For a straight-sided element this is the exact geometric centroid.
+
+This is the work horse behind `get𝑿ᵢ(centroid = dimTag)`; call it directly when
+the nodes already exist and you only want to add centroids.
+
+# Example
+```julia
+nodes = get𝑿ᵢ()
+addCentroidNodes!(nodes, entities["Ω"])
+elements = getElements(nodes, entities["Ω"], 2)
+
+# equivalent, in one call:
+nodes = get𝑿ᵢ(centroid = entities["Ω"])
+```
+"""
+function addCentroidNodes!(nodes::Vector{N}, dimTag::Pair{Int,Vector{Int}};
+                           elementType::Union{Symbol,Integer} = :auto) where N<:Node
+    isempty(nodes) && return nodes
+    data = getfield(nodes[1], :data)
+    xs = data[:x][2]
+    ys = data[:y][2]
+    zs = data[:z][2]
+
     dim, tags = dimTag
-    elementTypes = Int32[]
-    nodeTags = Vector{UInt64}[]
     for tag in tags
-        elementTypes_, ~, nodeTags_ = gmsh.model.mesh.getElements(dim,tag)
-        push!(elementTypes,elementTypes_[1])
-        push!(nodeTags,nodeTags_[1])
-    end
-    elements = AbstractElement[]
-
-    𝑔 = 0; 𝐺 = 0; 𝐶 = 0;𝑠 = 0;
-    data = Dict{Symbol,Tuple{Int,Vector{Float64}}}()
-    data[:w] = (1,Float64[])
-    data[:ξ] = (1,Float64[])
-    data[:x] = (2,Float64[])
-    data[:y] = (2,Float64[])
-    data[:z] = (2,Float64[])
-    data[:𝑤] = (2,Float64[])
-    data[:𝐽] = (2,Float64[])
-    data[:∂ξ∂x] = (2,Float64[])
-    if normal
-        data[:n₁] = (3,Float64[])
-        data[:n₂] = (3,Float64[])
-        data[:s₁] = (3,Float64[])
-        data[:s₂] = (3,Float64[])
-    end
-    if dim >= 2
-        data[:η] = (1,Float64[])
-
-        data[:∂ξ∂y] = (2,Float64[])
-        data[:∂η∂x] = (2,Float64[])
-        data[:∂η∂y] = (2,Float64[])
-        if normal
-            data[:n₃] = (3,Float64[])
-            data[:s₃] = (3,Float64[])
-        end
-    end
-    if dim >= 3
-        data[:γ] = (1,Float64[])
-
-        data[:∂ξ∂z] = (2,Float64[])
-        data[:∂η∂z] = (2,Float64[])
-        data[:∂γ∂x] = (2,Float64[])
-        data[:∂γ∂y] = (2,Float64[])
-        data[:∂γ∂z] = (2,Float64[])
-    end
-end
-
-preForEdge = quote
-    dimΩ,tagΩ = dimTagΩ
-    tagsΩ = UInt64[]
-    elementTypesΩ = Int32[]
-    CΩ = 0
-    for tagΩ_ in tagΩ
-        elementTypesΩ_, tagsΩ_ = gmsh.model.mesh.getElements(dimΩ,tagΩ_)
-        push!(elementTypesΩ,elementTypesΩ_[1])
-        push!(tagsΩ,tagsΩ_[1]...)
-    end
-
-    data[:w] = (1,Float64[])
-    data[:Δ] = (1,Float64[])
-    data[:ξ] = (2,Float64[])
-    data[:η] = (2,Float64[])
-    data[:n₁] = (3,Float64[])
-    data[:n₂] = (3,Float64[])
-    data[:s₁] = (3,Float64[])
-    data[:s₂] = (3,Float64[])
-    if dim > 1
-        data[:γ] = (2,Float64[])
-        data[:n₃] = (3,Float64[])
-        data[:s₃] = (3,Float64[])
-    end   
-end
-
-coordinates = quote
-    ng = length(weights)
-    ne = Int(length(nodeTag)/ni)
-
-    append!(data[:w][2],weights)
-    haskey(data,:ξ) ? append!(data[:ξ][2],localCoord[1:3:end]) : nothing
-    haskey(data,:η) ? append!(data[:η][2],localCoord[2:3:end]) : nothing
-    haskey(data,:γ) ? append!(data[:γ][2],localCoord[3:3:end]) : nothing
-    jacobians, determinants, coord = gmsh.model.mesh.getJacobians(elementType, localCoord, tag)
-    x = coord[1:3:end]
-    y = coord[2:3:end]
-    z = coord[3:3:end]
-    append!(data[:x][2],x)
-    append!(data[:y][2],y)
-    append!(data[:z][2],z)
-    for i in 1:Int(length(determinants)/ng)
-        for (j,w) in enumerate(weights)
-            G = ng*(i-1)+j
-            push!(data[:𝑤][2], determinants[G]*w)
-        end
-    end
-end
-
-coordinatesForEdges = quote
-    ng = length(weights)
-    ne = Int(length(nodeTag)/ni)
-    if elementTypeΩ ∈ (2,9)
-        nb = 3
-    elseif elementTypeΩ ∈ (3,10,16)
-        nb = 4
-    end
-
-    nodeTag = gmsh.model.mesh.getElementEdgeNodes(elementType,tag,true)
-
-    append!(data[:w][2],weights)
-    jacobians, determinants, coord = gmsh.model.mesh.getJacobians(elementType, localCoord, tag)
-    x = coord[1:3:end]
-    y = coord[2:3:end]
-    z = coord[3:3:end]
-    append!(data[:x][2],x)
-    append!(data[:y][2],y)
-    append!(data[:z][2],z)
-    for i in 1:Int(length(determinants)/ng)
-        for (j,w) in enumerate(weights)
-            G = ng*(i-1)+j
-            push!(data[:𝑤][2], determinants[G]*w)
-        end
-    end
-
-    for g in 1:ng
-        ξg = localCoord[3*g-2]
-        if ξg ≈ 1.0
-            push!(data[:Δ][2], 1.0)
-        elseif ξg ≈ -1.0
-            push!(data[:Δ][2], -1.0)
-        else
-            push!(data[:Δ][2], 0.0)
-        end
-    end
-    for CΩ_ in 1:Int(ne/nb)
-        tagΩ = tagsΩ[CΩ+CΩ_]
-        for C in nb*(CΩ_-1)+1:nb*CΩ_
-            𝐿 = 2*determinants[C*ng]
-            coord, = gmsh.model.mesh.getNode(nodeTag[2*C-1])
-            x₁ = coord[1]
-            y₁ = coord[2]
-            coord, = gmsh.model.mesh.getNode(nodeTag[2*C])
-            x₂ = coord[1]
-            y₂ = coord[2]
-            push!(data[:n₁][2], (y₂-y₁)/𝐿)
-            push!(data[:n₂][2], (x₁-x₂)/𝐿)
-            push!(data[:s₁][2], (x₂-x₁)/𝐿)
-            push!(data[:s₂][2], (y₂-y₁)/𝐿)
-            for g in 1:ng
-                G = ng*(C-1)+g
-                ξ, η, γ = gmsh.model.mesh.getLocalCoordinatesInElement(tagΩ, x[G], y[G], z[G])
-                push!(data[:ξ][2], ξ)
-                push!(data[:η][2], η)
-                haskey(data,:γ) ? push!(data[:γ][2], γ) : nothing
+        elementTypes, _, nodeTagLists = gmsh.model.mesh.getElements(dim, tag)
+        for (etype, nodeTags) in zip(elementTypes, nodeTagLists)
+            (elementType === :auto || etype == elementType) || continue
+            _, _, _, ni = gmsh.model.mesh.getElementProperties(etype)
+            nc = corner_count(etype)
+            nc <= 0 && (nc = ni)      # unknown type: average all nodes
+            for e in 1:div(length(nodeTags), ni)
+                conn = nodeTags[ni*(e-1)+1 : ni*e]
+                xc = sum(xs[conn[c]] for c in 1:nc) / nc
+                yc = sum(ys[conn[c]] for c in 1:nc) / nc
+                zc = sum(zs[conn[c]] for c in 1:nc) / nc
+                push!(xs, xc)
+                push!(ys, yc)
+                push!(zs, zc)
+                push!(nodes, 𝑿ᵢ((𝐼 = length(xs),), data))
             end
         end
     end
+    return nodes
 end
 
-curvilinearCoordinates = quote
-    ng = length(weights)
-    ne = Int(length(nodeTag)/ni)
+"""
+    corner_count(elementType::Integer) -> Int
 
-    ξ = localCoord[1:3:end]
-    η = localCoord[2:3:end]
-    γ = localCoord[3:3:end]
-    jacobians, determinants, coord = gmsh.model.mesh.getJacobians(elementType, localCoord, tag)
-    x = coord[1:3:end]
-    y = coord[2:3:end]
-    z = coord[3:3:end]
-    𝑤 = zeros(length(determinants))
-    if dim == 2
-        for i in 1:Int(length(determinants)/ng)
-            for (j,w) in enumerate(weights)
-                G = ng*(i-1)+j
-                x_ = Vec{3}((x[G],y[G],z[G]))
-                𝑤[G] = determinants[G]*cs.𝐽(x_)*w
-            end
-        end
-        data = Dict([
-            :w=>(1,weights),
-            :x=>(2,x),
-            :y=>(2,y),
-            :z=>(2,z),
-            :𝑤=>(2,𝑤),
-        ])
-    elseif dim == 1
-        Δ = zeros(ng)
-        ∂x∂ξ = jacobians[1:9:end]
-        ∂y∂ξ = jacobians[2:9:end]
-        ∂z∂ξ = jacobians[3:9:end]
-        n₁ = zeros(ne*ng)
-        n₂ = zeros(ne*ng)
-        n¹ = zeros(ne*ng)
-        n² = zeros(ne*ng)
-        s₁ = zeros(ne*ng)
-        s₂ = zeros(ne*ng)
-        s¹ = zeros(ne*ng)
-        s² = zeros(ne*ng)
-        ∂₁n₁ = zeros(ne*ng)
-        ∂₁n₂ = zeros(ne*ng)
-        ∂₂n₁ = zeros(ne*ng)
-        ∂₂n₂ = zeros(ne*ng)
-        ∂₁s₁ = zeros(ne*ng)
-        ∂₁s₂ = zeros(ne*ng)
-        ∂₂s₁ = zeros(ne*ng)
-        ∂₂s₂ = zeros(ne*ng)
-        nodeTags = gmsh.model.mesh.getElementEdgeNodes(elementType, tag, true)
-        for C in 1:ne
-            𝐿 = 2*determinants[C*ng]
-            coord, = gmsh.model.mesh.getNode(nodeTags[2*C-1])
-            x₁ = coord[1]
-            y₁ = coord[2]
-            coord, = gmsh.model.mesh.getNode(nodeTags[2*C])
-            x₂ = coord[1]
-            y₂ = coord[2]
-            t¹ = (x₂-x₁)/𝐿
-            t² = (y₂-y₁)/𝐿
-            t₁(x) = cs.a₁₁(x)*t¹ + cs.a₁₂(x)*t²
-            t₂(x) = cs.a₁₂(x)*t¹ + cs.a₂₂(x)*t²
-            t(x) = (t₁(x)*t¹ + t₂(x)*t²)^0.5
-            s¹_(x) = t¹/t(x)
-            s²_(x) = t²/t(x)
-            s₁_(x) = t₁(x)/t(x)
-            s₂_(x) = t₂(x)/t(x)
-            deta(x) = (cs.a₁₁(x)*cs.a₂₂(x) - cs.a₁₂(x)^2)^0.5
-            n₁_(x) = s²_(x)*deta(x)
-            n₂_(x) =-s¹_(x)*deta(x)
-            n¹_(x) = cs.a¹¹(x)*n₁_(x) + cs.a¹²(x)*n₂_(x)
-            n²_(x) = cs.a¹²(x)*n₁_(x) + cs.a²²(x)*n₂_(x)
-            ∂₁n₁_(x) = gradient(n₁_,x)[1]
-            ∂₂n₁_(x) = gradient(n₁_,x)[2]
-            ∂₁n₂_(x) = gradient(n₂_,x)[1]
-            ∂₂n₂_(x) = gradient(n₂_,x)[2]
-            ∂₁s₁_(x) = gradient(s₁_,x)[1]
-            ∂₂s₁_(x) = gradient(s₁_,x)[2]
-            ∂₁s₂_(x) = gradient(s₂_,x)[1]
-            ∂₂s₂_(x) = gradient(s₂_,x)[2]
-            for (j,w) in enumerate(weights)
-                G = ng*(C-1)+j
-                x_ = Vec{3}((x[G],y[G],z[G]))
-                𝒂₁_ = cs.𝒂₁(x_)
-                𝒂₂_ = cs.𝒂₂(x_)
-                𝒂₃_ = cs.𝒂₃(x_)
-                J = ((𝒂₁_[1]*∂x∂ξ[G] + 𝒂₂_[1]*∂y∂ξ[G] + 𝒂₃_[1]*∂z∂ξ[G])^2
-                  +  (𝒂₁_[2]*∂x∂ξ[G] + 𝒂₂_[2]*∂y∂ξ[G] + 𝒂₃_[2]*∂z∂ξ[G])^2
-                  +  (𝒂₁_[3]*∂x∂ξ[G] + 𝒂₂_[3]*∂y∂ξ[G] + 𝒂₃_[3]*∂z∂ξ[G])^2)^0.5
-                s₁[G] = s₁_(x_)
-                s₂[G] = s₂_(x_)
-                s¹[G] = s¹_(x_)
-                s²[G] = s²_(x_)
-                n₁[G] = n₁_(x_)
-                n₂[G] = n₂_(x_)
-                n¹[G] = n¹_(x_)
-                n²[G] = n²_(x_)
-                ∂₁n₁[G] = ∂₁n₁_(x_)
-                ∂₁n₂[G] = ∂₁n₂_(x_)
-                ∂₂n₁[G] = ∂₂n₁_(x_)
-                ∂₂n₂[G] = ∂₂n₂_(x_)
-                ∂₁s₁[G] = ∂₁s₁_(x_)
-                ∂₁s₂[G] = ∂₁s₂_(x_)
-                ∂₂s₁[G] = ∂₂s₁_(x_)
-                ∂₂s₂[G] = ∂₂s₂_(x_)
-                𝑤[G] = J*w
-            end
-        end
-        for g in 1:ng
-            ξg = localCoord[3*g-2]
-            if ξg ≈ 1.0
-                Δ[g] = 1.0
-            elseif ξg ≈ -1.0
-                Δ[g] = -1.0
-            else
-                Δ[g] = 0.0
-            end
-        end
-        data = Dict([
-            :w=>(1,weights),
-            :x=>(2,x),
-            :y=>(2,y),
-            :z=>(2,z),
-            :𝑤=>(2,𝑤),
-            :n₁=>(2,n₁),
-            :n₂=>(2,n₂),
-            :n¹=>(2,n¹),
-            :n²=>(2,n²),
-            :s₁=>(2,s₁),
-            :s₂=>(2,s₂),
-            :s¹=>(2,s¹),
-            :s²=>(2,s²),
-            :∂₁n₁=>(2,∂₁n₁),
-            :∂₁n₂=>(2,∂₁n₂),
-            :∂₂n₁=>(2,∂₂n₁),
-            :∂₂n₂=>(2,∂₂n₂),
-            :∂₁s₁=>(2,∂₁s₁),
-            :∂₁s₂=>(2,∂₁s₂),
-            :∂₂s₁=>(2,∂₂s₁),
-            :∂₂s₂=>(2,∂₂s₂),
-            :Δ=>(1,Δ),
-        ])
-    end
-    if dim == 2
-        push!(data, :ξ=>(1,ξ), :η=>(1,η))
-    else
-        push!(data, :ξ=>(1,ξ))
-    end
-end
+Number of corner nodes of a Gmsh element type — the nodes that span the element
+geometry, as opposed to the mid-side, face and interior nodes of a higher-order
+element.
 
-cal_jacobe = quote
-    append!(data[:𝐽][2],determinants)
-    J = zeros(3,3)
-    ∂ξ∂x = zeros(ne*ng)
-    ∂ξ∂y = zeros(ne*ng)
-    ∂ξ∂z = zeros(ne*ng)
-    ∂η∂x = zeros(ne*ng)
-    ∂η∂y = zeros(ne*ng)
-    ∂η∂z = zeros(ne*ng)
-    ∂γ∂x = zeros(ne*ng)
-    ∂γ∂y = zeros(ne*ng)
-    ∂γ∂z = zeros(ne*ng)
-    for C in 1:ne
-        for g in 1:ng
-            J[1,1] = jacobians[9*(ng*(C-1)+g)-8]
-            J[1,2] = jacobians[9*(ng*(C-1)+g)-7]
-            J[1,3] = jacobians[9*(ng*(C-1)+g)-6]
-            J[2,1] = jacobians[9*(ng*(C-1)+g)-5]
-            J[2,2] = jacobians[9*(ng*(C-1)+g)-4]
-            J[2,3] = jacobians[9*(ng*(C-1)+g)-3]
-            J[3,1] = jacobians[9*(ng*(C-1)+g)-2]
-            J[3,2] = jacobians[9*(ng*(C-1)+g)-1]
-            J[3,3] = jacobians[9*(ng*(C-1)+g)]
-            J⁻¹ = inv(J)
-            ∂ξ∂x[ng*(C-1)+g] = J⁻¹[1,1]
-            ∂ξ∂y[ng*(C-1)+g] = J⁻¹[1,2]
-            ∂ξ∂z[ng*(C-1)+g] = J⁻¹[1,3]
-            ∂η∂x[ng*(C-1)+g] = J⁻¹[2,1]
-            ∂η∂y[ng*(C-1)+g] = J⁻¹[2,2]
-            ∂η∂z[ng*(C-1)+g] = J⁻¹[2,3]
-            ∂γ∂x[ng*(C-1)+g] = J⁻¹[3,1]
-            ∂γ∂y[ng*(C-1)+g] = J⁻¹[3,2]
-            ∂γ∂z[ng*(C-1)+g] = J⁻¹[3,3]
-        end
-    end
-    append!(data[:∂ξ∂x][2],∂ξ∂x)
-    if dim >= 2
-        append!(data[:∂ξ∂y][2],∂ξ∂y)
-        append!(data[:∂η∂x][2],∂η∂x)
-        append!(data[:∂η∂y][2],∂η∂y)
-    elseif dim >= 3
-        append!(data[:∂ξ∂z][2],∂ξ∂z)
-        append!(data[:∂η∂z][2],∂η∂z)
-        append!(data[:∂γ∂x][2],∂γ∂x)
-        append!(data[:∂γ∂y][2],∂γ∂y)
-        append!(data[:∂γ∂z][2],∂γ∂z)
-    end
-end
-
-typeForFEM = quote
-    type = Element{types[elementType]}
-end
-
-cal_normal = quote
-    if normal
-        nodeTags = gmsh.model.mesh.getElementEdgeNodes(elementType,tag,true)
-        if dim == 1
-            for C in 1:ne
-                𝐿 = 2*determinants[C*ng]
-                coord_, = gmsh.model.mesh.getNode(nodeTags[2*C-1])
-                x₁ = coord_[1]
-                y₁ = coord_[2]
-                coord_, = gmsh.model.mesh.getNode(nodeTags[2*C])
-                x₂ = coord_[1]
-                y₂ = coord_[2]
-                push!(data[:n₁][2], (y₂-y₁)/𝐿)
-                push!(data[:n₂][2], (x₁-x₂)/𝐿)
-                push!(data[:s₁][2], (x₂-x₁)/𝐿)
-                push!(data[:s₂][2], (y₂-y₁)/𝐿)
-            end
-        end
-        if dim == 2
-            nₙ = Int(length(nodeTags)/ne)
-            for C in 1:ne
-                𝐽 = determinants[C*ng]
-                n₁ = 0.0
-                n₂ = 0.0
-                n₃ = 0.0
-                for i in 1:2:nₙ
-                    coord_, = gmsh.model.mesh.getNode(nodeTags[nₙ*(C-1)+i])
-                    x₁ = coord_[1]
-                    y₁ = coord_[2]
-                    z₁ = coord_[3]
-                    coord_, = gmsh.model.mesh.getNode(nodeTags[nₙ*(C-1)+i+1])
-                    x₂ = coord_[1]
-                    y₂ = coord_[2]
-                    z₂ = coord_[3]
-
-                    n₁ += y₁*z₂-y₂*z₁
-                    n₂ += z₁*x₂-z₂*x₁
-                    n₃ += x₁*y₂-x₂*y₁
-                end
-                if elementType == 3
-                    𝐽 *= 8
-                end
-                push!(data[:n₁][2], n₁/𝐽)
-                push!(data[:n₂][2], n₂/𝐽)
-                push!(data[:n₃][2], n₃/𝐽)
-            end
-        end
-    end
-end
-
-integrationByGmsh = quote
-    ~, ~, order, ni = gmsh.model.mesh.getElementProperties(elementType)
-    if integrationOrder < 0 integrationOrder = order end
-    integrationType = elementType∈(3,5,10,12,16) ? "CompositeGauss"*string(integrationOrder) : "Gauss"*string(integrationOrder)
-    localCoord, weights = gmsh.model.mesh.getIntegrationPoints(elementType,integrationType)
-end
-
-integrationByManual = quote
-    ~, ~, ~, ni = gmsh.model.mesh.getElementProperties(elementType)
-    localCoord, weights = integration
-end
-
-generateForFEM = quote
-    for C in 1:ne
-        𝐶 += 1
-        𝓒 = nodes[nodeTag[ni*(C-1)+1:ni*C]]
-        𝓖 = [𝑿ₛ((𝑔 = 𝑔+g, 𝐺 = 𝐺+g, 𝐶 = 𝐶, 𝑠 = 𝑠+(g-1)*ni), data) for g in 1:ng]
-        𝐺 += ng
-        𝑠 += ng*ni
-        push!(elements,type(𝓒,𝓖))
-    end
-    𝑔 += ng
-end
-
-generateForNeighbor = quote
-    for C in 1:ne
-        𝐶 += 1
-        indices = Set{Int}()
-        for g in 1:ng
-            xᵢ = x[ng*(C-1)+g]
-            yᵢ = y[ng*(C-1)+g]
-            zᵢ = z[ng*(C-1)+g]
-            union!(indices,sp(xᵢ,yᵢ,zᵢ))
-        end
-        ni = length(indices)
-        𝓒 = [nodes[i] for i in indices]
-        𝓖 = [𝑿ₛ((𝑔 = 𝑔+g, 𝐺 = 𝐺+g, 𝐶 = 𝐶, 𝑠 = 𝑠+(g-1)*ni), data) for g in 1:ng]
-        𝐺 += ng
-        𝑠 += ng*ni
-        push!(elements,type(𝓒,𝓖))
-    end
-    𝑔 += ng
-end
-
-generateForMarco = quote
-    elements = Vector{type}(undef,ne)
-    data𝓒 = Dict{Symbol,Tuple{Int,Vector{Float64}}}()
-    ni = get𝑛𝑝(type(𝑿ᵢ[],𝑿ₛ[]))
-    n₁ = Int(round(n/nₕ))
-    n₂ = Int(round(ne/nₐ/n₁/nₕ^2))
-    for j in 1:n₂
-        for i in 1:n₁
-            𝓒 = [𝑿ᵢ((𝐼=n₁*ni*(j-1)+ni*(i-1)+k,),data𝓒) for k in 1:ni]
-            for k in 1:nₕ
-                for l in 1:nₐ*nₕ
-                    C = nₐ*nₕ*n₁*(nₕ*(j-1)+k-1)+nₐ*nₕ*(i-1)+l
-                    G = ng*(C-1)
-                    s = G*ni
-                    𝓖 = [𝑿ₛ((𝑔 = g, 𝐺 = G+g, 𝐶 = C, 𝑠 = s+(g-1)*ni), data) for g in 1:ng]
-                    elements[C] = type(𝓒,𝓖)
-                end
-            end
-        end
-    end
-end
-
-generateForPiecewise = quote
-    data𝓒 = Dict{Symbol,Tuple{Int,Vector{Float64}}}()
-    if uniq
-        if dim == 1
-            indices = [Set([nodeTag[ni*(C-1)+1:ni*C]...]) for C in 1:ne]
-            unique!(indices)
-            ni_ = get𝑛𝑝(type(𝑿ᵢ[],𝑿ₛ[]))
-            for C in 1:ne
-                𝐶 += 1
-                I = findfirst(x->x==Set([nodeTag[ni*(𝐶-1)+1:ni*𝐶]...]),indices)
-                𝓒 = [𝑿ᵢ((𝐼=ni_*(I-1)+j,),data𝓒) for j in 1:ni_]
-                𝓖 = [𝑿ₛ((𝑔 = 𝑔+g, 𝐺 = 𝐺+g, 𝐶 = 𝐶, 𝑠 = 𝑠+(g-1)*ni_), data) for g in 1:ng]
-                𝐺 += ng
-                𝑠 += ng*ni_
-                push!(elements,type(𝓒,𝓖))
-            end
-        end
-    else
-        ni = get𝑛𝑝(type(𝑿ᵢ[],𝑿ₛ[]))
-        for C in 1:ne
-            𝐶 += 1
-            𝓒 = [𝑿ᵢ((𝐼=ni*(𝐶-1)+j,),data𝓒) for j in 1:ni]
-            𝓖 = [𝑿ₛ((𝑔 = 𝑔+g, 𝐺 = 𝐺+g, 𝐶 = 𝐶, 𝑠 = 𝑠+(g-1)*ni), data) for g in 1:ng]
-            𝐺 += ng
-            𝑠 += ng*ni
-            push!(elements,type(𝓒,𝓖))
-        end
-        𝑔 += ng
-    end
-end
-
-generateForPiecewiseBoundary = quote
-    data𝓒 = Dict{Symbol,Tuple{Int,Vector{Float64}}}()
-    ni = get𝑛𝑝(type(𝑿ᵢ[],𝑿ₛ[]))
-    for CΩ_ in 1:Int(ne/nb)
-        tagΩ = tagsΩ[CΩ+CΩ_]
-        for C in nb*(CΩ_-1)+1:nb*CΩ_
-            𝐶 += 1
-            𝓒 = [𝑿ᵢ((𝐼=ni*(CΩ+CΩ_-1)+j,),data𝓒) for j in 1:ni]
-            𝓖 = [𝑿ₛ((𝑔 = 𝑔+g, 𝐺 = 𝐺+g, 𝐶 = 𝐶, 𝑠 = 𝑠+(g-1)*ni), data) for g in 1:ng]
-            𝐺 += ng
-            𝑠 += ng*ni
-            push!(elements,type(𝓒,𝓖))
-        end
-    end
-    𝑔 += ng
-    CΩ += Int(ne/nb)
-end
-
-generateSummary = quote
-    println("Info    : Generate $ne elements of $type with $ng integration points.")
-end
-
-@eval begin
-
-# function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}};
-#                         type::Union{Int,DataType} = -1,
-#                         integration::Union{Int,NTuple{2,Vector{Float64}}} = -1,
-#                         searching::Union{Int,SpatialPartition} = -1,
-#                         coordinate::Union{Int,Function} = -1,
-#                         normal::Bool=false
-#                     ) where N<:Node
-#     $prequote
-#     for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
-#         if isa(type,Int)
-#             type = Element{types[elementType]}
-#         end
-#         ~, ~, order, ni = gmsh.model.mesh.getElementProperties(elementType)
-#         if isa(integration,Int)
-#             integrationOrder = integration < 0 : order : integration
-#             integrationType = "Gauss"*string(integrationOrder)
-#             integration = gmsh.model.mesh.getIntegrationPoints(elementType,integrationType)
-#         end
-#         localCoord, weights = integration
-#         if isa(coordinate,Int)
-#             $coordiantes
-#         else
-#             $curvilinearCoordinates
-#         end
-#         if isa(searching,Int)
-#             if searching == 0
-#                 $
-#             else
-#                 $generateForFEM
-#             end
-#         else
-#             $generateForNeighbor
-#         end
-#         println("Info: Generate $ne elements of $type with $ng integration points.")
-#     end
-#     return elements
-# end
-
-function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},integrationOrder::Int = -1;normal::Bool=false) where N<:Node
-    $prequote
-    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
-        ## element type
-        $typeForFEM
-        ## integration rule
-        $integrationByGmsh
-        ## coordinates
-        $coordinates
-        ## special variables
-        $cal_jacobe
-        $cal_normal # unit outernal normal
-        ## generate element
-        $generateForFEM
-        ## summary
-        $generateSummary
-    end
-    return elements
-end
-
-function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},integration::NTuple{2,Vector{Float64}};normal::Bool=false) where N<:Node
-    $prequote
-    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
-        ## element type
-        $typeForFEM
-        ## integration rule
-        $integrationByManual
-        ## coordiantes
-        $coordinates
-        ## special variables
-        $cal_jacobe
-        $cal_normal # unit outernal normal
-        ## generate element
-        $generateForFEM
-        ## summary
-        $generateSummary
-    end
-    return elements
-end
-
-function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},type::DataType,integrationOrder::Int = -1;normal::Bool=false) where N<:Node
-    $prequote
-    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
-        ## integration rule
-        $integrationByGmsh
-        ## coordinates
-        $coordinates
-        ## special variables
-        $cal_jacobe
-        $cal_normal # unit outernal normal
-        ## generate element
-        $generateForFEM
-        ## summary
-        $generateSummary
-    end
-    return elements
-end
-
-function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},type::DataType,integration::NTuple{2,Vector{Float64}};normal::Bool=false) where N<:Node
-    $prequote
-    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
-        ## integration rule
-        $integrationByManual
-        ## coordiantes
-        $coordinates
-        ## special variables
-        $cal_jacobe
-        $cal_normal # unit outernal normal
-        ## generate element
-        $generateForFEM
-        ## summary
-        $generateSummary
-    end
-    return elements
-end
-
-function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},type::DataType,integrationOrder::Int,sp::SpatialPartition;normal::Bool=false) where N<:Node
-    $prequote
-    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
-        ## integration rule
-        $integrationByGmsh
-        ## coordinates
-        $coordinates
-        ## special variables
-        $cal_jacobe
-        $cal_normal # unit outernal normal
-        ## generate element
-        $generateForNeighbor
-        ## summary
-        $generateSummary
-    end
-    return elements
-end
-
-function getElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},type::DataType,integration::NTuple{2,Vector{Float64}},sp::SpatialPartition;normal::Bool=false) where N<:Node
-    $prequote
-    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
-        ## integration rule
-        $integrationByManual
-        ## coordinates
-        $coordinates
-        ## special variables
-        $cal_jacobe
-        $cal_normal # unit outernal normal
-        ## generate element
-        $generateForNeighbor
-        ## summary
-        $generateSummary
-    end
-    return elements
-end
-
-function getPiecewiseElements(dimTag::Pair{Int,Vector{Int}},type::DataType,integrationOrder::Int;normal::Bool=false,uniq::Bool=false)
-    $prequote
-    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
-        ## integration rule
-        $integrationByGmsh
-        ## coordinates
-        $coordinates
-        ## special variables
-        $cal_jacobe
-        $cal_normal # unit outernal normal
-        ## generate element
-        $generateForPiecewise
-        ## summary
-        $generateSummary
-    end
-    return elements
-end
-
-function getPiecewiseElements(dimTag::Pair{Int,Vector{Int}},type::DataType,integration::NTuple{2,Vector{Float64}};normal::Bool=false,uniq::Bool=false)
-    $prequote
-    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
-        ## integration rule
-        $integrationByManual
-        ## coordinates
-        $coordinates
-        ## special variables
-        $cal_jacobe
-        $cal_normal # unit outernal normal
-        ## generate element
-        $generateForPiecewise
-        ## summary
-        $generateSummary
-    end
-    return elements
-end
-
-function getPiecewiseBoundaryElements(dimTag::Pair{Int,Vector{Int}},dimTagΩ::Pair{Int,Vector{Int}},type::DataType,integrationOrder::Int)
-    normal = false
-    $prequote
-    $preForEdge
-    for (elementType,elementTypeΩ,nodeTag,tag) in zip(elementTypes,elementTypesΩ,nodeTags,tags)
-        ## integration rule
-        $integrationByGmsh
-        ## coordinates
-        $coordinatesForEdges
-        ## special variables
-        $cal_jacobe 
-        ## generate element
-        $generateForPiecewiseBoundary
-        ## summary
-        $generateSummary
-    end
-    return elements
-end
-
-function getPiecewiseBoundaryElements(dimTag::Pair{Int,Vector{Int}},dimTagΩ::Pair{Int,Vector{Int}},type::DataType,integration::NTuple{2,Vector{Float64}})
-    normal = false
-    $prequote
-    $preForEdge
-    for (elementType,elementTypeΩ,nodeTag,tag) in zip(elementTypes,elementTypesΩ,nodeTags,tags)
-        ## integration rule
-        $integrationByManual
-        ## coordinates
-        $coordinatesForEdges
-        ## special variables
-        $cal_jacobe 
-        ## generate element
-        $generateForPiecewiseBoundary
-        ## summary
-        $generateSummary
-    end
-    return elements
-end
-
-function getCurvedElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},cs::Function,integrationOrder::Int = -1) where N<:Node
-    $prequote
-    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
-        ## element type
-        $typeForFEM
-        ## integration rule
-        $integrationByGmsh
-        ## coordinates
-        $curvilinearCoordinates
-        ## special variables
-        ## generate element
-        $generateForFEM
-        ## summary
-        $generateSummary
-    end
-    return elements
-end
-
-function getCurvedElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},cs::Function,integration::NTuple{2,Vector{Float64}}) where N<:Node
-    $prequote
-    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
-        ## element type
-        $typeForFEM
-        ## integration rule
-        $integrationByManual
-        ## coordinates
-        $curvilinearCoordinates
-        ## special variables
-        ## generate element
-        $generateForFEM
-        ## summary
-        $generateSummary
-    end
-    return elements
-end
-
-function getCurvedElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},type::DataType,cs::Function,integrationOrder::Int,sp::SpatialPartition) where N<:Node
-    $prequote
-    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
-        ## integration rule
-        $integrationByGmsh
-        ## coordinates
-        $curvilinearCoordinates
-        ## special variables
-        ## generate element
-        $generateForNeighbor
-        ## summary
-        $generateSummary
-    end
-    return elements
-end
-
-function getCurvedElements(nodes::Vector{N},dimTag::Pair{Int,Vector{Int}},type::DataType,cs::Function,integration::NTuple{2,Vector{Float64}},sp::SpatialPartition) where N<:Node
-    $prequote
-    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
-        ## integration rule
-        $integrationByManual
-        ## coordinates
-        $curvilinearCoordinates
-        ## special variables
-        ## generate element
-        $generateForNeighbor
-        ## summary
-        $generateSummary
-    end
-    return elements
-end
-
-function getCurvedPiecewiseElements(dimTag::Pair{Int,Vector{Int}},type::DataType,cs::Function,integrationOrder::Int,nb::Int=1)
-    $prequote
-    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
-        ## integration rule
-        $integrationByGmsh
-        ## coordinates
-        $curvilinearCoordinates
-        ## special variables
-        ## generate element
-        $generateForPiecewise
-        ## summary
-        $generateSummary
-    end
-    return elements
-end
-
-function getCurvedPiecewiseElements(dimTag::Pair{Int,Vector{Int}},type::DataType,cs::Function,integration::NTuple{2,Vector{Float64}},nb::Int=1)
-    $prequote
-    for (elementType,nodeTag,tag) in zip(elementTypes,nodeTags,tags)
-        ## integration rule
-        $integrationByManual
-        ## coordinates
-        $curvilinearCoordinates
-        ## special variables
-        ## generate element
-        $generateForPiecewise
-        ## summary
-        $generateSummary
-    end
-    return elements
+Returns `-1` for a type this package does not know, so that
+[`addCentroidNodes!`](@ref) can fall back to averaging all nodes.
+"""
+function corner_count(elementType::Integer)
+    elementType == 1  && return 2   # Seg2
+    elementType == 2  && return 3   # Tri3
+    elementType == 3  && return 4   # Quad4
+    elementType == 4  && return 4   # Tet4
+    elementType == 5  && return 8   # Hex8
+    elementType == 8  && return 2   # Seg3
+    elementType == 9  && return 3   # Tri6
+    elementType == 10 && return 4   # Quad9
+    elementType == 11 && return 4   # Tet10
+    elementType == 12 && return 8   # Hex27
+    elementType == 15 && return 1   # Poi1
+    elementType == 16 && return 4   # Quad8
+    return -1
 end
 
 
-# function getMacroCurvedElements(dimTag::Tuple{Int,Int},type::DataType,integrationOrder::Int,n::Int;nₕ::Int=1,nₐ::Int=2)
-#     $prequote
-#     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
-#         ## integration rule
-#         $integrationByGmsh
-#         ## coordinates
-#         $coordinates
-#         ## special variables
-#         $cal_length_area_volume # length area and volume
-#         ## generate element
-#         $generateForPiecewise
-#         ## summary
-#         $generateSummary
-#     end
-#     return elements
-# end
+#
+# Storage layout of the shared `data` dictionary
+# ------------------------------------------------
+# Several nodes (`𝑿ᵢ` for the shape-function support, `𝑿ₛ` for the quadrature
+# points) point at the *same* `Dict{Symbol,Tuple{Int,Vector{Float64}}}`. Each
+# entry is `name => (slot, values)`, where `slot` selects an entry of the node's
+# index tuple and the value of that entry is the offset into `values`:
+#
+#     node.name  ==  data[name][2][ node.index[ data[name][1] ] ]
+#
+# Concretely, for `𝑿ᵢ` (index `(𝐼,)`) the geometry is stored with `slot = 1`,
+# so `𝒙ᵢ.x == data[:x][2][𝒙ᵢ.𝐼]`. For `𝑿ₛ` (index `(𝑔,𝐺,𝐶,𝑠)`):
+#
+#     slot 1 -> local quadrature coordinate :ξ, :η, :γ, :w
+#               (one value per quadrature point, indexed by ξ.𝑔)
+#     slot 2 -> global quadrature-point counter (indexed by ξ.𝐺)
+#     slot 3 -> global element counter       (indexed by ξ.𝐶)
+#     slot 4 -> offset into the element DOF list, `𝝭`, ... (indexed by ξ.𝑠)
+#
+# Note that :x, :y, :z are stored twice as far as `set𝝭!` is concerned: the
+# *generator* writes them with `slot = 2` (one value per quadrature point in a
+# dedicated array), while `get𝑿ᵢ` writes them with `slot = 1` (indexed by node
+# id). The quadrature-point copy is what `set𝝭!` reads through `ξ.x`, `ξ.y`.
+#
+# Conventions that the approximation code relies on:
+#
+#   :𝐽    determinant of the mapping 𝒙(ξ,η,γ), i.e. det(∂𝒙/∂𝝃).
+#          NOT the inverse, NOT a length. 1-D elements therefore store the
+#          arc-length |∂𝒙/∂ξ|, 2-D elements twice the area and 3-D elements
+#          six times the volume of the reference simplex.
+#   :𝑤    integration weight already multiplied by :𝐽.
+#   :w    the raw quadrature weight, without :𝐽.
+#
+# Consequences for shape-function gradients:
+#
+# * 1-D elements (`Seg2`, `Seg3`) have an affine map, so
+#
+#           dNᵢ/dx = (dNᵢ/dξ) / :𝐽
+#
+#   with the ξ-derivative *divided* by the Jacobian (a length scale). This is
+#   the `(y₂-y₃)/𝐽` pattern of `Tri3` as well; multiplying by it is always an
+#   error.
+# * 2-D/3-D simplex code (`Tri3`, `Tri6`, `Tet4`, `Tet10`, `TriHermite`)
+#   divides the difference product by :𝐽. Since the difference product already
+#   carries the reference-simplex determinant (1/2 for a triangle, 1/6 for a
+#   tetrahedron), that division correctly returns the physical gradient.
+# * isoparametric elements (`Quad4`, `Quad8`, `Hex8`) compute ∂ξ/∂x from the
+#   full Jacobian matrix and never touch :𝐽 directly.
+#
 
-# function getMacroCurvedElements(dimTag::Tuple{Int,Int},type::DataType,integration::NTuple{2,Vector{Float64}},n::Int;nₕ::Int=1,nₐ::Int=2)
-#     $prequote
-#     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
-#         ## integration rule
-#         $integrationByManual
-#         ## coordinates
-#         $coordinates
-#         ## special variables
-#         $cal_length_area_volume # length area and volume
-#         ## generate element
-#         $generateForPiecewise
-#         ## summary
-#         $generateSummary
-#     end
-#     return elements
-# end
+# ---------------------------------------------------------------------------
+# Legacy entry points
+# ---------------------------------------------------------------------------
+#
+# The importer used to be 17 near-identical functions assembled from `quote`
+# fragments spliced with `@eval`. The four axes along which they varied (element
+# type, quadrature, geometry, generation) are independent, so the implementation
+# now lives in `elements.jl` behind a single `ElementSpec` and one
+# `getElements(nodes, spec)`. The signatures below are kept unchanged so that
+# every existing script keeps working; each one forwards to that implementation.
+#
+# `getPiecewiseElements`, `getPiecewiseBoundaryElements` and
+# `getCurvedPiecewiseElements` were removed: they called `get𝑛𝑝(::Element)`,
+# a method that has never existed in this package, so they could not run, and
+# they had no callers. Piecewise approximations are constructed by building the
+# elements directly in Julia instead.
 
-# function getMacroBoundaryElements(dimTag::Tuple{Int,Int},dimTagΩ::Tuple{Int,Int},type::DataType,integrationOrder::Int,n::Int;nₕ::Int=1,nₐ::Int=6)
-#     $prequote
-#     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
-#         ## integration rule
-#         $integrationByGmsh
-#         ## coordinates
-#         $coordinatesForEdges
-#         ## special variables
-#         $cal_length_area_volume # length area and volume
-#         ## generate element
-#         $generateForPiecewise
-#         ## summary
-#         $generateSummary
-#     end
-#     return elements
-# end
+"""
+    getElements(nodes, dimTag, integrationOrder = -1; normal = false)
 
-# function getMacroBoundaryElements(dimTag::Tuple{Int,Int},dimTagΩ::Tuple{Int,Int},type::DataType,integration::NTuple{2,Vector{Float64}},n::Int;nₕ::Int=1,nₐ::Int=6)
-#     $prequote
-#     for (elementType,nodeTag) in zip(elementTypes,nodeTags)
-#         ## integration rule
-#         $integrationByManual
-#         ## coordinates
-#         $coordinatesForEdges
-#         ## special variables
-#         $cal_length_area_volume # length area and volume
-#         ## generate element
-#         $generateForPiecewise
-#         ## summary
-#         $generateSummary
-#     end
-#     return elements
-# end
+Gmsh decides the element type; the quadrature rule is Gmsh's rule of order
+`integrationOrder` (`-1` means the element's own order).
 
-end 
+    elements = getElements(nodes, entities["Ω"], 2)
+"""
+getElements(nodes::Vector{N}, dimTag::Pair{Int,Vector{Int}},
+            integrationOrder::Int = -1; normal::Bool = false) where N<:Node =
+    getElements(nodes, ElementSpec(dimTag; quadrature = integrationOrder, normal = normal))
+
+"""
+    getElements(nodes, dimTag, integration::NTuple{2,Vector{Float64}}; normal = false)
+
+Gmsh decides the element type; the quadrature rule is supplied explicitly.
+
+    elements = getElements(nodes, entities["Ω"], (localCoord, weights))
+"""
+getElements(nodes::Vector{N}, dimTag::Pair{Int,Vector{Int}},
+            integration::NTuple{2,Vector{Float64}}; normal::Bool = false) where N<:Node =
+    getElements(nodes, ElementSpec(dimTag; quadrature = integration, normal = normal))
+
+"""
+    getElements(nodes, dimTag, type::DataType, integrationOrder = -1; normal = false)
+
+Caller-chosen element type, Gmsh quadrature of order `integrationOrder`.
+
+    elements = getElements(nodes, entities["Ω"], Element{:Tri6}, 3)
+"""
+getElements(nodes::Vector{N}, dimTag::Pair{Int,Vector{Int}}, type::DataType,
+            integrationOrder::Int = -1; normal::Bool = false) where N<:Node =
+    getElements(nodes, ElementSpec(dimTag; element = type,
+                                   quadrature = integrationOrder, normal = normal))
+
+"""
+    getElements(nodes, dimTag, type::DataType, integration; normal = false)
+
+Caller-chosen element type and quadrature rule.
+"""
+getElements(nodes::Vector{N}, dimTag::Pair{Int,Vector{Int}}, type::DataType,
+            integration::NTuple{2,Vector{Float64}}; normal::Bool = false) where N<:Node =
+    getElements(nodes, ElementSpec(dimTag; element = type,
+                                   quadrature = integration, normal = normal))
+
+"""
+    getElements(nodes, dimTag, type, integrationOrder, sp::SpatialPartition; normal = false)
+    getElements(nodes, dimTag, type, integration,       sp::SpatialPartition; normal = false)
+
+Support points are **all nodes within the search radius** rather than each
+element's own nodes — the layout a meshfree operator needs. `sp` is a
+`SpatialPartition`, typically a `RegularGrid`.
+"""
+getElements(nodes::Vector{N}, dimTag::Pair{Int,Vector{Int}}, type::DataType,
+            integrationOrder::Int, sp::SpatialPartition;
+            normal::Bool = false) where N<:Node =
+    getElements(nodes, ElementSpec(dimTag; element = type, quadrature = integrationOrder,
+                                   assembly = :neighbour, search = sp, normal = normal))
+
+getElements(nodes::Vector{N}, dimTag::Pair{Int,Vector{Int}}, type::DataType,
+            integration::NTuple{2,Vector{Float64}}, sp::SpatialPartition;
+            normal::Bool = false) where N<:Node =
+    getElements(nodes, ElementSpec(dimTag; element = type, quadrature = integration,
+                                   assembly = :neighbour, search = sp, normal = normal))
+
+"""
+    getCurvedElements(nodes, dimTag, cs, integrationOrder = -1)
+    getCurvedElements(nodes, dimTag, cs, integration)
+    getCurvedElements(nodes, dimTag, type, cs, integrationOrder, sp)
+    getCurvedElements(nodes, dimTag, type, cs, integration, sp)
+
+Elements on a surface described by the map `cs` instead of the flat mesh. The
+integration weight is the curvature-corrected Jacobian `cs.𝐽(𝒙)` rather than
+Gmsh's flat determinant, so an area computed on the mapped surface is a true
+surface area.
+
+`cs` carries the surface description as **fields** (it is read as `cs.𝐽`,
+`cs.a₁₁`, …), so it may be any type, callable or not:
+
+| field | meaning |
+|---|---|
+| `cs.𝐽(𝒙)` | area scale of the surface map at `𝒙` |
+| `cs.a₁₁`, `cs.a₁₂`, `cs.a₂₂` | covariant surface metric |
+| `cs.a¹¹`, `cs.a¹²`, `cs.a²²` | contravariant surface metric |
+| `cs.𝒂₁`, `cs.𝒂₂`, `cs.𝒂₃` | surface tangent vectors |
+
+# Example
+```julia
+struct FlatSurface end
+𝐽(::FlatSurface, x)   = 1.0
+a₁₁(::FlatSurface, x) = 1.0
+# ...
+cs = (𝐽 = x -> 1.0, a₁₁ = x -> 1.0, a₁₂ = x -> 0.0, a₂₂ = x -> 1.0,
+      a¹¹ = x -> 1.0, a¹² = x -> 0.0, a²² = x -> 1.0,
+      𝒂₁ = x -> (1.0,0.0,0.0), 𝒂₂ = x -> (0.0,1.0,0.0), 𝒂₃ = x -> (0.0,0.0,1.0))
+elements = getCurvedElements(nodes, entities["Ω"], cs, 2)
+```
+
+!!! note "Signature change in S3"
+    The historical signature declared `cs::Function`, but the implementation
+    reads `cs.𝐽`, `cs.a₁₁`, … as *fields*. No `Function` carries those fields, so
+    the old method could never be called successfully — it raised
+    `UndefVariableError`/`FieldError` for every argument. The `::Function`
+    restriction has been removed so that the documented usage works.
+"""
+getCurvedElements(nodes::Vector{N}, dimTag::Pair{Int,Vector{Int}}, cs,
+                  integrationOrder::Int = -1) where N<:Node =
+    getElements(nodes, ElementSpec(dimTag; geometry = :curved, map = cs,
+                                   quadrature = integrationOrder))
+
+getCurvedElements(nodes::Vector{N}, dimTag::Pair{Int,Vector{Int}}, cs,
+                  integration::NTuple{2,Vector{Float64}}) where N<:Node =
+    getElements(nodes, ElementSpec(dimTag; geometry = :curved, map = cs,
+                                   quadrature = integration))
+
+getCurvedElements(nodes::Vector{N}, dimTag::Pair{Int,Vector{Int}}, type::DataType,
+                  cs, integrationOrder::Int,
+                  sp::SpatialPartition) where N<:Node =
+    getElements(nodes, ElementSpec(dimTag; element = type, geometry = :curved, map = cs,
+                                   quadrature = integrationOrder,
+                                   assembly = :neighbour, search = sp))
+
+getCurvedElements(nodes::Vector{N}, dimTag::Pair{Int,Vector{Int}}, type::DataType,
+                  cs, integration::NTuple{2,Vector{Float64}},
+                  sp::SpatialPartition) where N<:Node =
+    getElements(nodes, ElementSpec(dimTag; element = type, geometry = :curved, map = cs,
+                                   quadrature = integration,
+                                   assembly = :neighbour, search = sp))
+
 
 function getElements(dimTag1::Pair{Int,Vector{Int}},dimTag2::Pair{Int,Vector{Int}},elms::Vector{T}) where T<:AbstractElement
     elements = AbstractElement[]

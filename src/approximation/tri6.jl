@@ -1,4 +1,14 @@
-# FIXME: The shape function order is wrong!
+# Quadratic triangle (Tri6), nodes ordered as
+#   1,2,3 : corners at (0,0), (1,0), (0,1)   [in local coordinates (ξ,η)]
+#   4,5,6 : midside nodes on (1,2), (2,3), (3,1)
+#
+# This is exactly the ordering produced by `Tri3toTri6!` in
+# preprocession/convert.jl and by Gmsh for element type 9, and it is verified
+# by the nodal-delta test in test/shape_function_consistency.jl.
+#
+# `𝐽` is det(∂x/∂ξ) = 2·Area of the triangle. The difference products below
+# carry the reference-simplex determinant 1/2 implicitly, so dividing by 𝐽
+# yields the physical gradient directly.
 function set𝝭!(::Element{:Tri6},x::Node)
     𝝭 = x[:𝝭]
     ξ = 1.0-x.ξ-x.η

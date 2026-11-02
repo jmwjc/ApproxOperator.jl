@@ -35,37 +35,56 @@ function count(aps::Vector{T},i::Symbol) where T<:AbstractElement
     return i ≠ :𝑠 ? index[i] : index[i]+length(aps[end].𝓒)
 end
 
-function Base.push!(aps::Vector{T},ss::Symbol...;index::Symbol=:𝑠) where T<:AbstractElement
+# Require at least one argument: a variadic-only method makes the empty call
+# `push!(aps)` ambiguous with the `Pair` method below, which `Aqua.test_ambiguities`
+# flags. Requiring one argument removes the ambiguity without changing any
+# existing call.
+function Base.push!(aps::Vector{T},s::Symbol,ss::Symbol...;index::Symbol=:𝑠) where T<:AbstractElement
     data = getfield(aps[1].𝓖[1],:data)
     indices = getfield(aps[end].𝓖[end],:index)
     i = findfirst((x)->x==index,keys(indices))
     n = count(aps,index)
-    for s in ss
-        data[s] = (i,zeros(n))
+    for name in (s, ss...)
+        data[name] = (i,zeros(n))
     end
 end
 
-function Base.push!(aps::Vector{T},svs::Pair{Symbol, Vector{Float64}}...;index::Symbol=:𝑠) where T<:AbstractElement
+function Base.push!(aps::Vector{T},sv::Pair{Symbol,Vector{Float64}},
+                   svs::Pair{Symbol,Vector{Float64}}...;index::Symbol=:𝑠) where T<:AbstractElement
     data = getfield(aps[1].𝓖[1],:data)
     indices = getfield(aps[end].𝓖[end],:index)
     i = findfirst((x)->x==index,keys(indices))
-    for sv in svs
-        s,v = sv
-        data[s] = (i,v)
+    for (name,v) in (sv, svs...)
+        data[name] = (i,v)
     end
 end
 
 function prescribe!(ξ::Node,sf::Pair{Symbol,F}) where F<:Function
     s,f = sf
     𝒙 = (ξ.x,ξ.y,ξ.z)
-    if applicable(f,𝒙...)
-        v = f(𝒙...)
-    elseif applicable(f,𝒙...,ξ.n₁)
-        v = f(𝒙...,ξ.n₁)
-    elseif applicable(f,𝒙...,ξ.n₁,ξ.n₂)
-        v = f(𝒙...,ξ.n₁,ξ.n₂)
-    elseif applicable(f,𝒙...,ξ.n₁,ξ.n₂,ξ.n₃)
-        v = f(𝒙...,ξ.n₁,ξ.n₂,ξ.n₃)
+    # The normal components are only present when the element was built with
+    # `normal = true`, and `n₃` only for 2-D boundaries. Reading a missing
+    # field raises `KeyError`, so each candidate arity is guarded by `haskey`
+    # rather than relying on `applicable` (whose arguments are evaluated first).
+    # A prescribed function may take the coordinates only, or the coordinates
+    # plus 1, 2 or 3 normal components. The 3-argument form is tried first, so a
+    # plain `(x, y) -> …` must be matched explicitly rather than by relying on
+    # `applicable(f, x, y, z)`.
+    has(st) = haskey(getfield(ξ,:data), st) || st ∈ keys(getfield(ξ,:index))
+    if applicable(f, ξ.x, ξ.y)
+        v = f(ξ.x, ξ.y)
+    elseif applicable(f, ξ.x, ξ.y, ξ.z)
+        v = f(ξ.x, ξ.y, ξ.z)
+    elseif has(:n₁) && applicable(f, ξ.x, ξ.y, ξ.z, ξ.n₁)
+        v = f(ξ.x, ξ.y, ξ.z, ξ.n₁)
+    elseif has(:n₁) && has(:n₂) && applicable(f, ξ.x, ξ.y, ξ.z, ξ.n₁, ξ.n₂)
+        v = f(ξ.x, ξ.y, ξ.z, ξ.n₁, ξ.n₂)
+    elseif has(:n₁) && has(:n₂) && has(:n₃) &&
+           applicable(f, ξ.x, ξ.y, ξ.z, ξ.n₁, ξ.n₂, ξ.n₃)
+        v = f(ξ.x, ξ.y, ξ.z, ξ.n₁, ξ.n₂, ξ.n₃)
+    else
+        error("prescribe!: the function given for :$s accepts none of " *
+              "f(x,y), f(x,y,z), f(x,y,z,n₁), f(x,y,z,n₁,n₂), f(x,y,z,n₁,n₂,n₃)")
     end
     setproperty!(ξ,s,v)
 end
