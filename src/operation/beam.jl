@@ -6,8 +6,6 @@ const 𝐈₃ = [1.0 0.0 0.0;
             0.0 0.0 1.0]
 
 # ===================== 算子命名约定 =====================
-# 与 thin_shell.jl 的 ∫εᵢⱼNᵢⱼdΩ 风格一致，用广义应变/广义内力命名：
-#
 #   ∫εᵘNᵘdΩ  → Kᵘᵘ：位移-位移块
 #   ∫εᵘNᵠdΩ  → Kᵘᵠ：位移-转角块（行 u，列 φ）
 #   ∫εᵠNᵘdΩ  → Kᵠᵘ：转角-位移块（行 φ，列 u）
@@ -70,33 +68,51 @@ function 𝐐(ap::T) where T<:AbstractElement
     return 𝐐ᵢ
 end
 
+# ===================== 显式刚度算子 =====================
+# 仅适用于 Seg2（两节点线性）单元。形函数为
+#
+#     N₁(ξ) = (1-ξ)/2,   N₂(ξ) = (1+ξ)/2,   dx = (L/2)dξ
+#
+# 单元内的四个标量积分可解析求出（I,J = 1,2）：
+#
+#     W₁₁_IJ = ∫ N_{I,x} N_{J,x} dx = (1/L)[[ 1, -1],
+#                                         [-1,  1]]
+#     W₁₀_IJ = ∫ N_{I,x} N_J     dx = (1/2)[[-1, -1],
+#                                         [ 1,  1]]
+#     W₀₁_IJ = ∫ N_I     N_{J,x} dx = W₁₀_IJᵀ
+#     W₀₀_IJ = ∫ N_I     N_J     dx = (L/4)·𝟏   （中点减缩积分，避免剪切自锁）
+#
+# 有了 W₁₁、W₁₀、W₀₁、W₀₀，单元刚度不需要形函数与高斯积分，直接由 L、𝐑
+# 和截面常数拼装：
+#
+#     Kᵘᵘ_IJ = W₁₁_IJ · 𝐑ᵀdiag(EA, k₂GA, k₃GA)𝐑
+#     Kᵘᵠ_IJ = W₁₁_IJ · 𝐑ᵀ𝐊¹𝐑 + W₁₀_IJ · 𝐑ᵀ𝐊²𝐑
+#     Kᵠᵘ_IJ = W₁₁_IJ · 𝐑ᵀ𝐊¹ᵀ𝐑 + W₀₁_IJ · 𝐑ᵀ𝐊²ᵀ𝐑
+#     Kᵠᵠ_IJ = W₁₁_IJ · 𝐑ᵀ𝐊¹𝐑 + W₁₀_IJ · 𝐑ᵀ𝐊²𝐑 + W₀₁_IJ · 𝐑ᵀ𝐊²ᵀ𝐑 + W₀₀_IJ · 𝐑ᵀ𝐊³𝐑
+
 # ===================== Kᵘᵘ =====================
 function ∫εᵘNᵘdΩ(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝐊ᵘᵘ!(ap,k,𝐑(ap))
 end
 
 function 𝐊ᵘᵘ!(ap::T,k::AbstractMatrix{Float64},𝐑::AbstractMatrix{Float64}) where T<:AbstractElement
-    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    for ξ in 𝓖
-        B = ξ[:∂𝝭∂x]
-        𝑤 = ξ.𝑤
-        E = ξ.E
-        G = ξ.G
-        A = ξ.A
-        k₂ = ξ.k₂
-        k₃ = ξ.k₃
-        # Kᵘᵘ = BB·𝐊，𝐊 = diag(EA, k₂GA, k₃GA)
-        𝐊 = 𝐑ᵀ𝐊𝐑([E*A      0.0      0.0;
-                  0.0    k₂*G*A     0.0;
-                  0.0      0.0    k₃*G*A],𝐑)
-        for (i,xᵢ) in enumerate(𝓒)
-            I = xᵢ.𝐼
-            for (j,xⱼ) in enumerate(𝓒)
-                J = xⱼ.𝐼
-                𝐵𝐵 = B[i]*B[j]*𝑤
-                for a in 1:3, b in 1:3
-                    k[3*I-3+a,3*J-3+b] += 𝐊[a,b]*𝐵𝐵
-                end
+    x₁ = ap.𝓒[1]; x₂ = ap.𝓒[2]
+    L = sqrt((x₂.x-x₁.x)^2 + (x₂.y-x₁.y)^2 + (x₂.z-x₁.z)^2)
+    # W₁₁_IJ = ∫ N_{I,x} N_{J,x} dx
+    W₁₁ = [ 1.0/L -1.0/L;
+          -1.0/L  1.0/L]
+    E = ap.E; G = ap.G; A = ap.A
+    k₂ = ap.k₂; k₃ = ap.k₃
+    # Kᵘᵘ = BB·𝐊，𝐊 = diag(EA, k₂GA, k₃GA)
+    𝐊 = 𝐑ᵀ𝐊𝐑([E*A     0.0      0.0;
+              0.0   k₂*G*A     0.0;
+              0.0     0.0    k₃*G*A],𝐑)
+    for i in 1:2
+        I = ap.𝓒[i].𝐼
+        for j in 1:2
+            J = ap.𝓒[j].𝐼
+            for a in 1:3, b in 1:3
+                k[3*I-3+a,3*J-3+b] += W₁₁[i,j]*𝐊[a,b]
             end
         end
     end
@@ -108,34 +124,29 @@ function ∫εᵘNᵠdΩ(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElem
 end
 
 function 𝐊ᵘᵠ!(ap::T,k::AbstractMatrix{Float64},𝐑::AbstractMatrix{Float64}) where T<:AbstractElement
-    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    for ξ in 𝓖
-        B = ξ[:∂𝝭∂x]
-        N = ξ[:𝝭]
-        𝑤 = ξ.𝑤
-        E = ξ.E
-        G = ξ.G
-        A = ξ.A
-        Iy = ξ.Iy
-        Iz = ξ.Iz
-        k₂ = ξ.k₂
-        k₃ = ξ.k₃
-        # Kᵘᵠ = BB·𝐊¹ + BN·𝐊²
-        𝐊¹ = 𝐑ᵀ𝐊𝐑([0.0    E*Iy   -E*Iz;
-                  -G*Iy     0.0     0.0;
-                   G*Iz     0.0     0.0],𝐑)
-        𝐊² = 𝐑ᵀ𝐊𝐑([   0.0      0.0       0.0;
-                       0.0      0.0   -k₂*G*A;
-                       0.0   k₃*G*A       0.0],𝐑)
-        for (i,xᵢ) in enumerate(𝓒)
-            I = xᵢ.𝐼
-            for (j,xⱼ) in enumerate(𝓒)
-                J = xⱼ.𝐼
-                𝐵𝐵 = B[i]*B[j]*𝑤
-                𝐵𝑁 = B[i]*N[j]*𝑤
-                for a in 1:3, b in 1:3
-                    k[3*I-3+a,3*J-3+b] += 𝐵𝐵*𝐊¹[a,b] + 𝐵𝑁*𝐊²[a,b]
-                end
+    x₁ = ap.𝓒[1]; x₂ = ap.𝓒[2]
+    L = sqrt((x₂.x-x₁.x)^2 + (x₂.y-x₁.y)^2 + (x₂.z-x₁.z)^2)
+    # W₁₁_IJ = ∫ N_{I,x} N_{J,x} dx，W₁₀_IJ = ∫ N_{I,x} N_J dx
+    W₁₁ = [ 1.0/L -1.0/L;
+          -1.0/L  1.0/L]
+    W₁₀ = [-0.5 -0.5;
+           0.5  0.5]
+    E = ap.E; G = ap.G; A = ap.A
+    Iy = ap.Iy; Iz = ap.Iz
+    k₂ = ap.k₂; k₃ = ap.k₃
+    # Kᵘᵠ = W₁₁·𝐊¹ + W₁₀·𝐊²
+    𝐊¹ = 𝐑ᵀ𝐊𝐑([0.0      E*Iy   -E*Iz;
+               -G*Iy      0.0     0.0;
+                G*Iz      0.0     0.0],𝐑)
+    𝐊² = 𝐑ᵀ𝐊𝐑([   0.0      0.0       0.0;
+                   0.0      0.0   -k₂*G*A;
+                   0.0   k₃*G*A       0.0],𝐑)
+    for i in 1:2
+        I = ap.𝓒[i].𝐼
+        for j in 1:2
+            J = ap.𝓒[j].𝐼
+            for a in 1:3, b in 1:3
+                k[3*I-3+a,3*J-3+b] += W₁₁[i,j]*𝐊¹[a,b] + W₁₀[i,j]*𝐊²[a,b]
             end
         end
     end
@@ -147,34 +158,29 @@ function ∫εᵠNᵘdΩ(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElem
 end
 
 function 𝐊ᵠᵘ!(ap::T,k::AbstractMatrix{Float64},𝐑::AbstractMatrix{Float64}) where T<:AbstractElement
-    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    for ξ in 𝓖
-        B = ξ[:∂𝝭∂x]
-        N = ξ[:𝝭]
-        𝑤 = ξ.𝑤
-        E = ξ.E
-        G = ξ.G
-        A = ξ.A
-        Iy = ξ.Iy
-        Iz = ξ.Iz
-        k₂ = ξ.k₂
-        k₃ = ξ.k₃
-        # Kᵠᵘ = BB·𝐊¹ᵀ + NB·𝐊²ᵀ
-        𝐊¹ = 𝐑ᵀ𝐊𝐑([0.0    E*Iy   -E*Iz;
-                  -G*Iy     0.0     0.0;
-                   G*Iz     0.0     0.0],𝐑)
-        𝐊² = 𝐑ᵀ𝐊𝐑([   0.0      0.0       0.0;
-                       0.0      0.0   -k₂*G*A;
-                       0.0   k₃*G*A       0.0],𝐑)
-        for (i,xᵢ) in enumerate(𝓒)
-            I = xᵢ.𝐼
-            for (j,xⱼ) in enumerate(𝓒)
-                J = xⱼ.𝐼
-                𝐵𝐵 = B[i]*B[j]*𝑤
-                𝑁𝐵 = N[i]*B[j]*𝑤
-                for a in 1:3, b in 1:3
-                    k[3*I-3+a,3*J-3+b] += 𝐵𝐵*𝐊¹[b,a] + 𝑁𝐵*𝐊²[b,a]
-                end
+    x₁ = ap.𝓒[1]; x₂ = ap.𝓒[2]
+    L = sqrt((x₂.x-x₁.x)^2 + (x₂.y-x₁.y)^2 + (x₂.z-x₁.z)^2)
+    # W₁₁_IJ = ∫ N_{I,x} N_{J,x} dx，W₀₁_IJ = ∫ N_I N_{J,x} dx
+    W₁₁ = [ 1.0/L -1.0/L;
+          -1.0/L  1.0/L]
+    W₀₁ = [-0.5  0.5;
+          -0.5  0.5]
+    E = ap.E; G = ap.G; A = ap.A
+    Iy = ap.Iy; Iz = ap.Iz
+    k₂ = ap.k₂; k₃ = ap.k₃
+    # Kᵠᵘ = W₁₁·𝐊¹ᵀ + W₀₁·𝐊²ᵀ
+    𝐊¹ = 𝐑ᵀ𝐊𝐑([0.0      E*Iy   -E*Iz;
+               -G*Iy      0.0     0.0;
+                G*Iz      0.0     0.0],𝐑)
+    𝐊² = 𝐑ᵀ𝐊𝐑([   0.0      0.0       0.0;
+                   0.0      0.0   -k₂*G*A;
+                   0.0   k₃*G*A       0.0],𝐑)
+    for i in 1:2
+        I = ap.𝓒[i].𝐼
+        for j in 1:2
+            J = ap.𝓒[j].𝐼
+            for a in 1:3, b in 1:3
+                k[3*I-3+a,3*J-3+b] += W₁₁[i,j]*𝐊¹[b,a] + W₀₁[i,j]*𝐊²[b,a]
             end
         end
     end
@@ -186,46 +192,42 @@ function ∫εᵠNᵠdΩ(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElem
 end
 
 function 𝐊ᵠᵠ!(ap::T,k::AbstractMatrix{Float64},𝐑::AbstractMatrix{Float64}) where T<:AbstractElement
-    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    for ξ in 𝓖
-        B = ξ[:∂𝝭∂x]
-        N = ξ[:𝝭]
-        𝑤 = ξ.𝑤
-        E = ξ.E
-        G = ξ.G
-        A = ξ.A
-        Iy = ξ.Iy
-        Iz = ξ.Iz
-        Iyy = ξ.Iyy
-        Izz = ξ.Izz
-        Iyz = ξ.Iyz
-        k₂ = ξ.k₂
-        k₃ = ξ.k₃
-        # Kᵠᵠ = BB·𝐊¹ + BN·𝐊² + NB·𝐊²ᵀ + NN·𝐊³
-        #   𝐊¹：扭转 G(Iyy+Izz) 与弯曲 EIyy、EIzz、EIyz
-        #   𝐊²：扭转-弯曲翘曲耦合 GIz、GIy
-        #   𝐊³：剪切柔度 k₃GA(φ₂)、k₂GA(φ₃)
-        𝐊¹ = 𝐑ᵀ𝐊𝐑([G*(Iyy+Izz)     0.0       0.0;
-                        0.0       E*Iyy    -E*Iyz;
-                        0.0      -E*Iyz     E*Izz],𝐑)
-        𝐊² = 𝐑ᵀ𝐊𝐑([0.0   G*Iz   G*Iy;
-                    0.0    0.0    0.0;
-                    0.0    0.0    0.0],𝐑)
-        𝐊³ = 𝐑ᵀ𝐊𝐑([   0.0       0.0       0.0;
-                       0.0    k₃*G*A      0.0;
-                       0.0       0.0    k₂*G*A],𝐑)
-        for (i,xᵢ) in enumerate(𝓒)
-            I = xᵢ.𝐼
-            for (j,xⱼ) in enumerate(𝓒)
-                J = xⱼ.𝐼
-                𝐵𝐵 = B[i]*B[j]*𝑤
-                𝐵𝑁 = B[i]*N[j]*𝑤
-                𝑁𝐵 = N[i]*B[j]*𝑤
-                𝑁𝑁 = N[i]*N[j]*𝑤
-                for a in 1:3, b in 1:3
-                    k[3*I-3+a,3*J-3+b] += 𝐵𝐵*𝐊¹[a,b] + 𝐵𝑁*𝐊²[a,b] +
-                                          𝑁𝐵*𝐊²[b,a] + 𝑁𝑁*𝐊³[a,b]
-                end
+    x₁ = ap.𝓒[1]; x₂ = ap.𝓒[2]
+    L = sqrt((x₂.x-x₁.x)^2 + (x₂.y-x₁.y)^2 + (x₂.z-x₁.z)^2)
+    # W₁₁_IJ = ∫ N_{I,x} N_{J,x} dx，W₁₀_IJ = ∫ N_{I,x} N_J dx
+    # W₀₁_IJ = ∫ N_I N_{J,x} dx，W₀₀_IJ = ∫ N_I N_J dx（中点减缩积分）
+    W₁₁ = [ 1.0/L -1.0/L;
+          -1.0/L  1.0/L]
+    W₁₀ = [-0.5 -0.5;
+           0.5  0.5]
+    W₀₁ = [-0.5  0.5;
+          -0.5  0.5]
+    W₀₀ = [L/4 L/4;
+         L/4 L/4]
+    E = ap.E; G = ap.G; A = ap.A
+    Iy = ap.Iy; Iz = ap.Iz
+    Iyy = ap.Iyy; Izz = ap.Izz; Iyz = ap.Iyz
+    k₂ = ap.k₂; k₃ = ap.k₃
+    # Kᵠᵠ = W₁₁·𝐊¹ + W₁₀·𝐊² + W₀₁·𝐊²ᵀ + W₀₀·𝐊³
+    #   𝐊¹：扭转 G(Iyy+Izz) 与弯曲 EIyy、EIzz、EIyz
+    #   𝐊²：扭转-弯曲翘曲耦合 GIz、GIy
+    #   𝐊³：剪切柔度 k₃GA(φ₂)、k₂GA(φ₃)
+    𝐊¹ = 𝐑ᵀ𝐊𝐑([G*(Iyy+Izz)     0.0       0.0;
+                    0.0       E*Iyy    -E*Iyz;
+                    0.0      -E*Iyz     E*Izz],𝐑)
+    𝐊² = 𝐑ᵀ𝐊𝐑([0.0   G*Iz   G*Iy;
+                0.0    0.0    0.0;
+                0.0    0.0    0.0],𝐑)
+    𝐊³ = 𝐑ᵀ𝐊𝐑([   0.0       0.0       0.0;
+                   0.0    k₃*G*A      0.0;
+                   0.0       0.0    k₂*G*A],𝐑)
+    for i in 1:2
+        I = ap.𝓒[i].𝐼
+        for j in 1:2
+            J = ap.𝓒[j].𝐼
+            for a in 1:3, b in 1:3
+                k[3*I-3+a,3*J-3+b] += W₁₁[i,j]*𝐊¹[a,b] + W₁₀[i,j]*𝐊²[a,b] +
+                                      W₀₁[i,j]*𝐊²[b,a] + W₀₀[i,j]*𝐊³[a,b]
             end
         end
     end
