@@ -1,3 +1,11 @@
+# Hermite segment (SegHermite), 4 DOFs: (w, w') at the two end nodes.
+#
+# Gradient form. With ξ₁ = ½(1-ξ), ξ₂ = ½(1+ξ) we have dξ₁/dx = -½/𝐽 and
+# dξ₂/dx = +½/𝐽, where 𝐽 = det(∂x/∂ξ) is the arc-length scale of the element.
+#
+# Note: this element stores values and first derivatives as separate DOFs, so
+# its shape-function vector has 4 entries while `𝓒` has 2 nodes. The tests in
+# test/shape_function_consistency.jl only cover C0 elements.
 
 function set𝝭!(::Element{:SegHermite},x::Node)
     𝝭 = x[:𝝭]
@@ -9,7 +17,7 @@ function set𝝭!(::Element{:SegHermite},x::Node)
     𝝭[4] = ξ₁*ξ₂^2
 end
 
-function set∇𝝭!(::Element{:SegHermite},x::Node)
+function set∇𝝭!(ap::Element{:SegHermite},x::Node)
     𝝭 = x[:𝝭]
     ξ₁ = 0.5*(1-x.ξ)
     ξ₂ = 0.5*(1+x.ξ)

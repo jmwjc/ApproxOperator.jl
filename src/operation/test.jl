@@ -3,6 +3,15 @@ module Test
 
 using ..ApproxOperator: AbstractElement
 
+"""
+    cc𝝭(ap::T)
+
+Consistency check of the shape functions: relative L₂ difference between the
+reproduced field `Σᵢ Nᵢ dᵢ` and the prescribed `ξ.u`.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.u`, `ξ.𝑤`.
+"""
 function cc𝝭(ap::T) where T<:AbstractElement
     Δu²= 0
     ū² = 0
@@ -28,6 +37,15 @@ function cc𝝭(ap::T) where T<:AbstractElement
     return Δu², ū²
 end
 
+"""
+    cc𝝭(aps::Vector{T})
+
+Consistency check of the shape functions: relative L₂ difference between the
+reproduced field `Σᵢ Nᵢ dᵢ` and the prescribed `ξ.u`.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.u`, `ξ.𝑤`.
+"""
 function cc𝝭(aps::Vector{T}) where T<:AbstractElement
     L₂Norm_Δu²= 0.
     L₂Norm_ū² = 0.
@@ -39,6 +57,18 @@ function cc𝝭(aps::Vector{T}) where T<:AbstractElement
     return (L₂Norm_Δu²/L₂Norm_ū²)^0.5
 end
 
+"""
+    cc∇𝝭(ap::T)
+
+Consistency check of the shape-function gradients: relative L₂ difference
+between the reproduced `∇u` and the prescribed `ξ.∂u∂x`.
+
+
+    ‖∇uʰ - ∇ū‖_L₂ / ‖∇ū‖_L₂,   ∇uʰ = Σᵢ ∇Nᵢ dᵢ
+
+# Element requirements
+`set∇𝝭!` — reads gradients, `ξ.∂u∂x`, `ξ.∂u∂y`, `ξ.𝑤`.
+"""
 function cc∇𝝭(ap::T) where T<:AbstractElement
     Δ∇u²= 0
     ∇ū² = 0
@@ -60,6 +90,18 @@ function cc∇𝝭(ap::T) where T<:AbstractElement
     return Δ∇u², ∇ū²
 end
 
+"""
+    cc∇𝝭(aps::Vector{T})
+
+Consistency check of the shape-function gradients: relative L₂ difference
+between the reproduced `∇u` and the prescribed `ξ.∂u∂x`.
+
+
+    Element-set overload of `cc∇𝝭(ap)`, summed over the elements.
+
+# Element requirements
+`set∇𝝭!` — reads gradients, `ξ.∂u∂x`, `ξ.∂u∂y`, `ξ.𝑤`.
+"""
 function cc∇𝝭(aps::Vector{T}) where T<:AbstractElement
     H₁Norm_Δu²= 0.
     H₁Norm_ū² = 0.

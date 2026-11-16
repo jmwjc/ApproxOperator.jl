@@ -1,15 +1,30 @@
 module KirchhoffShell
-    
+
 using ..ApproxOperator: AbstractElement
 
-function ∫εᵢⱼNᵢⱼκᵢⱼMᵢⱼdΩ(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
+"""
+    ∫εᵢⱼNᵢⱼκᵢⱼMᵢⱼdΩ(ap::T;k::AbstractMatrix{Float64}, E, ν, h)
+
+Kirchhoff shell stiffness, membrane plus bending,
+`∫ (εᵢⱼNᵢⱼ + κᵢⱼMᵢⱼ) dΩ`.
+
+The shell metric `a¹¹, a¹², a²²` and the Christoffel symbols come from the
+surface parameterisation and are read from the quadrature point, so this works
+on curved surfaces without a flat projection.
+
+# Keyword arguments
+Material constants are keywords where the operator needs them; see the
+signature above.
+
+# Element requirements
+`set∇²𝝭!` — reads `ξ[:𝝭]`, the first and second derivatives, the metric data
+`ξ.a¹¹`, `ξ.a¹²`, `ξ.a²²`, `ξ.Γ¹₁₁`, ... and `ξ.𝑤`.
+"""
+function ∫εᵢⱼNᵢⱼκᵢⱼMᵢⱼdΩ(ap::T, k::AbstractMatrix{Float64}; E::Real, ν::Real, h::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E = op.E
-    ν = op.ν
-    h = op.h
-    Dᵐ = E*h/(1-ν^2)
-    Dᵇ = E*h^3/12/(1-ν^2)
     for ξ in 𝓖
+        Dᵐ = E*h/(1-ν^2)
+        Dᵇ = E*h^3/12/(1-ν^2)
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
         B₁₁ = ξ[:∂²𝝭∂x²]
@@ -35,30 +50,30 @@ function ∫εᵢⱼNᵢⱼκᵢⱼMᵢⱼdΩ(ap::T;k::AbstractMatrix{Float64}) 
         Γ²₂₂ = ξ.Γ²₂₂
         Γ²₁₂ = ξ.Γ²₁₂
         𝐃 = [                  a¹¹*a¹¹ ν*a¹¹*a²² + (1-ν)*a¹²*a¹²                            a¹¹*a¹²;
-                     ν*a¹¹*a²² + (1-ν)*a¹²*a¹²                   a²²*a²²                            a²²*a¹²;
-                                       a¹¹*a¹²                   a²²*a¹² 0.5*((1-ν)*a¹¹*a²² + (1+ν)*a¹²*a¹²)]
+        ν*a¹¹*a²² + (1-ν)*a¹²*a¹²                   a²²*a²²                            a²²*a¹²;
+        a¹¹*a¹²                   a²²*a¹² 0.5*((1-ν)*a¹¹*a²² + (1+ν)*a¹²*a¹²)]
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
             𝐁ᵐᵢ = [          𝒂₁₍₁₎*B₁[i]           𝒂₁₍₂₎*B₁[i]           𝒂₁₍₃₎*B₁[i];
-                                     𝒂₂₍₁₎*B₂[i]           𝒂₂₍₂₎*B₂[i]           𝒂₂₍₃₎*B₂[i];
-                           𝒂₁₍₁₎*B₂[i]+𝒂₂₍₁₎*B₁[i] 𝒂₁₍₂₎*B₂[i]+𝒂₂₍₂₎*B₁[i] 𝒂₁₍₃₎*B₂[i]+𝒂₂₍₃₎*B₁[i]]
+            𝒂₂₍₁₎*B₂[i]           𝒂₂₍₂₎*B₂[i]           𝒂₂₍₃₎*B₂[i];
+            𝒂₁₍₁₎*B₂[i]+𝒂₂₍₁₎*B₁[i] 𝒂₁₍₂₎*B₂[i]+𝒂₂₍₂₎*B₁[i] 𝒂₁₍₃₎*B₂[i]+𝒂₂₍₃₎*B₁[i]]
             Bᵇ₁₁ = Γ¹₁₁*B₁[i]+Γ²₁₁*B₂[i]-B₁₁[i]
             Bᵇ₂₂ = Γ¹₂₂*B₁[i]+Γ²₂₂*B₂[i]-B₂₂[i]
             Bᵇ₁₂ = Γ¹₁₂*B₁[i]+Γ²₁₂*B₂[i]-B₁₂[i]
             𝐁ᵇᵢ = [  Bᵇ₁₁*𝒂₃₍₁₎   Bᵇ₁₁*𝒂₃₍₂₎   Bᵇ₁₁*𝒂₃₍₃₎;
-                             Bᵇ₂₂*𝒂₃₍₁₎   Bᵇ₂₂*𝒂₃₍₂₎   Bᵇ₂₂*𝒂₃₍₃₎;
-                           2*Bᵇ₁₂*𝒂₃₍₁₎ 2*Bᵇ₁₂*𝒂₃₍₂₎ 2*Bᵇ₁₂*𝒂₃₍₃₎]
+            Bᵇ₂₂*𝒂₃₍₁₎   Bᵇ₂₂*𝒂₃₍₂₎   Bᵇ₂₂*𝒂₃₍₃₎;
+            2*Bᵇ₁₂*𝒂₃₍₁₎ 2*Bᵇ₁₂*𝒂₃₍₂₎ 2*Bᵇ₁₂*𝒂₃₍₃₎]
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
                 𝐁ᵐⱼ = [          𝒂₁₍₁₎*B₁[j]           𝒂₁₍₂₎*B₁[j]           𝒂₁₍₃₎*B₁[j];
-                                         𝒂₂₍₁₎*B₂[j]           𝒂₂₍₂₎*B₂[j]           𝒂₂₍₃₎*B₂[j];
-                               𝒂₁₍₁₎*B₂[j]+𝒂₂₍₁₎*B₁[j] 𝒂₁₍₂₎*B₂[j]+𝒂₂₍₂₎*B₁[j] 𝒂₁₍₃₎*B₂[j]+𝒂₂₍₃₎*B₁[j]]
+                𝒂₂₍₁₎*B₂[j]           𝒂₂₍₂₎*B₂[j]           𝒂₂₍₃₎*B₂[j];
+                𝒂₁₍₁₎*B₂[j]+𝒂₂₍₁₎*B₁[j] 𝒂₁₍₂₎*B₂[j]+𝒂₂₍₂₎*B₁[j] 𝒂₁₍₃₎*B₂[j]+𝒂₂₍₃₎*B₁[j]]
                 Bᵇ₁₁ = Γ¹₁₁*B₁[j]+Γ²₁₁*B₂[j]-B₁₁[j]
                 Bᵇ₂₂ = Γ¹₂₂*B₁[j]+Γ²₂₂*B₂[j]-B₂₂[j]
                 Bᵇ₁₂ = Γ¹₁₂*B₁[j]+Γ²₁₂*B₂[j]-B₁₂[j]
                 𝐁ᵇⱼ = [  Bᵇ₁₁*𝒂₃₍₁₎   Bᵇ₁₁*𝒂₃₍₂₎   Bᵇ₁₁*𝒂₃₍₃₎;
-                                 Bᵇ₂₂*𝒂₃₍₁₎   Bᵇ₂₂*𝒂₃₍₂₎   Bᵇ₂₂*𝒂₃₍₃₎;
-                               2*Bᵇ₁₂*𝒂₃₍₁₎ 2*Bᵇ₁₂*𝒂₃₍₂₎ 2*Bᵇ₁₂*𝒂₃₍₃₎]
+                Bᵇ₂₂*𝒂₃₍₁₎   Bᵇ₂₂*𝒂₃₍₂₎   Bᵇ₂₂*𝒂₃₍₃₎;
+                2*Bᵇ₁₂*𝒂₃₍₁₎ 2*Bᵇ₁₂*𝒂₃₍₂₎ 2*Bᵇ₁₂*𝒂₃₍₃₎]
 
                 kᵐ = Dᵐ*𝐁ᵐᵢ'*𝐃*𝐁ᵐⱼ
                 kᵇ = Dᵇ*𝐁ᵇᵢ'*𝐃*𝐁ᵇⱼ
@@ -76,13 +91,23 @@ function ∫εᵢⱼNᵢⱼκᵢⱼMᵢⱼdΩ(ap::T;k::AbstractMatrix{Float64}) 
     end
 end
 
-function ∫εᵢⱼNᵢⱼdΩ(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
+"""
+    ∫εᵢⱼNᵢⱼdΩ(ap::T;k::AbstractMatrix{Float64}, E, ν, h)
+
+Membrane (stretching) part of the Kirchhoff shell,
+`∫ εᵢⱼ(u) Nᵢⱼ(v) dΩ` with `N = Dᵐ C ε`, `Dᵐ = Eh/(1-ν²)`.
+
+# Keyword arguments
+Material constants are keywords where the operator needs them; see the
+signature above.
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:𝝭]`, the first derivatives and the surface metric.
+"""
+function ∫εᵢⱼNᵢⱼdΩ(ap::T, k::AbstractMatrix{Float64}; E::Real, ν::Real, h::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E = op.E
-    ν = op.ν
-    h = op.h
-    Dᵐ = E*h/(1-ν^2)
     for ξ in 𝓖
+        Dᵐ = E*h/(1-ν^2)
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
         𝑤 = ξ.𝑤
@@ -99,18 +124,18 @@ function ∫εᵢⱼNᵢⱼdΩ(ap::T;k::AbstractMatrix{Float64}) where T<:Abstra
         𝒂₃₍₂₎ = ξ.𝒂₃₍₂₎
         𝒂₃₍₃₎ = ξ.𝒂₃₍₃₎
         𝐃 = [                  a¹¹*a¹¹ ν*a¹¹*a²² + (1-ν)*a¹²*a¹²                            a¹¹*a¹²;
-                     ν*a¹¹*a²² + (1-ν)*a¹²*a¹²                   a²²*a²²                            a²²*a¹²;
-                                       a¹¹*a¹²                   a²²*a¹² 0.5*((1-ν)*a¹¹*a²² + (1+ν)*a¹²*a¹²)]
+        ν*a¹¹*a²² + (1-ν)*a¹²*a¹²                   a²²*a²²                            a²²*a¹²;
+        a¹¹*a¹²                   a²²*a¹² 0.5*((1-ν)*a¹¹*a²² + (1+ν)*a¹²*a¹²)]
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
             𝐁ᵐᵢ = [          𝒂₁₍₁₎*B₁[i]           𝒂₁₍₂₎*B₁[i]           𝒂₁₍₃₎*B₁[i];
-                                     𝒂₂₍₁₎*B₂[i]           𝒂₂₍₂₎*B₂[i]           𝒂₂₍₃₎*B₂[i];
-                           𝒂₁₍₁₎*B₂[i]+𝒂₂₍₁₎*B₁[i] 𝒂₁₍₂₎*B₂[i]+𝒂₂₍₂₎*B₁[i] 𝒂₁₍₃₎*B₂[i]+𝒂₂₍₃₎*B₁[i]]
+            𝒂₂₍₁₎*B₂[i]           𝒂₂₍₂₎*B₂[i]           𝒂₂₍₃₎*B₂[i];
+            𝒂₁₍₁₎*B₂[i]+𝒂₂₍₁₎*B₁[i] 𝒂₁₍₂₎*B₂[i]+𝒂₂₍₂₎*B₁[i] 𝒂₁₍₃₎*B₂[i]+𝒂₂₍₃₎*B₁[i]]
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
                 𝐁ᵐⱼ = [          𝒂₁₍₁₎*B₁[j]           𝒂₁₍₂₎*B₁[j]           𝒂₁₍₃₎*B₁[j];
-                                         𝒂₂₍₁₎*B₂[j]           𝒂₂₍₂₎*B₂[j]           𝒂₂₍₃₎*B₂[j];
-                               𝒂₁₍₁₎*B₂[j]+𝒂₂₍₁₎*B₁[j] 𝒂₁₍₂₎*B₂[j]+𝒂₂₍₂₎*B₁[j] 𝒂₁₍₃₎*B₂[j]+𝒂₂₍₃₎*B₁[j]]
+                𝒂₂₍₁₎*B₂[j]           𝒂₂₍₂₎*B₂[j]           𝒂₂₍₃₎*B₂[j];
+                𝒂₁₍₁₎*B₂[j]+𝒂₂₍₁₎*B₁[j] 𝒂₁₍₂₎*B₂[j]+𝒂₂₍₂₎*B₁[j] 𝒂₁₍₃₎*B₂[j]+𝒂₂₍₃₎*B₁[j]]
 
                 kᵐ = Dᵐ*𝐁ᵐᵢ'*𝐃*𝐁ᵐⱼ
                 k[3*I-2,3*J-2] += kᵐ[1,1]*𝑤
@@ -127,13 +152,23 @@ function ∫εᵢⱼNᵢⱼdΩ(ap::T;k::AbstractMatrix{Float64}) where T<:Abstra
     end
 end
 
-function ∫κᵢⱼMᵢⱼdΩ(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
+"""
+    ∫κᵢⱼMᵢⱼdΩ(ap::T;k::AbstractMatrix{Float64}, E, ν, h)
+
+Bending part of the Kirchhoff shell,
+`∫ κᵢⱼ(θ) Mᵢⱼ(θ̄) dΩ` with `M = Dᵇ C κ`, `Dᵇ = Eh³/(12(1-ν²))`.
+
+# Keyword arguments
+Material constants are keywords where the operator needs them; see the
+signature above.
+
+# Element requirements
+`set∇²𝝭!` — reads the second derivatives and the surface metric.
+"""
+function ∫κᵢⱼMᵢⱼdΩ(ap::T, k::AbstractMatrix{Float64}; E::Real, ν::Real, h::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E = op.E
-    ν = op.ν
-    h = op.h
-    Dᵇ = E*h^3/12/(1-ν^2)
     for ξ in 𝓖
+        Dᵇ = E*h^3/12/(1-ν^2)
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
         B₁₁ = ξ[:∂²𝝭∂x²]
@@ -159,24 +194,24 @@ function ∫κᵢⱼMᵢⱼdΩ(ap::T;k::AbstractMatrix{Float64}) where T<:Abstra
         Γ²₂₂ = ξ.Γ²₂₂
         Γ²₁₂ = ξ.Γ²₁₂
         𝐃 = [                  a¹¹*a¹¹ ν*a¹¹*a²² + (1-ν)*a¹²*a¹²                            a¹¹*a¹²;
-                     ν*a¹¹*a²² + (1-ν)*a¹²*a¹²                   a²²*a²²                            a²²*a¹²;
-                                       a¹¹*a¹²                   a²²*a¹² 0.5*((1-ν)*a¹¹*a²² + (1+ν)*a¹²*a¹²)]
+        ν*a¹¹*a²² + (1-ν)*a¹²*a¹²                   a²²*a²²                            a²²*a¹²;
+        a¹¹*a¹²                   a²²*a¹² 0.5*((1-ν)*a¹¹*a²² + (1+ν)*a¹²*a¹²)]
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
             Bᵇ₁₁ = Γ¹₁₁*B₁[i]+Γ²₁₁*B₂[i]-B₁₁[i]
             Bᵇ₂₂ = Γ¹₂₂*B₁[i]+Γ²₂₂*B₂[i]-B₂₂[i]
             Bᵇ₁₂ = Γ¹₁₂*B₁[i]+Γ²₁₂*B₂[i]-B₁₂[i]
             𝐁ᵇᵢ = [  Bᵇ₁₁*𝒂₃₍₁₎   Bᵇ₁₁*𝒂₃₍₂₎   Bᵇ₁₁*𝒂₃₍₃₎;
-                             Bᵇ₂₂*𝒂₃₍₁₎   Bᵇ₂₂*𝒂₃₍₂₎   Bᵇ₂₂*𝒂₃₍₃₎;
-                           2*Bᵇ₁₂*𝒂₃₍₁₎ 2*Bᵇ₁₂*𝒂₃₍₂₎ 2*Bᵇ₁₂*𝒂₃₍₃₎]
+            Bᵇ₂₂*𝒂₃₍₁₎   Bᵇ₂₂*𝒂₃₍₂₎   Bᵇ₂₂*𝒂₃₍₃₎;
+            2*Bᵇ₁₂*𝒂₃₍₁₎ 2*Bᵇ₁₂*𝒂₃₍₂₎ 2*Bᵇ₁₂*𝒂₃₍₃₎]
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
                 Bᵇ₁₁ = Γ¹₁₁*B₁[j]+Γ²₁₁*B₂[j]-B₁₁[j]
                 Bᵇ₂₂ = Γ¹₂₂*B₁[j]+Γ²₂₂*B₂[j]-B₂₂[j]
                 Bᵇ₁₂ = Γ¹₁₂*B₁[j]+Γ²₁₂*B₂[j]-B₁₂[j]
                 𝐁ᵇⱼ = [  Bᵇ₁₁*𝒂₃₍₁₎   Bᵇ₁₁*𝒂₃₍₂₎   Bᵇ₁₁*𝒂₃₍₃₎;
-                                 Bᵇ₂₂*𝒂₃₍₁₎   Bᵇ₂₂*𝒂₃₍₂₎   Bᵇ₂₂*𝒂₃₍₃₎;
-                               2*Bᵇ₁₂*𝒂₃₍₁₎ 2*Bᵇ₁₂*𝒂₃₍₂₎ 2*Bᵇ₁₂*𝒂₃₍₃₎]
+                Bᵇ₂₂*𝒂₃₍₁₎   Bᵇ₂₂*𝒂₃₍₂₎   Bᵇ₂₂*𝒂₃₍₃₎;
+                2*Bᵇ₁₂*𝒂₃₍₁₎ 2*Bᵇ₁₂*𝒂₃₍₂₎ 2*Bᵇ₁₂*𝒂₃₍₃₎]
 
                 kᵇ = Dᵇ*𝐁ᵇᵢ'*𝐃*𝐁ᵇⱼ
                 k[3*I-2,3*J-2] += kᵇ[1,1]*𝑤
@@ -193,9 +228,20 @@ function ∫κᵢⱼMᵢⱼdΩ(ap::T;k::AbstractMatrix{Float64}) where T<:Abstra
     end
 end
 
-function ∫δθθdΓ(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+"""
+    ∫δθθdΓ(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}, E, ν, h)
+
+Boundary term coupling the rotation trace, `∫ δθ θ dΓ`.
+
+# Keyword arguments
+Material constants are keywords where the operator needs them; see the
+signature above.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.g`, `ξ.𝑤`.
+"""
+function ∫δθθdΓ(ap::T, k::AbstractMatrix{Float64}, f::AbstractVector{Float64}; E::Real, ν::Real, h::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    α = op.α
     for ξ in 𝓖
         𝑤 = ξ.𝑤
         B₁ = ξ[:∂𝝭∂x]
@@ -229,13 +275,22 @@ function ∫δθθdΓ(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64
     end
 end
 
-function ∫δεCεdΩ(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
+"""
+    ∫δεCεdΩ(ap::T;k::AbstractMatrix{Float64}, E, ν, h)
+
+Membrane energy in strain form, `∫ δε : C ε dΩ`.
+
+# Keyword arguments
+Material constants are keywords where the operator needs them; see the
+signature above.
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:𝝭]`, the first derivatives and the surface metric.
+"""
+function ∫δεCεdΩ(ap::T, k::AbstractMatrix{Float64}; E::Real, ν::Real, h::Real) where T<:AbstractElement
     𝓒 = ap.𝓒;𝓖 = ap.𝓖
-    E = op.E
-    ν = op.ν
-    h = op.h
-    Dᵐ = E*h
     for ξ in 𝓖
+        Dᵐ = E*h
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
         a¹¹ = ξ.a¹¹
@@ -249,19 +304,19 @@ function ∫δεCεdΩ(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElemen
         𝒂₂₍₃₎ = ξ.𝒂₂₍₃₎
 
         𝐃 = [                  a¹¹*a¹¹ ν*a¹¹*a²² + (1-ν)*a¹²*a¹²                            a¹¹*a¹²;
-                     ν*a¹¹*a²² + (1-ν)*a¹²*a¹²                   a²²*a²²                            a²²*a¹²;
-                                       a¹¹*a¹²                   a²²*a¹² 0.5*((1-ν)*a¹¹*a²² + (1+ν)*a¹²*a¹²)]
+        ν*a¹¹*a²² + (1-ν)*a¹²*a¹²                   a²²*a²²                            a²²*a¹²;
+        a¹¹*a¹²                   a²²*a¹² 0.5*((1-ν)*a¹¹*a²² + (1+ν)*a¹²*a¹²)]
 
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
             𝐁ᵐᵢ = [𝒂₁₍₁₎*N[i] 𝒂₁₍₂₎*N[i] 𝒂₁₍₃₎*N[i]        0.0       0.0         0.0;
-                                  0.0        0.0        0.0 𝒂₂₍₁₎*N[i] 𝒂₂₍₂₎*N[i] 𝒂₂₍₃₎*N[i];
-                           𝒂₂₍₁₎*N[i] 𝒂₂₍₂₎*N[i] 𝒂₂₍₃₎*N[i] 𝒂₁₍₁₎*N[i] 𝒂₁₍₂₎*N[i] 𝒂₁₍₃₎*N[i]]
+            0.0        0.0        0.0 𝒂₂₍₁₎*N[i] 𝒂₂₍₂₎*N[i] 𝒂₂₍₃₎*N[i];
+            𝒂₂₍₁₎*N[i] 𝒂₂₍₂₎*N[i] 𝒂₂₍₃₎*N[i] 𝒂₁₍₁₎*N[i] 𝒂₁₍₂₎*N[i] 𝒂₁₍₃₎*N[i]]
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
                 𝐁ᵐⱼ = [𝒂₁₍₁₎*N[j] 𝒂₁₍₂₎*N[j] 𝒂₁₍₃₎*N[j]        0.0       0.0         0.0;
-                                      0.0        0.0        0.0 𝒂₂₍₁₎*N[j] 𝒂₂₍₂₎*N[j] 𝒂₂₍₃₎*N[j];
-                               𝒂₂₍₁₎*N[j] 𝒂₂₍₂₎*N[j] 𝒂₂₍₃₎*N[j] 𝒂₁₍₁₎*N[j] 𝒂₁₍₂₎*N[j] 𝒂₁₍₃₎*N[j]]
+                0.0        0.0        0.0 𝒂₂₍₁₎*N[j] 𝒂₂₍₂₎*N[j] 𝒂₂₍₃₎*N[j];
+                𝒂₂₍₁₎*N[j] 𝒂₂₍₂₎*N[j] 𝒂₂₍₃₎*N[j] 𝒂₁₍₁₎*N[j] 𝒂₁₍₂₎*N[j] 𝒂₁₍₃₎*N[j]]
                 kᵐ = Dᵐ*𝐁ᵐᵢ'*𝐃*𝐁ᵐⱼ
                 k[6*I-5,6*J-5] -= kᵐ[1,1]*𝑤
                 k[6*I-4,6*J-5] -= kᵐ[2,1]*𝑤
@@ -304,7 +359,20 @@ function ∫δεCεdΩ(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElemen
     end
 end
 
-function ∫δNεdΩ(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
+"""
+    ∫δNεdΩ(ap::T;k::AbstractMatrix{Float64}, E, ν, h)
+
+Membrane coupling `∫ δN : ε dΩ`, the stress–strain dual of
+[`∫δεCεdΩ`](@ref).
+
+# Keyword arguments
+Material constants are keywords where the operator needs them; see the
+signature above.
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:𝝭]`, the first derivatives and the surface metric.
+"""
+function ∫δNεdΩ(ap::T, k::AbstractMatrix{Float64}; E::Real, ν::Real, h::Real) where T<:AbstractElement
     𝓒 = ap.𝓒;𝓖 = ap.𝓖
     for ξ in 𝓖
         𝑤 = ξ.𝑤
@@ -324,13 +392,22 @@ function ∫δNεdΩ(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
     end
 end
 
-function ∫δκCκdΩ(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
+"""
+    ∫δκCκdΩ(ap::T;k::AbstractMatrix{Float64}, E, ν, h)
+
+Bending energy in curvature form, `∫ δκ : C κ dΩ`.
+
+# Keyword arguments
+Material constants are keywords where the operator needs them; see the
+signature above.
+
+# Element requirements
+`set∇²𝝭!` — reads the second derivatives and the surface metric.
+"""
+function ∫δκCκdΩ(ap::T, k::AbstractMatrix{Float64}; E::Real, ν::Real, h::Real) where T<:AbstractElement
     𝓒 = ap.𝓒;𝓖 = ap.𝓖
-    E = op.E
-    ν = op.ν
-    h = op.h
-    Dᵇ = E*h^3/12
     for ξ in 𝓖
+        Dᵇ = E*h^3/12
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
         a¹¹ = ξ.a¹¹
@@ -347,19 +424,19 @@ function ∫δκCκdΩ(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElemen
         𝒂₃₍₃₎ = ξ.𝒂₃₍₃₎
 
         𝐃 = [                  a¹¹*a¹¹ ν*a¹¹*a²² + (1-ν)*a¹²*a¹²                            a¹¹*a¹²;
-                     ν*a¹¹*a²² + (1-ν)*a¹²*a¹²                   a²²*a²²                            a²²*a¹²;
-                                       a¹¹*a¹²                   a²²*a¹² 0.5*((1-ν)*a¹¹*a²² + (1+ν)*a¹²*a¹²)]
+        ν*a¹¹*a²² + (1-ν)*a¹²*a¹²                   a²²*a²²                            a²²*a¹²;
+        a¹¹*a¹²                   a²²*a¹² 0.5*((1-ν)*a¹¹*a²² + (1+ν)*a¹²*a¹²)]
 
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
             𝐁ᵇᵢ = [𝒂₃₍₁₎*N[i] 𝒂₃₍₂₎*N[i] 𝒂₃₍₃₎*N[i] 0.0 0.0 0.0 0.0 0.0 0.0;
-                           0.0 0.0 0.0 𝒂₃₍₁₎*N[i] 𝒂₃₍₂₎*N[i] 𝒂₃₍₃₎*N[i] 0.0 0.0 0.0;
-                           0.0 0.0 0.0 0.0 0.0 0.0 𝒂₃₍₁₎*N[i] 𝒂₃₍₂₎*N[i] 𝒂₃₍₃₎*N[i]]
+            0.0 0.0 0.0 𝒂₃₍₁₎*N[i] 𝒂₃₍₂₎*N[i] 𝒂₃₍₃₎*N[i] 0.0 0.0 0.0;
+            0.0 0.0 0.0 0.0 0.0 0.0 𝒂₃₍₁₎*N[i] 𝒂₃₍₂₎*N[i] 𝒂₃₍₃₎*N[i]]
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
                 𝐁ᵇⱼ = [𝒂₃₍₁₎*N[j] 𝒂₃₍₂₎*N[j] 𝒂₃₍₃₎*N[j] 0.0 0.0 0.0 0.0 0.0 0.0;
-                               0.0 0.0 0.0 𝒂₃₍₁₎*N[j] 𝒂₃₍₂₎*N[j] 𝒂₃₍₃₎*N[j] 0.0 0.0 0.0;
-                               0.0 0.0 0.0 0.0 0.0 0.0 𝒂₃₍₁₎*N[j] 𝒂₃₍₂₎*N[j] 𝒂₃₍₃₎*N[j]]
+                0.0 0.0 0.0 𝒂₃₍₁₎*N[j] 𝒂₃₍₂₎*N[j] 𝒂₃₍₃₎*N[j] 0.0 0.0 0.0;
+                0.0 0.0 0.0 0.0 0.0 0.0 𝒂₃₍₁₎*N[j] 𝒂₃₍₂₎*N[j] 𝒂₃₍₃₎*N[j]]
 
                 kᵇ = Dᵇ*𝐁ᵇᵢ'*𝐃*𝐁ᵇⱼ
                 k[9*I-8,9*J-8] -= kᵇ[1,1]*𝑤
@@ -448,7 +525,19 @@ function ∫δκCκdΩ(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElemen
     end
 end
 
-function ∫δMκdΩ(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
+"""
+    ∫δMκdΩ(ap::T;k::AbstractMatrix{Float64}, E, ν, h)
+
+Bending coupling `∫ δM : κ dΩ`.
+
+# Keyword arguments
+Material constants are keywords where the operator needs them; see the
+signature above.
+
+# Element requirements
+`set∇²𝝭!` — reads the second derivatives and the surface metric.
+"""
+function ∫δMκdΩ(ap::T, k::AbstractMatrix{Float64}; E::Real, ν::Real, h::Real) where T<:AbstractElement
     𝓒 = ap.𝓒;𝓖 = ap.𝓖
     for ξ in 𝓖
         𝑤 = ξ.𝑤
@@ -471,13 +560,26 @@ function ∫δMκdΩ(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
     end
 end
 
-function ∫𝒏𝑵𝒈dΓ_Nitsche(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+"""
+    ∫𝒏𝑵𝒈dΓ_Nitsche(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}, E, ν, h)
+
+Nitsche weak boundary condition on the shell, `∫ 𝒏·𝑵 𝑔 dΓ`.
+
+The Nitsche variant adds the consistency and penalty terms that make the
+imposition of a Dirichlet condition stable without extra unknowns; the `_HR`
+sibling is the Hellinger–Reissner form of the same term.
+
+# Keyword arguments
+Material constants are keywords where the operator needs them; see the
+signature above.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.n₁`, `ξ.n₂`, `ξ.n₃`, `ξ.g`, `ξ.𝑤`.
+"""
+function ∫𝒏𝑵𝒈dΓ_Nitsche(ap::T, k::AbstractMatrix{Float64}, f::AbstractVector{Float64}; E::Real, ν::Real, h::Real) where T<:AbstractElement
     𝓒 = ap.𝓒;𝓖 = ap.𝓖
-    E = op.E
-    ν = op.ν
-    h = op.h
-    Dᵐ = E*h/(1-ν^2)
     for ξ in 𝓖
+        Dᵐ = E*h/(1-ν^2)
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
         B₁ = ξ[:∂𝝭∂x]
@@ -589,20 +691,33 @@ function ∫𝒏𝑵𝒈dΓ_Nitsche(ap::T;k::AbstractMatrix{Float64},f::Abstract
 
             end
 
-            f[3*I-2] -= ((Bᵢ₍₁₁₎*n₁₁+Bᵢ₍₁₂₎*n₁₂+Bᵢ₍₁₃₎*n₁₃)*g₁ 
-                       + (Bᵢ₍₁₁₎*n₁₂+Bᵢ₍₁₂₎*n₂₂+Bᵢ₍₁₃₎*n₂₃)*g₂
-                       + (Bᵢ₍₁₁₎*n₁₃+Bᵢ₍₁₂₎*n₂₃+Bᵢ₍₁₃₎*n₃₃)*g₃)*𝑤
-            f[3*I-1] -= ((Bᵢ₍₂₁₎*n₁₁+Bᵢ₍₂₂₎*n₁₂+Bᵢ₍₂₃₎*n₁₃)*g₁ 
-                       + (Bᵢ₍₂₁₎*n₁₂+Bᵢ₍₂₂₎*n₂₂+Bᵢ₍₂₃₎*n₂₃)*g₂
-                       + (Bᵢ₍₂₁₎*n₁₃+Bᵢ₍₂₂₎*n₂₃+Bᵢ₍₂₃₎*n₃₃)*g₃)*𝑤
-            f[3*I]   -= ((Bᵢ₍₃₁₎*n₁₁+Bᵢ₍₃₂₎*n₁₂+Bᵢ₍₃₃₎*n₁₃)*g₁ 
-                       + (Bᵢ₍₃₁₎*n₁₂+Bᵢ₍₃₂₎*n₂₂+Bᵢ₍₃₃₎*n₂₃)*g₂
-                       + (Bᵢ₍₃₁₎*n₁₃+Bᵢ₍₃₂₎*n₂₃+Bᵢ₍₃₃₎*n₃₃)*g₃)*𝑤
+            f[3*I-2] -= ((Bᵢ₍₁₁₎*n₁₁+Bᵢ₍₁₂₎*n₁₂+Bᵢ₍₁₃₎*n₁₃)*g₁
+            + (Bᵢ₍₁₁₎*n₁₂+Bᵢ₍₁₂₎*n₂₂+Bᵢ₍₁₃₎*n₂₃)*g₂
+            + (Bᵢ₍₁₁₎*n₁₃+Bᵢ₍₁₂₎*n₂₃+Bᵢ₍₁₃₎*n₃₃)*g₃)*𝑤
+            f[3*I-1] -= ((Bᵢ₍₂₁₎*n₁₁+Bᵢ₍₂₂₎*n₁₂+Bᵢ₍₂₃₎*n₁₃)*g₁
+            + (Bᵢ₍₂₁₎*n₁₂+Bᵢ₍₂₂₎*n₂₂+Bᵢ₍₂₃₎*n₂₃)*g₂
+            + (Bᵢ₍₂₁₎*n₁₃+Bᵢ₍₂₂₎*n₂₃+Bᵢ₍₂₃₎*n₃₃)*g₃)*𝑤
+            f[3*I]   -= ((Bᵢ₍₃₁₎*n₁₁+Bᵢ₍₃₂₎*n₁₂+Bᵢ₍₃₃₎*n₁₃)*g₁
+            + (Bᵢ₍₃₁₎*n₁₂+Bᵢ₍₃₂₎*n₂₂+Bᵢ₍₃₃₎*n₂₃)*g₂
+            + (Bᵢ₍₃₁₎*n₁₃+Bᵢ₍₃₂₎*n₂₃+Bᵢ₍₃₃₎*n₃₃)*g₃)*𝑤
         end
     end
 end
 
-function ∫𝒏𝑵𝒈dΓ_HR(a::T,b::S;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+"""
+    ∫𝒏𝑵𝒈dΓ_HR(a::T,b::S;k::AbstractMatrix{Float64},f::AbstractVector{Float64})
+
+Overload or Nitsche/Hellinger–Reissner sibling of the same shell term;
+see the documented operators with a similar name.
+
+# Keyword arguments
+Material constants are keywords where the operator needs them; see the
+signature above.
+
+# Element requirements
+`set∇²𝝭!` — reads the shell fields described in the sibling operator.
+"""
+function ∫𝒏𝑵𝒈dΓ_HR(a::T,b::S, k::AbstractMatrix{Float64}, f::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ᵃ = a.𝓒;𝓖ᵃ = a.𝓖
     𝓒ᵇ = b.𝓒;𝓖ᵇ = b.𝓖
     for (ξᵃ,ξᵇ) in zip(𝓖ᵃ,𝓖ᵇ)
@@ -654,7 +769,20 @@ function ∫𝒏𝑵𝒈dΓ_HR(a::T,b::S;k::AbstractMatrix{Float64},f::AbstractV
     end
 end
 
-function ∫𝒏𝑵𝒗dΓ(a::T,b::S;k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+"""
+    ∫𝒏𝑵𝒗dΓ(a::T,b::S;k::AbstractMatrix{Float64})
+
+Overload or Nitsche/Hellinger–Reissner sibling of the same shell term;
+see the documented operators with a similar name.
+
+# Keyword arguments
+Material constants are keywords where the operator needs them; see the
+signature above.
+
+# Element requirements
+`set∇²𝝭!` — reads the shell fields described in the sibling operator.
+"""
+function ∫𝒏𝑵𝒗dΓ(a::T,b::S, k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ᵃ = a.𝓒;𝓖ᵃ = a.𝓖
     𝓒ᵇ = b.𝓒;𝓖ᵇ = b.𝓖
     for (ξᵃ,ξᵇ) in zip(𝓖ᵃ,𝓖ᵇ)
@@ -691,7 +819,19 @@ function ∫𝒏𝑵𝒗dΓ(a::T,b::S;k::AbstractMatrix{Float64}) where {T<:Abst
     end
 end
 
-function ∫∇𝑵𝒗dΩ(a::T,b::S;k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+"""
+    ∫∇𝑵𝒗dΩ(a::T,b::S;k::AbstractMatrix{Float64})
+
+Divergence coupling `∫ ∇·𝑵 v dΩ` for the shell.
+
+# Keyword arguments
+Material constants are keywords where the operator needs them; see the
+signature above.
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:𝝭]`, the first derivatives and the surface metric.
+"""
+function ∫∇𝑵𝒗dΩ(a::T,b::S, k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ᵃ = a.𝓒;𝓖ᵃ = a.𝓖
     𝓒ᵇ = b.𝓒;𝓖ᵇ = b.𝓖
     for (ξᵃ,ξᵇ) in zip(𝓖ᵃ,𝓖ᵇ)
@@ -733,13 +873,23 @@ function ∫∇𝑵𝒗dΩ(a::T,b::S;k::AbstractMatrix{Float64}) where {T<:Abstr
     end
 end
 
-function ∫∇𝑴𝒏𝒂₃𝒈dΓ_Nitsche(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+"""
+    ∫∇𝑴𝒏𝒂₃𝒈dΓ_Nitsche(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}, E, ν, h)
+
+Overload or Nitsche/Hellinger–Reissner sibling of the same shell term;
+see the documented operators with a similar name.
+
+# Keyword arguments
+Material constants are keywords where the operator needs them; see the
+signature above.
+
+# Element requirements
+`set∇²𝝭!` — reads the shell fields described in the sibling operator.
+"""
+function ∫∇𝑴𝒏𝒂₃𝒈dΓ_Nitsche(ap::T, k::AbstractMatrix{Float64}, f::AbstractVector{Float64}; E::Real, ν::Real, h::Real) where T<:AbstractElement
     𝓒 = ap.𝓒;𝓖 = ap.𝓖
-    E = op.E
-    ν = op.ν
-    h = op.h
-    Dᵇ = E*h^3/12/(1-ν^2)
     for ξ in 𝓖
+        Dᵇ = E*h^3/12/(1-ν^2)
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
         B₁ = ξ[:∂𝝭∂x]
@@ -765,7 +915,7 @@ function ∫∇𝑴𝒏𝒂₃𝒈dΓ_Nitsche(ap::T;k::AbstractMatrix{Float64},f
 
         # Γᵞᵧₐ = Vec{2}((ξ.Γ¹₁₁+ξ.Γ²₁₂,ξ.Γ¹₁₂+ξ.Γ²₂₂))
         # Γ³₁₂ = Tensor{3,2}((ξ.Γ¹₁₁,ξ.Γ¹₁₂,ξ.Γ¹₁₂,ξ.Γ¹₂₂,ξ.Γ²₁₁,ξ.Γ²₁₂,ξ.Γ²₁₂,ξ.Γ²₂₂))
-        # Γ⁴₁₂₃ = Tensor{4,2}((ξ.Γ¹₁₁₁,ξ.Γ¹₁₂₁,ξ.Γ¹₁₂₁,ξ.Γ¹₂₂₁,ξ.Γ¹₁₁₂,ξ.Γ¹₁₂₂,ξ.Γ¹₁₂₂,ξ.Γ¹₂₂₂,ξ.Γ²₁₁₁,ξ.Γ²₁₂₁,ξ.Γ²₁₂₁,ξ.Γ²₂₂₁,ξ.Γ²₁₁₂,ξ.Γ²₁₂₂,ξ.Γ²₁₂₂,ξ.Γ²₂₂₂)) 
+        # Γ⁴₁₂₃ = Tensor{4,2}((ξ.Γ¹₁₁₁,ξ.Γ¹₁₂₁,ξ.Γ¹₁₂₁,ξ.Γ¹₂₂₁,ξ.Γ¹₁₁₂,ξ.Γ¹₁₂₂,ξ.Γ¹₁₂₂,ξ.Γ¹₂₂₂,ξ.Γ²₁₁₁,ξ.Γ²₁₂₁,ξ.Γ²₁₂₁,ξ.Γ²₂₂₁,ξ.Γ²₁₁₂,ξ.Γ²₁₂₂,ξ.Γ²₁₂₂,ξ.Γ²₂₂₂))
 
         C¹¹¹¹ = a¹¹*a¹¹*Dᵇ
         C²²²² = a²²*a²²*Dᵇ
@@ -880,41 +1030,54 @@ function ∫∇𝑴𝒏𝒂₃𝒈dΓ_Nitsche(ap::T;k::AbstractMatrix{Float64},f
                 # Mⱼ₍₃₂₎ = 𝒏ₐ⋅(𝒔ₐ⋅∇𝑴₍₂₎)⋅𝒔ᵃ*𝒂₃₍₃₎ + 𝒏ₐ⋅𝑴₍₂₎⋅∂₂𝒔₁⋅𝒔ᵃ*𝒂₃₍₃₎ + 𝒔ₐ⋅𝑴₍₂₎⋅∂₂𝒏₁⋅𝒔ᵃ*𝒂₃₍₃₎ - 𝒔ₐ⋅𝑴₍₂₎⋅𝒏ₐ*(𝒔ᵃ⋅b⋅𝒂ᵃ₍₃₎)
                 # Mⱼ₍₃₃₎ = 𝒏ₐ⋅(𝒔ₐ⋅∇𝑴₍₃₎)⋅𝒔ᵃ*𝒂₃₍₃₎ + 𝒏ₐ⋅𝑴₍₃₎⋅∂₂𝒔₁⋅𝒔ᵃ*𝒂₃₍₃₎ + 𝒔ₐ⋅𝑴₍₃₎⋅∂₂𝒏₁⋅𝒔ᵃ*𝒂₃₍₃₎ - 𝒔ₐ⋅𝑴₍₃₎⋅𝒏ₐ*(𝒔ᵃ⋅b⋅𝒂ᵃ₍₃₎)
 
-                k[3*I-2,3*J-2] -= (((Qᵢ₍₁₁₎ + Mᵢ₍₁₁₎)*n₁₁+(Qᵢ₍₁₂₎ + Mᵢ₍₁₂₎)*n₁₂+(Qᵢ₍₁₃₎ + Mᵢ₍₁₃₎)*n₁₃)*N[j] 
-                            + N[i]*((Qⱼ₍₁₁₎ + Mⱼ₍₁₁₎)*n₁₁+(Qⱼ₍₂₁₎ + Mⱼ₍₂₁₎)*n₁₂+(Qⱼ₍₃₁₎ + Mⱼ₍₃₁₎)*n₁₃))*𝑤
-                k[3*I-1,3*J-2] -= (((Qᵢ₍₂₁₎ + Mᵢ₍₂₁₎)*n₁₁+(Qᵢ₍₂₂₎ + Mᵢ₍₂₂₎)*n₁₂+(Qᵢ₍₂₃₎ + Mᵢ₍₂₃₎)*n₁₃)*N[j] 
-                            + N[i]*((Qⱼ₍₁₁₎ + Mⱼ₍₁₁₎)*n₁₂+(Qⱼ₍₂₁₎ + Mⱼ₍₂₁₎)*n₂₂+(Qⱼ₍₃₁₎ + Mⱼ₍₃₁₎)*n₂₃))*𝑤
-                k[3*I,3*J-2]   -= (((Qᵢ₍₃₁₎ + Mᵢ₍₃₁₎)*n₁₁+(Qᵢ₍₃₂₎ + Mᵢ₍₃₂₎)*n₁₂+(Qᵢ₍₃₃₎ + Mᵢ₍₃₃₎)*n₁₃)*N[j] 
-                            + N[i]*((Qⱼ₍₁₁₎ + Mⱼ₍₁₁₎)*n₁₃+(Qⱼ₍₂₁₎ + Mⱼ₍₂₁₎)*n₂₃+(Qⱼ₍₃₁₎ + Mⱼ₍₃₁₎)*n₃₃))*𝑤
-                k[3*I-2,3*J-1] -= (((Qᵢ₍₁₁₎ + Mᵢ₍₁₁₎)*n₁₂+(Qᵢ₍₁₂₎ + Mᵢ₍₁₂₎)*n₂₂+(Qᵢ₍₁₃₎ + Mᵢ₍₁₃₎)*n₂₃)*N[j] 
-                            + N[i]*((Qⱼ₍₁₂₎ + Mⱼ₍₁₂₎)*n₁₁+(Qⱼ₍₂₂₎ + Mⱼ₍₂₂₎)*n₁₂+(Qⱼ₍₃₂₎ + Mⱼ₍₃₂₎)*n₁₃))*𝑤
-                k[3*I-1,3*J-1] -= (((Qᵢ₍₂₁₎ + Mᵢ₍₂₁₎)*n₁₂+(Qᵢ₍₂₂₎ + Mᵢ₍₂₂₎)*n₂₂+(Qᵢ₍₂₃₎ + Mᵢ₍₂₃₎)*n₂₃)*N[j] 
-                            + N[i]*((Qⱼ₍₁₂₎ + Mⱼ₍₁₂₎)*n₁₂+(Qⱼ₍₂₂₎ + Mⱼ₍₂₂₎)*n₂₂+(Qⱼ₍₃₂₎ + Mⱼ₍₃₂₎)*n₂₃))*𝑤
-                k[3*I,3*J-1]   -= (((Qᵢ₍₃₁₎ + Mᵢ₍₃₁₎)*n₁₂+(Qᵢ₍₃₂₎ + Mᵢ₍₃₂₎)*n₂₂+(Qᵢ₍₃₃₎ + Mᵢ₍₃₃₎)*n₂₃)*N[j] 
-                            + N[i]*((Qⱼ₍₁₂₎ + Mⱼ₍₁₂₎)*n₁₃+(Qⱼ₍₂₂₎ + Mⱼ₍₂₂₎)*n₂₃+(Qⱼ₍₃₂₎ + Mⱼ₍₃₂₎)*n₃₃))*𝑤
-                k[3*I-2,3*J]   -= (((Qᵢ₍₁₁₎ + Mᵢ₍₁₁₎)*n₁₃+(Qᵢ₍₁₂₎ + Mᵢ₍₁₂₎)*n₂₃+(Qᵢ₍₁₃₎ + Mᵢ₍₁₃₎)*n₃₃)*N[j] 
-                            + N[i]*((Qⱼ₍₁₃₎ + Mⱼ₍₁₃₎)*n₁₁+(Qⱼ₍₂₃₎ + Mⱼ₍₂₃₎)*n₁₂+(Qⱼ₍₃₃₎ + Mⱼ₍₃₃₎)*n₁₃))*𝑤
-                k[3*I-1,3*J]   -= (((Qᵢ₍₂₁₎ + Mᵢ₍₂₁₎)*n₁₃+(Qᵢ₍₂₂₎ + Mᵢ₍₂₂₎)*n₂₃+(Qᵢ₍₂₃₎ + Mᵢ₍₂₃₎)*n₃₃)*N[j] 
-                            + N[i]*((Qⱼ₍₁₃₎ + Mⱼ₍₁₃₎)*n₁₂+(Qⱼ₍₂₃₎ + Mⱼ₍₂₃₎)*n₂₂+(Qⱼ₍₃₃₎ + Mⱼ₍₃₃₎)*n₂₃))*𝑤
-                k[3*I,3*J]     -= (((Qᵢ₍₃₁₎ + Mᵢ₍₃₁₎)*n₁₃+(Qᵢ₍₃₂₎ + Mᵢ₍₃₂₎)*n₂₃+(Qᵢ₍₃₃₎ + Mᵢ₍₃₃₎)*n₃₃)*N[j] 
-                            + N[i]*((Qⱼ₍₁₃₎ + Mⱼ₍₁₃₎)*n₁₃+(Qⱼ₍₂₃₎ + Mⱼ₍₂₃₎)*n₂₃+(Qⱼ₍₃₃₎ + Mⱼ₍₃₃₎)*n₃₃))*𝑤
- 
+                k[3*I-2,3*J-2] -= (((Qᵢ₍₁₁₎ + Mᵢ₍₁₁₎)*n₁₁+(Qᵢ₍₁₂₎ + Mᵢ₍₁₂₎)*n₁₂+(Qᵢ₍₁₃₎ + Mᵢ₍₁₃₎)*n₁₃)*N[j]
+                + N[i]*((Qⱼ₍₁₁₎ + Mⱼ₍₁₁₎)*n₁₁+(Qⱼ₍₂₁₎ + Mⱼ₍₂₁₎)*n₁₂+(Qⱼ₍₃₁₎ + Mⱼ₍₃₁₎)*n₁₃))*𝑤
+                k[3*I-1,3*J-2] -= (((Qᵢ₍₂₁₎ + Mᵢ₍₂₁₎)*n₁₁+(Qᵢ₍₂₂₎ + Mᵢ₍₂₂₎)*n₁₂+(Qᵢ₍₂₃₎ + Mᵢ₍₂₃₎)*n₁₃)*N[j]
+                + N[i]*((Qⱼ₍₁₁₎ + Mⱼ₍₁₁₎)*n₁₂+(Qⱼ₍₂₁₎ + Mⱼ₍₂₁₎)*n₂₂+(Qⱼ₍₃₁₎ + Mⱼ₍₃₁₎)*n₂₃))*𝑤
+                k[3*I,3*J-2]   -= (((Qᵢ₍₃₁₎ + Mᵢ₍₃₁₎)*n₁₁+(Qᵢ₍₃₂₎ + Mᵢ₍₃₂₎)*n₁₂+(Qᵢ₍₃₃₎ + Mᵢ₍₃₃₎)*n₁₃)*N[j]
+                + N[i]*((Qⱼ₍₁₁₎ + Mⱼ₍₁₁₎)*n₁₃+(Qⱼ₍₂₁₎ + Mⱼ₍₂₁₎)*n₂₃+(Qⱼ₍₃₁₎ + Mⱼ₍₃₁₎)*n₃₃))*𝑤
+                k[3*I-2,3*J-1] -= (((Qᵢ₍₁₁₎ + Mᵢ₍₁₁₎)*n₁₂+(Qᵢ₍₁₂₎ + Mᵢ₍₁₂₎)*n₂₂+(Qᵢ₍₁₃₎ + Mᵢ₍₁₃₎)*n₂₃)*N[j]
+                + N[i]*((Qⱼ₍₁₂₎ + Mⱼ₍₁₂₎)*n₁₁+(Qⱼ₍₂₂₎ + Mⱼ₍₂₂₎)*n₁₂+(Qⱼ₍₃₂₎ + Mⱼ₍₃₂₎)*n₁₃))*𝑤
+                k[3*I-1,3*J-1] -= (((Qᵢ₍₂₁₎ + Mᵢ₍₂₁₎)*n₁₂+(Qᵢ₍₂₂₎ + Mᵢ₍₂₂₎)*n₂₂+(Qᵢ₍₂₃₎ + Mᵢ₍₂₃₎)*n₂₃)*N[j]
+                + N[i]*((Qⱼ₍₁₂₎ + Mⱼ₍₁₂₎)*n₁₂+(Qⱼ₍₂₂₎ + Mⱼ₍₂₂₎)*n₂₂+(Qⱼ₍₃₂₎ + Mⱼ₍₃₂₎)*n₂₃))*𝑤
+                k[3*I,3*J-1]   -= (((Qᵢ₍₃₁₎ + Mᵢ₍₃₁₎)*n₁₂+(Qᵢ₍₃₂₎ + Mᵢ₍₃₂₎)*n₂₂+(Qᵢ₍₃₃₎ + Mᵢ₍₃₃₎)*n₂₃)*N[j]
+                + N[i]*((Qⱼ₍₁₂₎ + Mⱼ₍₁₂₎)*n₁₃+(Qⱼ₍₂₂₎ + Mⱼ₍₂₂₎)*n₂₃+(Qⱼ₍₃₂₎ + Mⱼ₍₃₂₎)*n₃₃))*𝑤
+                k[3*I-2,3*J]   -= (((Qᵢ₍₁₁₎ + Mᵢ₍₁₁₎)*n₁₃+(Qᵢ₍₁₂₎ + Mᵢ₍₁₂₎)*n₂₃+(Qᵢ₍₁₃₎ + Mᵢ₍₁₃₎)*n₃₃)*N[j]
+                + N[i]*((Qⱼ₍₁₃₎ + Mⱼ₍₁₃₎)*n₁₁+(Qⱼ₍₂₃₎ + Mⱼ₍₂₃₎)*n₁₂+(Qⱼ₍₃₃₎ + Mⱼ₍₃₃₎)*n₁₃))*𝑤
+                k[3*I-1,3*J]   -= (((Qᵢ₍₂₁₎ + Mᵢ₍₂₁₎)*n₁₃+(Qᵢ₍₂₂₎ + Mᵢ₍₂₂₎)*n₂₃+(Qᵢ₍₂₃₎ + Mᵢ₍₂₃₎)*n₃₃)*N[j]
+                + N[i]*((Qⱼ₍₁₃₎ + Mⱼ₍₁₃₎)*n₁₂+(Qⱼ₍₂₃₎ + Mⱼ₍₂₃₎)*n₂₂+(Qⱼ₍₃₃₎ + Mⱼ₍₃₃₎)*n₂₃))*𝑤
+                k[3*I,3*J]     -= (((Qᵢ₍₃₁₎ + Mᵢ₍₃₁₎)*n₁₃+(Qᵢ₍₃₂₎ + Mᵢ₍₃₂₎)*n₂₃+(Qᵢ₍₃₃₎ + Mᵢ₍₃₃₎)*n₃₃)*N[j]
+                + N[i]*((Qⱼ₍₁₃₎ + Mⱼ₍₁₃₎)*n₁₃+(Qⱼ₍₂₃₎ + Mⱼ₍₂₃₎)*n₂₃+(Qⱼ₍₃₃₎ + Mⱼ₍₃₃₎)*n₃₃))*𝑤
+
             end
 
-            f[3*I-2] -= (((Qᵢ₍₁₁₎ + Mᵢ₍₁₁₎)*n₁₁ + (Qᵢ₍₁₂₎ + Mᵢ₍₁₂₎)*n₁₂ + (Qᵢ₍₁₃₎ + Mᵢ₍₁₃₎)*n₁₃)*g₁ 
-                       + ((Qᵢ₍₁₁₎ + Mᵢ₍₁₁₎)*n₁₂ + (Qᵢ₍₁₂₎ + Mᵢ₍₁₂₎)*n₂₂ + (Qᵢ₍₁₃₎ + Mᵢ₍₁₃₎)*n₂₃)*g₂ 
-                       + ((Qᵢ₍₁₁₎ + Mᵢ₍₁₁₎)*n₁₃ + (Qᵢ₍₁₂₎ + Mᵢ₍₁₂₎)*n₂₃ + (Qᵢ₍₁₃₎ + Mᵢ₍₁₃₎)*n₃₃)*g₃)*𝑤
-            f[3*I-1] -= (((Qᵢ₍₂₁₎ + Mᵢ₍₂₁₎)*n₁₁ + (Qᵢ₍₂₂₎ + Mᵢ₍₂₂₎)*n₁₂ + (Qᵢ₍₂₃₎ + Mᵢ₍₂₃₎)*n₁₃)*g₁ 
-                       + ((Qᵢ₍₂₁₎ + Mᵢ₍₂₁₎)*n₁₂ + (Qᵢ₍₂₂₎ + Mᵢ₍₂₂₎)*n₂₂ + (Qᵢ₍₂₃₎ + Mᵢ₍₂₃₎)*n₂₃)*g₂ 
-                       + ((Qᵢ₍₂₁₎ + Mᵢ₍₂₁₎)*n₁₃ + (Qᵢ₍₂₂₎ + Mᵢ₍₂₂₎)*n₂₃ + (Qᵢ₍₂₃₎ + Mᵢ₍₂₃₎)*n₃₃)*g₃)*𝑤
-            f[3*I]   -= (((Qᵢ₍₃₁₎ + Mᵢ₍₃₁₎)*n₁₁ + (Qᵢ₍₃₂₎ + Mᵢ₍₃₂₎)*n₁₂ + (Qᵢ₍₃₃₎ + Mᵢ₍₃₃₎)*n₁₃)*g₁ 
-                       + ((Qᵢ₍₃₁₎ + Mᵢ₍₃₁₎)*n₁₂ + (Qᵢ₍₃₂₎ + Mᵢ₍₃₂₎)*n₂₂ + (Qᵢ₍₃₃₎ + Mᵢ₍₃₃₎)*n₂₃)*g₂ 
-                       + ((Qᵢ₍₃₁₎ + Mᵢ₍₃₁₎)*n₁₃ + (Qᵢ₍₃₂₎ + Mᵢ₍₃₂₎)*n₂₃ + (Qᵢ₍₃₃₎ + Mᵢ₍₃₃₎)*n₃₃)*g₃)*𝑤
+            f[3*I-2] -= (((Qᵢ₍₁₁₎ + Mᵢ₍₁₁₎)*n₁₁ + (Qᵢ₍₁₂₎ + Mᵢ₍₁₂₎)*n₁₂ + (Qᵢ₍₁₃₎ + Mᵢ₍₁₃₎)*n₁₃)*g₁
+            + ((Qᵢ₍₁₁₎ + Mᵢ₍₁₁₎)*n₁₂ + (Qᵢ₍₁₂₎ + Mᵢ₍₁₂₎)*n₂₂ + (Qᵢ₍₁₃₎ + Mᵢ₍₁₃₎)*n₂₃)*g₂
+            + ((Qᵢ₍₁₁₎ + Mᵢ₍₁₁₎)*n₁₃ + (Qᵢ₍₁₂₎ + Mᵢ₍₁₂₎)*n₂₃ + (Qᵢ₍₁₃₎ + Mᵢ₍₁₃₎)*n₃₃)*g₃)*𝑤
+            f[3*I-1] -= (((Qᵢ₍₂₁₎ + Mᵢ₍₂₁₎)*n₁₁ + (Qᵢ₍₂₂₎ + Mᵢ₍₂₂₎)*n₁₂ + (Qᵢ₍₂₃₎ + Mᵢ₍₂₃₎)*n₁₃)*g₁
+            + ((Qᵢ₍₂₁₎ + Mᵢ₍₂₁₎)*n₁₂ + (Qᵢ₍₂₂₎ + Mᵢ₍₂₂₎)*n₂₂ + (Qᵢ₍₂₃₎ + Mᵢ₍₂₃₎)*n₂₃)*g₂
+            + ((Qᵢ₍₂₁₎ + Mᵢ₍₂₁₎)*n₁₃ + (Qᵢ₍₂₂₎ + Mᵢ₍₂₂₎)*n₂₃ + (Qᵢ₍₂₃₎ + Mᵢ₍₂₃₎)*n₃₃)*g₃)*𝑤
+            f[3*I]   -= (((Qᵢ₍₃₁₎ + Mᵢ₍₃₁₎)*n₁₁ + (Qᵢ₍₃₂₎ + Mᵢ₍₃₂₎)*n₁₂ + (Qᵢ₍₃₃₎ + Mᵢ₍₃₃₎)*n₁₃)*g₁
+            + ((Qᵢ₍₃₁₎ + Mᵢ₍₃₁₎)*n₁₂ + (Qᵢ₍₃₂₎ + Mᵢ₍₃₂₎)*n₂₂ + (Qᵢ₍₃₃₎ + Mᵢ₍₃₃₎)*n₂₃)*g₂
+            + ((Qᵢ₍₃₁₎ + Mᵢ₍₃₁₎)*n₁₃ + (Qᵢ₍₃₂₎ + Mᵢ₍₃₂₎)*n₂₃ + (Qᵢ₍₃₃₎ + Mᵢ₍₃₃₎)*n₃₃)*g₃)*𝑤
         end
     end
 end
 
-function ∫∇𝑴𝒏𝒂₃𝒈dΓ_HR(a::T,b::S;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+"""
+    ∫∇𝑴𝒏𝒂₃𝒈dΓ_HR(a::T,b::S;k::AbstractMatrix{Float64},f::AbstractVector{Float64})
+
+Overload or Nitsche/Hellinger–Reissner sibling of the same shell term;
+see the documented operators with a similar name.
+
+# Keyword arguments
+Material constants are keywords where the operator needs them; see the
+signature above.
+
+# Element requirements
+`set∇²𝝭!` — reads the shell fields described in the sibling operator.
+"""
+function ∫∇𝑴𝒏𝒂₃𝒈dΓ_HR(a::T,b::S, k::AbstractMatrix{Float64}, f::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ᵃ = a.𝓒;𝓖ᵃ = a.𝓖
     𝓒ᵇ = b.𝓒;𝓖ᵇ = b.𝓖
     for (ξᵃ,ξᵇ) in zip(𝓖ᵃ,𝓖ᵇ)
@@ -979,8 +1142,8 @@ function ∫∇𝑴𝒏𝒂₃𝒈dΓ_HR(a::T,b::S;k::AbstractMatrix{Float64},f:
         g₃ = ξᵇ.g₃
         for (i,xᵢ) in enumerate(𝓒ᵃ)
             I = xᵢ.𝐼
-            B̃₁₁ = B₁[i]*s₁n₁s¹ + B₂[i]*s₁n₁s² + N[i]*(∂ᵧs₁n₁sᵞ + s₁∂ᵧn₁sᵞ) + B₁[i]*n₁ + N[i]*Γᵞ₁₁nᵧ + N[i]*Γᵞᵧ₁n₁ 
-            B̃₂₂ = B₁[i]*s₂n₂s¹ + B₂[i]*s₂n₂s² + N[i]*(∂ᵧs₂n₂sᵞ + s₂∂ᵧn₂sᵞ) + B₂[i]*n₂ + N[i]*Γᵞ₂₂nᵧ + N[i]*Γᵞᵧ₂n₂ 
+            B̃₁₁ = B₁[i]*s₁n₁s¹ + B₂[i]*s₁n₁s² + N[i]*(∂ᵧs₁n₁sᵞ + s₁∂ᵧn₁sᵞ) + B₁[i]*n₁ + N[i]*Γᵞ₁₁nᵧ + N[i]*Γᵞᵧ₁n₁
+            B̃₂₂ = B₁[i]*s₂n₂s¹ + B₂[i]*s₂n₂s² + N[i]*(∂ᵧs₂n₂sᵞ + s₂∂ᵧn₂sᵞ) + B₂[i]*n₂ + N[i]*Γᵞ₂₂nᵧ + N[i]*Γᵞᵧ₂n₂
             B̃₁₂ = B₁[i]*(s₁n₂s¹ +s₂n₁s¹) + B₂[i]*(s₁n₂s² + s₂n₁s²) + N[i]*(∂ᵧs₁n₂sᵞ + ∂ᵧs₂n₁sᵞ + s₁∂ᵧn₂sᵞ + s₂∂ᵧn₁sᵞ) + B₁[i]*n₂ + B₂[i]*n₁ + 2*N[i]*Γᵞ₁₂nᵧ + N[i]*(Γᵞᵧ₁n₂ + Γᵞᵧ₂n₁)
             for (j,xⱼ) in enumerate(𝓒ᵇ)
                 J = xⱼ.𝐼
@@ -1025,7 +1188,20 @@ function ∫∇𝑴𝒏𝒂₃𝒈dΓ_HR(a::T,b::S;k::AbstractMatrix{Float64},f:
     end
 end
 
-function ∫∇𝑴𝒏𝒂₃𝒗dΓ(a::T,b::S;k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+"""
+    ∫∇𝑴𝒏𝒂₃𝒗dΓ(a::T,b::S;k::AbstractMatrix{Float64})
+
+Overload or Nitsche/Hellinger–Reissner sibling of the same shell term;
+see the documented operators with a similar name.
+
+# Keyword arguments
+Material constants are keywords where the operator needs them; see the
+signature above.
+
+# Element requirements
+`set∇²𝝭!` — reads the shell fields described in the sibling operator.
+"""
+function ∫∇𝑴𝒏𝒂₃𝒗dΓ(a::T,b::S, k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ᵃ = a.𝓒;𝓖ᵃ = a.𝓖
     𝓒ᵇ = b.𝓒;𝓖ᵇ = b.𝓖
     for (ξᵃ,ξᵇ) in zip(𝓖ᵃ,𝓖ᵇ)
@@ -1083,8 +1259,8 @@ function ∫∇𝑴𝒏𝒂₃𝒗dΓ(a::T,b::S;k::AbstractMatrix{Float64}) wher
             I = xᵢ.𝐼
             # B̃₁₁ = 0.
             # B̃₂₂ = 0.
-            B̃₁₁ = B₁[i]*s₁n₁s¹ + B₂[i]*s₁n₁s² + N[i]*(∂ᵧs₁n₁sᵞ + s₁∂ᵧn₁sᵞ) + B₁[i]*n₁ + N[i]*Γᵞ₁₁nᵧ + N[i]*Γᵞᵧ₁n₁ 
-            B̃₂₂ = B₁[i]*s₂n₂s¹ + B₂[i]*s₂n₂s² + N[i]*(∂ᵧs₂n₂sᵞ + s₂∂ᵧn₂sᵞ) + B₂[i]*n₂ + N[i]*Γᵞ₂₂nᵧ + N[i]*Γᵞᵧ₂n₂ 
+            B̃₁₁ = B₁[i]*s₁n₁s¹ + B₂[i]*s₁n₁s² + N[i]*(∂ᵧs₁n₁sᵞ + s₁∂ᵧn₁sᵞ) + B₁[i]*n₁ + N[i]*Γᵞ₁₁nᵧ + N[i]*Γᵞᵧ₁n₁
+            B̃₂₂ = B₁[i]*s₂n₂s¹ + B₂[i]*s₂n₂s² + N[i]*(∂ᵧs₂n₂sᵞ + s₂∂ᵧn₂sᵞ) + B₂[i]*n₂ + N[i]*Γᵞ₂₂nᵧ + N[i]*Γᵞᵧ₂n₂
             B̃₁₂ = B₁[i]*(s₁n₂s¹ +s₂n₁s¹) + B₂[i]*(s₁n₂s² + s₂n₁s²) + N[i]*(∂ᵧs₁n₂sᵞ + ∂ᵧs₂n₁sᵞ + s₁∂ᵧn₂sᵞ + s₂∂ᵧn₁sᵞ) + B₁[i]*n₂ + B₂[i]*n₁ + 2*N[i]*Γᵞ₁₂nᵧ + N[i]*(Γᵞᵧ₁n₂ + Γᵞᵧ₂n₁)
 
             for (j,xⱼ) in enumerate(𝓒ᵇ)
@@ -1103,13 +1279,23 @@ function ∫∇𝑴𝒏𝒂₃𝒗dΓ(a::T,b::S;k::AbstractMatrix{Float64}) wher
     end
 end
 
-function ∫MₙₙθₙdΓ_Nitsche(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+"""
+    ∫MₙₙθₙdΓ_Nitsche(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}, E, ν, h)
+
+Overload or Nitsche/Hellinger–Reissner sibling of the same shell term;
+see the documented operators with a similar name.
+
+# Keyword arguments
+Material constants are keywords where the operator needs them; see the
+signature above.
+
+# Element requirements
+`set∇²𝝭!` — reads the shell fields described in the sibling operator.
+"""
+function ∫MₙₙθₙdΓ_Nitsche(ap::T, k::AbstractMatrix{Float64}, f::AbstractVector{Float64}; E::Real, ν::Real, h::Real) where T<:AbstractElement
     𝓒 = ap.𝓒;𝓖 = ap.𝓖
-    E = op.E
-    ν = op.ν
-    h = op.h
-    Dᵇ = E*h^3/12/(1-ν^2)
     for ξ in 𝓖
+        Dᵇ = E*h^3/12/(1-ν^2)
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
         B₁ = ξ[:∂𝝭∂x]
@@ -1191,7 +1377,7 @@ function ∫MₙₙθₙdΓ_Nitsche(ap::T;k::AbstractMatrix{Float64},f::Abstract
                 κ₁₂₍₁₎ = 2*(Γ¹₁₂*B₁[j] + Γ²₁₂*B₂[j] - B₁₂[j])*𝒂₃₍₁₎
                 κ₁₂₍₂₎ = 2*(Γ¹₁₂*B₁[j] + Γ²₁₂*B₂[j] - B₁₂[j])*𝒂₃₍₂₎
                 κ₁₂₍₃₎ = 2*(Γ¹₁₂*B₁[j] + Γ²₁₂*B₂[j] - B₁₂[j])*𝒂₃₍₃₎
-    
+
                 M¹¹₍₁₎ = C¹¹¹¹*κ₁₁₍₁₎ + C¹¹²²*κ₂₂₍₁₎ + C¹¹¹²*κ₁₂₍₁₎
                 M¹¹₍₂₎ = C¹¹¹¹*κ₁₁₍₂₎ + C¹¹²²*κ₂₂₍₂₎ + C¹¹¹²*κ₁₂₍₂₎
                 M¹¹₍₃₎ = C¹¹¹¹*κ₁₁₍₃₎ + C¹¹²²*κ₂₂₍₃₎ + C¹¹¹²*κ₁₂₍₃₎
@@ -1228,7 +1414,20 @@ function ∫MₙₙθₙdΓ_Nitsche(ap::T;k::AbstractMatrix{Float64},f::Abstract
     end
 end
 
-function ∫MₙₙθₙdΓ_HR(a::T,b::S;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+"""
+    ∫MₙₙθₙdΓ_HR(a::T,b::S;k::AbstractMatrix{Float64},f::AbstractVector{Float64})
+
+Overload or Nitsche/Hellinger–Reissner sibling of the same shell term;
+see the documented operators with a similar name.
+
+# Keyword arguments
+Material constants are keywords where the operator needs them; see the
+signature above.
+
+# Element requirements
+`set∇²𝝭!` — reads the shell fields described in the sibling operator.
+"""
+function ∫MₙₙθₙdΓ_HR(a::T,b::S, k::AbstractMatrix{Float64}, f::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ᵃ = a.𝓒;𝓖ᵃ = a.𝓖
     𝓒ᵇ = b.𝓒;𝓖ᵇ = b.𝓖
     for (ξᵃ,ξᵇ) in zip(𝓖ᵃ,𝓖ᵇ)
@@ -1316,7 +1515,20 @@ function ∫MₙₙθₙdΓ_HR(a::T,b::S;k::AbstractMatrix{Float64},f::AbstractV
     end
 end
 
-function ∫𝑴ₙₙ𝜽ₙdΓ(a::T,b::S;k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+"""
+    ∫𝑴ₙₙ𝜽ₙdΓ(a::T,b::S;k::AbstractMatrix{Float64})
+
+Overload or Nitsche/Hellinger–Reissner sibling of the same shell term;
+see the documented operators with a similar name.
+
+# Keyword arguments
+Material constants are keywords where the operator needs them; see the
+signature above.
+
+# Element requirements
+`set∇²𝝭!` — reads the shell fields described in the sibling operator.
+"""
+function ∫𝑴ₙₙ𝜽ₙdΓ(a::T,b::S, k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ᵃ = a.𝓒;𝓖ᵃ = a.𝓖
     𝓒ᵇ = b.𝓒;𝓖ᵇ = b.𝓖
     for (ξᵃ,ξᵇ) in zip(𝓖ᵃ,𝓖ᵇ)
@@ -1380,13 +1592,26 @@ function ∫𝑴ₙₙ𝜽ₙdΓ(a::T,b::S;k::AbstractMatrix{Float64}) where {T<
         end
     end
 end
-function ΔMₙₛ𝒂₃𝒈_Nitsche(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+"""
+    ΔMₙₛ𝒂₃𝒈_Nitsche(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}, E, ν, h)
+
+Overload or Nitsche/Hellinger–Reissner sibling of the same shell term;
+see the documented operators with a similar name.
+
+
+    ∫ (ΔMₙₛ 𝒂₃ · 𝒈) dΓ  — corner force in the Nitsche form.
+
+# Keyword arguments
+Material constants are keywords where the operator needs them; see the
+signature above.
+
+# Element requirements
+`set∇²𝝭!` — reads the shell fields described in the sibling operator.
+"""
+function ΔMₙₛ𝒂₃𝒈_Nitsche(ap::T, k::AbstractMatrix{Float64}, f::AbstractVector{Float64}; E::Real, ν::Real, h::Real) where T<:AbstractElement
     𝓒 = ap.𝓒;𝓖 = ap.𝓖
-    E = op.E
-    ν = op.ν
-    h = op.h
-    Dᵇ = E*h^3/12/(1-ν^2)
     for ξ in 𝓖
+        Dᵇ = E*h^3/12/(1-ν^2)
         N = ξ[:𝝭]
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
@@ -1474,7 +1699,7 @@ function ΔMₙₛ𝒂₃𝒈_Nitsche(ap::T;k::AbstractMatrix{Float64},f::Abstra
                 κ₁₂₍₁₎ = 2*(Γ¹₁₂*B₁[j] + Γ²₁₂*B₂[j] - B₁₂[j])*𝒂₃₍₁₎
                 κ₁₂₍₂₎ = 2*(Γ¹₁₂*B₁[j] + Γ²₁₂*B₂[j] - B₁₂[j])*𝒂₃₍₂₎
                 κ₁₂₍₃₎ = 2*(Γ¹₁₂*B₁[j] + Γ²₁₂*B₂[j] - B₁₂[j])*𝒂₃₍₃₎
-    
+
                 M¹¹₍₁₎ = C¹¹¹¹*κ₁₁₍₁₎ + C¹¹²²*κ₂₂₍₁₎ + C¹¹¹²*κ₁₂₍₁₎
                 M¹¹₍₂₎ = C¹¹¹¹*κ₁₁₍₂₎ + C¹¹²²*κ₂₂₍₂₎ + C¹¹¹²*κ₁₂₍₂₎
                 M¹¹₍₃₎ = C¹¹¹¹*κ₁₁₍₃₎ + C¹¹²²*κ₂₂₍₃₎ + C¹¹¹²*κ₁₂₍₃₎
@@ -1510,7 +1735,23 @@ function ΔMₙₛ𝒂₃𝒈_Nitsche(ap::T;k::AbstractMatrix{Float64},f::Abstra
     end
 end
 
-function ΔMₙₛ𝒂₃𝒈_HR(a::T,b::S;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+"""
+    ΔMₙₛ𝒂₃𝒈_HR(a::T,b::S;k::AbstractMatrix{Float64},f::AbstractVector{Float64})
+
+Overload or Nitsche/Hellinger–Reissner sibling of the same shell term;
+see the documented operators with a similar name.
+
+
+    ∫ (ΔMₙₛ 𝒂₃ · 𝒈) dΓ  — corner force in the Hellinger–Reissner form.
+
+# Keyword arguments
+Material constants are keywords where the operator needs them; see the
+signature above.
+
+# Element requirements
+`set∇²𝝭!` — reads the shell fields described in the sibling operator.
+"""
+function ΔMₙₛ𝒂₃𝒈_HR(a::T,b::S, k::AbstractMatrix{Float64}, f::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ᵃ = a.𝓒;𝓖ᵃ = a.𝓖
     𝓒ᵇ = b.𝓒;𝓖ᵇ = b.𝓖
     for (ξᵃ,ξᵇ) in zip(𝓖ᵃ,𝓖ᵇ)
@@ -1578,7 +1819,24 @@ function ΔMₙₛ𝒂₃𝒈_HR(a::T,b::S;k::AbstractMatrix{Float64},f::Abstrac
     end
 end
 
-function ΔMₙₛ𝒂₃𝒗(a::T,b::S;k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+"""
+    ΔMₙₛ𝒂₃𝒗(a::T,b::S;k::AbstractMatrix{Float64})
+
+Overload or Nitsche/Hellinger–Reissner sibling of the same shell term;
+see the documented operators with a similar name.
+
+
+    ∫ (ΔMₙₛ 𝒂₃ · 𝒗) dΓ  — the trial-side counterpart of `ΔMₙₛ𝒂₃𝒈`, used to
+    assemble the left-hand side of the corner condition.
+
+# Keyword arguments
+Material constants are keywords where the operator needs them; see the
+signature above.
+
+# Element requirements
+`set∇²𝝭!` — reads the shell fields described in the sibling operator.
+"""
+function ΔMₙₛ𝒂₃𝒗(a::T,b::S, k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ᵃ = a.𝓒;𝓖ᵃ = a.𝓖
     𝓒ᵇ = b.𝓒;𝓖ᵇ = b.𝓖
     for (ξᵃ,ξᵇ) in zip(𝓖ᵃ,𝓖ᵇ)
@@ -1608,7 +1866,19 @@ function ΔMₙₛ𝒂₃𝒗(a::T,b::S;k::AbstractMatrix{Float64}) where {T<:Ab
     end
 end
 
-function ∫∇𝑴∇𝒂₃𝒗dΩ(a::T,b::S;k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+"""
+    ∫∇𝑴∇𝒂₃𝒗dΩ(a::T,b::S;k::AbstractMatrix{Float64})
+
+Bending-moment/deflection coupling in gradient form.
+
+# Keyword arguments
+Material constants are keywords where the operator needs them; see the
+signature above.
+
+# Element requirements
+`set∇²𝝭!` — reads the second derivatives and the surface metric.
+"""
+function ∫∇𝑴∇𝒂₃𝒗dΩ(a::T,b::S, k::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ᵃ = a.𝓒;𝓖ᵃ = a.𝓖
     𝓒ᵇ = b.𝓒;𝓖ᵇ = b.𝓖
     for (ξᵃ,ξᵇ) in zip(𝓖ᵃ,𝓖ᵇ)
@@ -1681,6 +1951,22 @@ function ∫∇𝑴∇𝒂₃𝒗dΩ(a::T,b::S;k::AbstractMatrix{Float64}) where
     end
 end
 
+"""
+    ScordelisLoRoof_𝐴(ap::T)
+
+Geometry helper for the Scordelis–Lo roof benchmark: the
+physical coordinates of a quadrature point on the shell surface.
+
+
+    𝒙(ξ,η) = ( L ξ,  R sin(φ),  R cos(φ) ),   φ = (1 - η) π/6
+
+# Keyword arguments
+Material constants are keywords where the operator needs them; see the
+signature above.
+
+# Element requirements
+reads `ξ.ξ`, `ξ.η` only.
+"""
 function ScordelisLoRoof_𝐴(ap::T) where T<:AbstractElement
     𝓒 = ap.𝓒
     ξ = ap.𝓖[1]
@@ -1692,6 +1978,22 @@ function ScordelisLoRoof_𝐴(ap::T) where T<:AbstractElement
     return w
 end
 
+"""
+    SphericalShell_𝐴(ap::T)
+
+Geometry helper for the pinched spherical shell benchmark:
+physical coordinates on the sphere.
+
+
+    𝒙(ξ,η) = R ( sinθ cosφ,  sinθ sinφ,  cosθ ),   θ = η π/2,  φ = 2ξ π
+
+# Keyword arguments
+Material constants are keywords where the operator needs them; see the
+signature above.
+
+# Element requirements
+reads `ξ.ξ`, `ξ.η` only.
+"""
 function SphericalShell_𝐴(ap::T) where T<:AbstractElement
     𝓒 = ap.𝓒
     ξ = ap.𝓖[1]
@@ -1702,6 +2004,22 @@ function SphericalShell_𝐴(ap::T) where T<:AbstractElement
     end
     return w
 end
+"""
+    SphericalShell_𝐵(ap::T)
+
+Geometry helper for the pinched spherical shell benchmark:
+the second coordinate of the paramaterisation.
+
+
+    θ(η) = η π/2,   the polar angle of the spherical parameterisation.
+
+# Keyword arguments
+Material constants are keywords where the operator needs them; see the
+signature above.
+
+# Element requirements
+reads `ξ.ξ`, `ξ.η` only.
+"""
 function SphericalShell_𝐵(ap::T) where T<:AbstractElement
     𝓒 = ap.𝓒
     ξ = ap.𝓖[1]
@@ -1713,10 +2031,21 @@ function SphericalShell_𝐵(ap::T) where T<:AbstractElement
     return w
 end
 
-function ∫𝒂ᵢvᵢgᵢdΓ(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+"""
+    ∫𝒂ᵢvᵢgᵢdΓ(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}, E, ν, h)
+
+Overload or Nitsche/Hellinger–Reissner sibling of the same shell term;
+see the documented operators with a similar name.
+
+# Keyword arguments
+Material constants are keywords where the operator needs them; see the
+signature above.
+
+# Element requirements
+`set∇²𝝭!` — reads the shell fields described in the sibling operator.
+"""
+function ∫𝒂ᵢvᵢgᵢdΓ(ap::T, k::AbstractMatrix{Float64}, f::AbstractVector{Float64}; E::Real, ν::Real, h::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    α₁ = op.α₁
-    α₂ = op.α₂
     for ξ in 𝓖
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
@@ -1750,14 +2079,30 @@ function ∫𝒂ᵢvᵢgᵢdΓ(ap::T;k::AbstractMatrix{Float64},f::AbstractVecto
     end
 end
 
+"""
+    Hₑ_ThinShell(ap::T)
+
+Relative energy-norm error of a Kirchhoff shell solution,
+`‖e‖_E / ‖u‖_E` over membrane plus bending energy.
+
+The exact field is supplied with `prescribe!`.
+
+# Keyword arguments
+Material constants are keywords where the operator needs them; see the
+signature above.
+
+# Element requirements
+`set∇²𝝭!` — reads `ξ[:𝝭]`, the first and second derivatives, the surface
+metric and the exact field.
+"""
 function Hₑ_ThinShell(ap::T) where T<:AbstractElement
     ΔW²= 0
     W̄² = 0
     Δu²= 0
     ū² = 0
-    E = op.E
-    ν = op.ν
-    h = op.h
+    E = ap.𝓖[1].E
+    ν = ap.𝓖[1].ν
+    h = ap.𝓖[1].h
     Dᵐ = E*h/(1-ν^2)
     Dᵇ = E*h^3/12/(1-ν^2)
     for ξ in ap.𝓖
@@ -1838,6 +2183,22 @@ function Hₑ_ThinShell(ap::T) where T<:AbstractElement
     return ΔW², W̄², Δu², ū²
 end
 
+"""
+    Hₑ_ThinShell(aps::Vector{T})
+
+Relative energy-norm error of a Kirchhoff shell solution,
+`‖e‖_E / ‖u‖_E` over membrane plus bending energy.
+
+The exact field is supplied with `prescribe!`.
+
+# Keyword arguments
+Material constants are keywords where the operator needs them; see the
+signature above.
+
+# Element requirements
+`set∇²𝝭!` — reads `ξ[:𝝭]`, the first and second derivatives, the surface
+metric and the exact field.
+"""
 function Hₑ_ThinShell(aps::Vector{T}) where T<:AbstractElement
     HₑNorm_ΔW²= 0.0
     HₑNorm_W̄² = 0.0

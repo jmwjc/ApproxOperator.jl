@@ -1,7 +1,15 @@
 
-function (op::Operator{:∫v²uₓuₓdx})(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
+"""
+    ∫v²uₓuₓdx(ap::T;k::AbstractMatrix{Float64})
+
+Element-set overload of `∫v²uₓuₓdx`: the same integrand, summed over
+a vector of elements. See the element-level method for the formula.
+
+# Element requirements
+`set∇𝝭!` — reads the quadrature-point fields of the operator body.
+"""
+function ∫v²uₓuₓdx(ap::T, k::AbstractMatrix{Float64}; η::Real = 1.0e-8) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    η = op.η
     for ξ in 𝓖
         N = ξ[:𝝭]
         B = ξ[:∂𝝭∂x]
@@ -17,10 +25,28 @@ function (op::Operator{:∫v²uₓuₓdx})(ap::T;k::AbstractMatrix{Float64}) whe
     end
 end
 
-function (op::Operator{:∫vₓvₓvvdx_hard_device})(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+"""
+    ∫vₓvₓvvdx(ap, k, f; l)
+    ∫vₓvₓvvdx_hard_device(ap, k, f; l)
+
+1-D phase-field damage equation, AT2 model.
+
+    k[I,J] = ∫ (k_c(2l Bᵢ Bⱼ + Nᵢ Nⱼ/(2l)) + ℋ Nᵢ Nⱼ) w
+    f[I]   = ∫ k_c Nᵢ/(2l) w
+
+`l` is the length-scale parameter controlling the diffuse crack width and `k_c`
+the fracture toughness (read as `ξ.k`). `ℋ` is the history field driving the
+damage, updated by the caller each step. The `_hard_device` variant omits the
+history term and uses the current strain directly.
+
+# Keyword arguments
+- `l` : phase-field length scale
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:𝝭]`, `ξ[:∂𝝭∂x]`, `ξ.ℋ`, `ξ.k`, `ξ.𝑤`.
+"""
+function ∫vₓvₓvvdx_hard_device(ap::T, k::AbstractMatrix{Float64}, f::AbstractVector{Float64}; l::Real, η::Real = 1.0e-8, kc::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    kc = op.k
-    l = op.l
     for ξ in 𝓖
         N = ξ[:𝝭]
         B = ξ[:∂𝝭∂x]
@@ -42,11 +68,17 @@ function (op::Operator{:∫vₓvₓvvdx_hard_device})(ap::T;k::AbstractMatrix{Fl
     end
 end
 
-function (op::Operator{:∫vₓvₓvvdx})(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+"""
+    ∫vₓvₓvvdx(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}, l)
+
+Element-set overload of `∫vₓvₓvvdx`: the same integrand, summed over
+a vector of elements. See the element-level method for the formula.
+
+# Element requirements
+`set∇𝝭!` — reads the quadrature-point fields of the operator body.
+"""
+function ∫vₓvₓvvdx(ap::T, k::AbstractMatrix{Float64}, f::AbstractVector{Float64}; l::Real, η::Real = 1.0e-8, kc::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    kc = op.k
-    l = op.l
-    η = op.η
     for ξ in 𝓖
         N = ξ[:𝝭]
         B = ξ[:∂𝝭∂x]
@@ -72,13 +104,26 @@ function (op::Operator{:∫vₓvₓvvdx})(ap::T;k::AbstractMatrix{Float64},f::Ab
     end
 end
 
-function (op::Operator{:UPDATE_PFM_1D})(ap::T) where T<:AbstractElement
+"""
+    UPDATE_PFM_1D(ap::T)
+
+Advance the 1-D phase-field history variable: `ℋ ← max(ℋ, (ε-1)²)` at every
+quadrature point. Stateful — call once per load step before assembling.
+
+
+    ℋ ← max(ℋ, (ε - 1)²)        at every quadrature point
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ.ℋ`, and the nodal displacement.
+"""
+function UPDATE_PFM_1D(ap::T; η::Real = 1.0e-8) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    η = op.η
     for ξ in 𝓖
         N = ξ[:𝝭]
         B = ξ[:∂𝝭∂x]
         ℋ = ξ.ℋ
+        ε = 0.0
+        v = 0.0
         for (i,xᵢ) in enumerate(𝓒)
             ε += B[i]*xᵢ.u
             v += N[i]*xᵢ.v
@@ -86,11 +131,23 @@ function (op::Operator{:UPDATE_PFM_1D})(ap::T) where T<:AbstractElement
         ξ.ℋ = max(ℋ,(v^2+η)*ε^2)
     end
 end
-function (op::Operator{:∫∫∇v∇vvvdxdy})(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+"""
+    ∫∫∇v∇vvvdxdy(ap, k, f; l)
+
+2-D phase-field damage equation, AT2 model.
+
+Two-dimensional counterpart of [`∫vₓvₓvvdx`](@ref):
+
+    k[I,J] += (k_c(2l ∇Nᵢ·∇Nⱼ + Nᵢ Nⱼ/(2l)) + ℋ Nᵢ Nⱼ) w
+
+# Keyword arguments
+- `l` : phase-field length scale
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:𝝭]`, `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.ℋ`, `ξ.k`, `ξ.𝑤`.
+"""
+function ∫∫∇v∇vvvdxdy(ap::T, k::AbstractMatrix{Float64}, f::AbstractVector{Float64}; l::Real, η::Real = 1.0e-8, kc::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    kc = op.k
-    l = op.l
-    η = op.η
     for ξ in 𝓖
         N = ξ[:𝝭]
         B₁ = ξ[:∂𝝭∂x]
@@ -120,7 +177,19 @@ function (op::Operator{:∫∫∇v∇vvvdxdy})(ap::T;k::AbstractMatrix{Float64},
     end
 end
 
-function (op::Operator{:UPDATE_PFM_2D})(ap::T) where T<:AbstractElement
+"""
+    UPDATE_PFM_2D(ap::T)
+
+Advance the 2-D phase-field history variable from the strain energy,
+`ℋ ← max(ℋ, ψ⁺(ε))`. Stateful — call once per load step.
+
+
+    ℋ ← max(ℋ, ψ⁺(ε))           at every quadrature point
+
+# Element requirements
+`set∇𝝭!` — reads the gradients, `ξ.ℋ`, and the nodal displacement.
+"""
+function UPDATE_PFM_2D(ap::T; η::Real = 1.0e-8) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         N = ξ[:𝝭]
@@ -144,8 +213,19 @@ function (op::Operator{:UPDATE_PFM_2D})(ap::T) where T<:AbstractElement
     end
 end
 
-function (op::Operator{:CRACK_NORMAL})(aps::Vector{T},nodes::Vector{N},v::Vector{Float64}) where {T<:AbstractElement,N<:Node}
-    l = op.l
+"""
+    CRACK_NORMAL(aps::Vector{T},nodes::Vector{N},v::Vector{Float64})
+
+Compute the crack normal at each quadrature point from the damage gradient,
+`n = -∇v/|∇v|`, and write it back into the quadrature point.
+
+
+    𝒏 ← -∇v / |∇v|              at every quadrature point
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, and the nodal damage.
+"""
+function CRACK_NORMAL(aps::Vector{T},nodes::Vector{N},v::Vector{Float64}) where {T<:AbstractElement,N<:Node}
     Γtmp = findall(x->x<0.02,v)
     Γfinal = Int[]
     # 循环，当Γtmp不为空时
@@ -211,4 +291,19 @@ function (op::Operator{:CRACK_NORMAL})(aps::Vector{T},nodes::Vector{N},v::Vector
             end
         end
     end
+end
+
+"""
+    ∫vₓvₓvvdx(aps, k, f; l, η)
+
+Element-set overload of [`∫vₓvₓvvdx`](@ref): the same integrand, summed over
+the elements of `aps`.
+"""
+function ∫vₓvₓvvdx(aps::Vector{T}, k::AbstractMatrix{Float64},
+                    f::AbstractVector{Float64}; l::Real, η::Real = 1.0e-8,
+                    kc::Real) where T<:AbstractElement
+    for ap in aps
+        ∫vₓvₓvvdx(ap, k, f; l = l, η = η, kc = kc)
+    end
+    return k, f
 end

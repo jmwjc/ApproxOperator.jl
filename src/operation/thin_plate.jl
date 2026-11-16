@@ -2,10 +2,25 @@ module KirchhoffPlate
     
 using ..ApproxOperator: AbstractElement
 
-function ∫κᵢⱼMᵢⱼdΩ(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+"""
+    ∫κᵢⱼMᵢⱼdΩ(ap, k; D, ν)
+
+Kirchhoff plate bending stiffness, `∫ κᵢⱼ(w) Mᵢⱼ(v) dΩ`.
+
+    a(w,v) = ∫_Ω D[∇²w ∇²v + ν(∇²w v,ₓᵧ + w,ₓᵧ ∇²v) + 2(1-ν) w,ₓᵧ v,ₓᵧ] dΩ
+
+The `w,ₓᵧ` terms mean the mixed second derivative, read from
+`ξ[:∂²𝝭∂x∂y]`. Requires a C¹ element: `set∇²𝝭!`.
+
+# Keyword arguments
+- `D` : bending stiffness `E h³ / (12(1-ν²))`
+- `ν` : Poisson ratio
+
+# Element requirements
+`set∇²𝝭!` — reads `ξ[:∂²𝝭∂x²]`, `ξ[:∂²𝝭∂x∂y]`, `ξ[:∂²𝝭∂y²]`, `ξ.𝑤`.
+"""
+function ∫κᵢⱼMᵢⱼdΩ(ap::T,k::AbstractMatrix{Float64}; ν::Real, D::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    D = op.D
-    ν = op.ν
     for ξ in 𝓖
         B₁₁ = ξ[:∂²𝝭∂x²]
         B₁₂ = ξ[:∂²𝝭∂x∂y]
@@ -21,10 +36,25 @@ function ∫κᵢⱼMᵢⱼdΩ(ap::T,k::AbstractMatrix{Float64}) where T<:Abstra
     end
 end
 
-function ∫κ̃ᵢⱼM̃ᵢⱼdΩ(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+"""
+    ∫κ̃ᵢⱼM̃ᵢⱼdΩ(ap, k; D, ν)
+
+Kirchhoff plate bending stiffness with the **symmetric** mixed-derivative
+treatment.
+
+Identical to [`∫κᵢⱼMᵢⱼdΩ`](@ref) except that both `w,ₓᵧ` and `w,ᵧₓ` are kept
+(`ξ[:∂²𝝭∂y∂x]` in addition to `ξ[:∂²𝝭∂x∂y]`), which is the form needed when
+the approximation is not C¹ in the mixed derivative.
+
+# Keyword arguments
+- `D` : bending stiffness `E h³ / (12(1-ν²))`
+- `ν` : Poisson ratio
+
+# Element requirements
+`set∇²𝝭!` — reads `ξ[:∂²𝝭∂x²]`, `ξ[:∂²𝝭∂x∂y]`, `ξ[:∂²𝝭∂y²]`, `ξ.𝑤`.
+"""
+function ∫κ̃ᵢⱼM̃ᵢⱼdΩ(ap::T,k::AbstractMatrix{Float64}; ν::Real, D::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    D = op.D
-    ν = op.ν
     for ξ in 𝓖
         B₁₁ = ξ[:∂²𝝭∂x²]
         B₁₂ = ξ[:∂²𝝭∂x∂y]
@@ -41,6 +71,14 @@ function ∫κ̃ᵢⱼM̃ᵢⱼdΩ(ap::T,k::AbstractMatrix{Float64}) where T<:Ab
     end
 end
 
+"""
+    ∫wqdΩ(ap::T,f::AbstractVector{Float64})
+
+Transverse load vector, `f[I] += ∫ q Nᵢ dΩ`.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.q`, `ξ.𝑤`.
+"""
 function ∫wqdΩ(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -54,6 +92,14 @@ function ∫wqdΩ(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
     end
 end
 
+"""
+    ∫wVdΓ(ap::T,f::AbstractVector{Float64})
+
+Kirchhoff shear boundary load `∫ V Nᵢ dΓ`.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.V`, `ξ.𝑤`.
+"""
 function ∫wVdΓ(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -67,6 +113,14 @@ function ∫wVdΓ(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
     end
 end
 
+"""
+    ∫θₙMₙₙdΓ(ap::T,f::AbstractVector{Float64})
+
+Rotation–moment boundary coupling `∫ θₙ Mₙₙ dΓ`.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.M`, `ξ.𝑤`.
+"""
 function ∫θₙMₙₙdΓ(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -83,6 +137,14 @@ function ∫θₙMₙₙdΓ(ap::T,f::AbstractVector{Float64}) where T<:AbstractE
     end
 end
 
+"""
+    ∫∇wMdΓ(ap::T,f::AbstractVector{Float64})
+
+Deflection-gradient boundary term `∫ (∂ₙw) M dΓ`.
+
+# Element requirements
+`set∇𝝭!` — reads gradients, `ξ.M`, `ξ.n₁`, `ξ.n₂`, `ξ.𝑤`.
+"""
 function ∫∇wMdΓ(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     n₁,n₂ = get𝒏(ap)
@@ -99,9 +161,16 @@ function ∫∇wMdΓ(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
     end
 end
 
+"""
+    ∫∇𝑛vθdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64})
+
+Boundary penalty on the normal derivative, `α ∫ (∂ₙw) θ dΓ`.
+
+# Element requirements
+`set∇𝝭!` — reads gradients, `ξ.n₁`, `ξ.n₂`, `ξ.θ`, `ξ.𝑤`.
+"""
 function ∫∇𝑛vθdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    α = op.α
     for ξ in 𝓖
         𝑤 = ξ.𝑤
         n₁ = ξ.n₁
@@ -122,11 +191,23 @@ function ∫∇𝑛vθdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Flo
     end
 end
 
-function ∫MₙₙθdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+"""
+    ∫MₙₙθdΓ(ap, k, f; D, ν)
+
+Kirchhoff plate boundary term `∫ (Mₙₙ(w) + α θ) θ̄ dΓ` — normal bending moment
+plus penalty, as used in the weak (Nitsche/penalty) free-edge condition.
+
+    Mₙₙ = -D[(n₁² + νn₂²) w,ₓₓ + 2(1-ν)n₁n₂ w,ₓᵧ + (νn₁² + n₂²) w,ᵧᵧ]
+
+# Keyword arguments
+- `D` : bending stiffness
+- `ν` : Poisson ratio
+
+# Element requirements
+`set∇²𝝭!` — reads the second derivatives, `ξ.n₁`, `ξ.n₂`, `ξ.θ`, `ξ.𝑤`.
+"""
+function ∫MₙₙθdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}; ν::Real, D::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    α = op.α
-    D = op.D
-    ν = op.ν
     for ξ in 𝓖
         𝑤 = ξ.𝑤
         n₁ = ξ.n₁
@@ -155,11 +236,27 @@ function ∫MₙₙθdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Floa
     end
 end
 
-function ∫VgdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+"""
+    ∫VgdΓ(ap, k, f; D, ν)
+
+Kirchhoff plate Kirchhoff-shear boundary term, `∫ (Vₙ(w) + α w) ḡ dΓ`.
+
+    Vₙ = -D[∂ₙ∇²w + (1-ν)∂ₛ(w,ₙₛ)]
+
+The effective shear force is the combination of the twisting-moment derivative
+and the normal derivative of the Laplacian; the `α` term is the penalty that
+closes the weak form.
+
+# Keyword arguments
+- `D` : bending stiffness
+- `ν` : Poisson ratio
+
+# Element requirements
+`set∇²𝝭!` — reads the second derivatives, `ξ.n₁`, `ξ.n₂`, `ξ.s₁`, `ξ.s₂`,
+`ξ.g`, `ξ.𝑤`.
+"""
+function ∫VgdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}; ν::Real, D::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    α = op.α
-    D = op.D
-    ν = op.ν
     for ξ in 𝓖
         𝑤 = ξ.𝑤
         n₁ = ξ.n₁
@@ -189,14 +286,23 @@ function ∫VgdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) w
     end
 end
 
+"""
+    ∫M̃ₙₙθdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64})
+
+Element-set overload of `∫M̃ₙₙθdΓ`: the same integrand, summed over
+a vector of elements. See the element-level method for the formula.
+
+# Element requirements
+`set∇𝝭!` — reads the quadrature-point fields of the operator body.
+"""
 function ∫M̃ₙₙθdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     n₁ = 𝓖[1].n₁
     n₂ = 𝓖[1].n₂
     s₁ = 𝓖[1].s₁
     s₂ = 𝓖[1].s₂
-    D = op.D
-    ν = op.ν
+    D = 𝓖[1].D
+    ν = 𝓖[1].ν
     D₁₁ = -D*(n₁^2+ν*n₂^2)
     D₁₂ = -2*D*n₁*n₂*(1-ν)
     D₂₂ = -D*(ν*n₁^2+n₂^2)
@@ -227,14 +333,23 @@ function ∫M̃ₙₙθdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Fl
     end
 end
 
+"""
+    ∫ṼgdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64})
+
+Element-set overload of `∫ṼgdΓ`: the same integrand, summed over
+a vector of elements. See the element-level method for the formula.
+
+# Element requirements
+`set∇𝝭!` — reads the quadrature-point fields of the operator body.
+"""
 function ∫ṼgdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     n₁ = 𝓖[1].n₁
     n₂ = 𝓖[1].n₂
     s₁ = 𝓖[1].s₁
     s₂ = 𝓖[1].s₂
-    D = op.D
-    ν = op.ν
+    D = 𝓖[1].D
+    ν = 𝓖[1].ν
     D₁₁₁ = -D*(n₁ + n₁*s₁*s₁ + ν*n₂*s₁*s₂)
     D₁₁₂ = -D*(n₁*s₁*s₂ + (n₂*s₂*s₂ + n₂)*ν)
     D₁₂₁ = -D*(n₂ + n₂*s₁*s₁ + n₁*s₁*s₂ + (-n₂ - n₂*s₁*s₁ - n₁*s₁*s₂)*ν)
@@ -271,6 +386,14 @@ function ∫ṼgdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64})
     end
 end
 
+"""
+    wΔMₙₛ(ap::T,f::AbstractVector{Float64})
+
+Corner-force load of the Kirchhoff plate, `∫ w ΔMₙₛ`.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.Δ`, `ξ.𝑤`.
+"""
 function wΔMₙₛ(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -283,11 +406,26 @@ function wΔMₙₛ(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
     end
 end
 
-function ΔMₙₛg(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+"""
+    ΔMₙₛg(ap, k, f; D, ν)
+    ΔM̃ₙₛg(ap, k, f; D, ν)
+
+Corner-force terms of the Kirchhoff plate, `∫ ΔMₙₛ ḡ`.
+
+At a boundary corner the twisting moment `Mₙₛ` jumps; the jump `ΔMₙₛ` acts as a
+concentrated force. `ξ.Δ` carries the corner sign (+1, -1 or 0 at a smooth
+point), which is why the quadrature rule includes the boundary endpoints.
+
+# Keyword arguments
+- `D` : bending stiffness
+- `ν` : Poisson ratio
+
+# Element requirements
+`set∇²𝝭!` — reads the second derivatives, `ξ.n₁`, `ξ.n₂`, `ξ.s₁`, `ξ.s₂`,
+`ξ.Δ`, `ξ.g`, `ξ.𝑤`.
+"""
+function ΔMₙₛg(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}; ν::Real, D::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    D = op.D
-    ν = op.ν
-    α = op.α
     for ξ in 𝓖
         Δn₁s₁ = ξ.Δn₁s₁
         Δn₁s₂n₂s₁ = ξ.Δn₁s₂n₂s₁
@@ -313,10 +451,20 @@ function ΔMₙₛg(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64})
     end
 end
 
-function ΔM̃ₙₛg(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+"""
+    ΔM̃ₙₛg(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}; ν, D)
+
+Element-set overload of `ΔM̃ₙₛg`: the same integrand, summed over
+a vector of elements. See the element-level method for the formula.
+
+
+    ∫ ΔM̃ₙₛ ḡ dΓ,  the symmetric-mixed-derivative twin of `ΔMₙₛg`.
+
+# Element requirements
+`set∇𝝭!` — reads the quadrature-point fields of the operator body.
+"""
+function ΔM̃ₙₛg(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}; ν::Real, D::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    D = op.D
-    ν = op.ν
     for ξ in 𝓖
         Δn₁s₁ = ξ.Δn₁s₁
         Δn₁s₂n₂s₁ = ξ.Δn₁s₂n₂s₁

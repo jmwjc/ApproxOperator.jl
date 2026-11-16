@@ -1,4 +1,111 @@
 
+_quadratic_edge_key(i::Int,j::Int) = i < j ? (i,j) : (j,i)
+_quadratic_edge_key(xᵢ::𝑿ᵢ,xⱼ::𝑿ᵢ) = _quadratic_edge_key(xᵢ.𝐼,xⱼ.𝐼)
+
+function _quadratic_midpoint_node!(
+    nodes::Vector{𝑿ᵢ},
+    midside_nodes::Dict{Tuple{Int,Int},Int},
+    xᵢ::𝑿ᵢ,
+    xⱼ::𝑿ᵢ,
+)
+    key = _quadratic_edge_key(xᵢ,xⱼ)
+    if haskey(midside_nodes,key)
+        return nodes[midside_nodes[key]]
+    end
+
+    data = getfield(nodes[1],:data)
+    xₘ = 0.5*(xᵢ.x+xⱼ.x)
+    yₘ = 0.5*(xᵢ.y+xⱼ.y)
+    zₘ = 0.5*(xᵢ.z+xⱼ.z)
+    for (s,(i,v)) in data
+        i == 1 || continue
+        if s == :x
+            push!(v,xₘ)
+        elseif s == :y
+            push!(v,yₘ)
+        elseif s == :z
+            push!(v,zₘ)
+        else
+            push!(v,0.0)
+        end
+    end
+    𝐼 = length(nodes) + 1
+    push!(nodes,𝑿ᵢ((𝐼=𝐼,),data))
+    midside_nodes[key] = 𝐼
+    return nodes[𝐼]
+end
+
+function Tri3toTri6!(
+    nodes::Vector{𝑿ᵢ},
+    as::Vector{T},
+    midside_nodes::Dict{Tuple{Int,Int},Int}=Dict{Tuple{Int,Int},Int}(),
+) where T<:AbstractElement
+    elms = Element{:Tri6}[]
+    data𝓖 = getfield(as[1].𝓖[1],:data)
+    s = 0
+    for a in as
+        𝓒 = a.𝓒
+        𝓖 = a.𝓖
+        if length(𝓒) == 6
+            𝓒_ = 𝓒
+            midside_nodes[_quadratic_edge_key(𝓒[1],𝓒[2])] = 𝓒[4].𝐼
+            midside_nodes[_quadratic_edge_key(𝓒[2],𝓒[3])] = 𝓒[5].𝐼
+            midside_nodes[_quadratic_edge_key(𝓒[3],𝓒[1])] = 𝓒[6].𝐼
+        elseif length(𝓒) == 3
+            𝓒_ = [
+                𝓒[1],
+                𝓒[2],
+                𝓒[3],
+                _quadratic_midpoint_node!(nodes,midside_nodes,𝓒[1],𝓒[2]),
+                _quadratic_midpoint_node!(nodes,midside_nodes,𝓒[2],𝓒[3]),
+                _quadratic_midpoint_node!(nodes,midside_nodes,𝓒[3],𝓒[1]),
+            ]
+        else
+            error("Tri3toTri6! expects 3-node or 6-node triangle elements.")
+        end
+        𝓖_ = 𝑿ₛ[]
+        for ξ in 𝓖
+            push!(𝓖_,𝑿ₛ((𝑔=ξ.𝑔,𝐺=ξ.𝐺,𝐶=ξ.𝐶,𝑠=s),data𝓖))
+            s += length(𝓒_)
+        end
+        push!(elms,Element{:Tri6}(𝓒_,𝓖_))
+    end
+    return elms, midside_nodes
+end
+
+function Seg2toSeg3!(
+    nodes::Vector{𝑿ᵢ},
+    as::Vector{T},
+    midside_nodes::Dict{Tuple{Int,Int},Int}=Dict{Tuple{Int,Int},Int}(),
+) where T<:AbstractElement
+    elms = Element{:Seg3}[]
+    data𝓖 = getfield(as[1].𝓖[1],:data)
+    s = 0
+    for a in as
+        𝓒 = a.𝓒
+        𝓖 = a.𝓖
+        if length(𝓒) == 3
+            𝓒_ = 𝓒
+            midside_nodes[_quadratic_edge_key(𝓒[1],𝓒[2])] = 𝓒[3].𝐼
+        elseif length(𝓒) == 2
+            𝓒_ = [
+                𝓒[1],
+                𝓒[2],
+                _quadratic_midpoint_node!(nodes,midside_nodes,𝓒[1],𝓒[2]),
+            ]
+        else
+            error("Seg2toSeg3! expects 2-node or 3-node segment elements.")
+        end
+        𝓖_ = 𝑿ₛ[]
+        for ξ in 𝓖
+            push!(𝓖_,𝑿ₛ((𝑔=ξ.𝑔,𝐺=ξ.𝐺,𝐶=ξ.𝐶,𝑠=s),data𝓖))
+            s += length(𝓒_)
+        end
+        push!(elms,Element{:Seg3}(𝓒_,𝓖_))
+    end
+    return elms
+end
+
 
 function Seg2toTri3(seg2::Vector{T},tri3::Vector{S}) where {T,S<:AbstractElement}
     elms = Element{:Tri3}[]
@@ -293,4 +400,140 @@ function getTriEdgeIndices(as::Vector{T}) where T<:AbstractElement
         push!(indices,(𝓒[3].𝐼,𝓒[2].𝐼))
     end
     return unique!(indices)
+end
+
+function Tri3toTRTri3(as::Vector{T},as_Γ::Vector{S}) where {T,S<:AbstractElement}
+    nodes = 𝑿ⱼ[]
+    elms_Γ = Element{:Seg2}[]
+    𝑿ᵢs = [Set((a.𝓒...,)) for a in as_Γ]
+    unique!(𝑿ᵢs)
+
+    for xᵢs in 𝑿ᵢs
+        a = filter(x->Set(x.𝓒)==xᵢs,as_Γ)[1]
+        𝓒 = collect(xᵢs)
+        𝓖 = a.𝓖
+        push!(elms_Γ,Element{:Seg2}(𝓒,𝓖))
+    end
+
+    elms = TRElement{:Tri3}[]
+    data𝓒 = Dict{Symbol,Tuple{Int,Vector{Float64}}}([
+        :x => (2,getfield(as[1].𝓒[1],:data)[:x][2]),
+        :y => (2,getfield(as[1].𝓒[1],:data)[:y][2]),
+        :z => (2,getfield(as[1].𝓒[1],:data)[:z][2])
+    ])
+
+    # data𝓖 = Dict{Symbol,Tuple{Int,Vector{Float64}}}([
+    for a in as
+        𝓒_ = a.𝓒
+        𝓖 = a.𝓖
+        𝓒 = 𝑿ⱼ[]
+        𝑿ᵢs_ = [
+            Set((𝓒_[2],𝓒_[3])),
+            Set((𝓒_[3],𝓒_[1])),
+            Set((𝓒_[1],𝓒_[2]))
+        ]
+        for (i,xᵢ) in enumerate(𝓒_)
+            𝐽 = xᵢ.𝐼
+            𝐼 = findfirst(x->x==𝑿ᵢs_[i],𝑿ᵢs)
+            xⱼ = 𝑿ⱼ((𝐼,𝐽),data𝓒)
+            push!(𝓒,xⱼ)
+            push!(nodes,xⱼ)
+        end
+        push!(elms,TRElement{:Tri3}(𝓒,𝓖))
+    end
+    return elms, elms_Γ, nodes
+end
+
+function Tri3toDTRTri3(as::Vector{T},as_Γ::Vector{S}) where {T,S<:AbstractElement}
+    𝑿ᵢs = [(a.𝓒...,) for a in as_Γ]
+    elms = TRElement{:Tri3}[]
+    data𝓒 = Dict{Symbol,Tuple{Int,Vector{Float64}}}([
+        :x => (2,getfield(as[1].𝓒[1],:data)[:x][2]),
+        :y => (2,getfield(as[1].𝓒[1],:data)[:y][2]),
+        :z => (2,getfield(as[1].𝓒[1],:data)[:z][2])
+    ])
+
+    # data𝓖 = Dict{Symbol,Tuple{Int,Vector{Float64}}}([
+    for a in as
+        𝓒_ = a.𝓒
+        𝓖 = a.𝓖
+        𝓒 = 𝑿ⱼ[]
+        𝑿ᵢs_ = [
+            (𝓒_[2],𝓒_[3]),
+            (𝓒_[3],𝓒_[1]),
+            (𝓒_[1],𝓒_[2])
+        ]
+        for (i,xᵢ) in enumerate(𝓒_)
+            𝐽 = xᵢ.𝐼
+            𝐼 = findfirst(x->x==𝑿ᵢs_[i],𝑿ᵢs)
+            xⱼ = 𝑿ⱼ((𝐼,𝐽),data𝓒)
+            push!(𝓒,xⱼ)
+        end
+        push!(elms,TRElement{:Tri3}(𝓒,𝓖))
+    end
+    return elms, Seg2toTRTri3(as_Γ,elms)
+end
+
+function Seg2toTRTri3(seg2::Vector{T},tri3::Vector{S}) where {T,S<:AbstractElement}
+    elms = TRElement{:Tri3}[]
+    data = Dict{Symbol,Tuple{Int,Vector{Float64}}}()
+    data_seg2 = getfield(seg2[1].𝓖[1],:data)
+    nᵢ = length(data_seg2[:w][2])
+    data[:w] = data_seg2[:w]
+    data[:x] = data_seg2[:x]
+    data[:y] = data_seg2[:y]
+    data[:z] = data_seg2[:z]
+    data[:𝑤] = data_seg2[:𝑤]
+    data[:𝐽] = (3,Float64[])
+    data[:ξ] = (2,Float64[])
+    data[:η] = (2,Float64[])
+
+    data[:n₁] = (3,Float64[])
+    data[:n₂] = (3,Float64[])
+    G = 0;C = 1;s = 0;
+    for elm_seg2 in seg2
+        𝓒_seg2 = elm_seg2.𝓒
+        indices_seg2 = [xᵢ.𝐼 for xᵢ in 𝓒_seg2]
+        𝓖_seg2 = elm_seg2.𝓖
+        for elm_tri3 in tri3
+            𝓒_tri3 = elm_tri3.𝓒
+            indices_tri3 = [xᵢ.𝐽 for xᵢ in 𝓒_tri3]
+            indices = indexin(indices_seg2,indices_tri3)
+            if nothing ∉ indices
+                x₁ = 𝓒_seg2[1].x
+                y₁ = 𝓒_seg2[1].y
+                x₂ = 𝓒_seg2[2].x
+                y₂ = 𝓒_seg2[2].y
+                𝐿 = 2*elm_seg2.𝐽
+                if indices == [2,3]
+                    for ξ in 𝓖_seg2
+                        push!(data[:ξ][2],0.5*(1-ξ.ξ))
+                        push!(data[:η][2],0.5*(1+ξ.ξ))
+                    end
+                elseif indices == [3,1]
+                    for ξ in 𝓖_seg2
+                        push!(data[:ξ][2],0.0)
+                        push!(data[:η][2],0.5*(1-ξ.ξ))
+                    end
+                elseif indices == [1,2]
+                    for ξ in 𝓖_seg2
+                        push!(data[:ξ][2],0.5*(1+ξ.ξ))
+                        push!(data[:η][2],0.0)
+                    end
+                else
+                    continue
+                end
+                push!(data[:𝐽][2],elm_tri3.𝐽)
+                push!(data[:n₁][2],(y₂-y₁)/𝐿)
+                push!(data[:n₂][2],(x₁-x₂)/𝐿)
+                𝓖 = [𝑿ₛ((𝑔=g,𝐺=G+g,𝐶=C,𝑠=s+3*(g-1)),data) for g in 1:nᵢ]
+                push!(elms, TRElement{:Tri3}(𝓒_tri3,𝓖))
+                G += nᵢ
+                C += 1
+                s += 3*nᵢ
+                break
+            end
+        end
+    end
+    return elms
 end

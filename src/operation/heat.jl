@@ -2,12 +2,25 @@ module Heat
 
 using ..ApproxOperator: AbstractElement
 
-function ∫∇v∇udx(ap::T,k::AbstractMatrix) where T<:AbstractElement
+"""
+    ∫∇v∇udx(ap, k; kᶜ)
+
+One-dimensional conduction stiffness, `∫ k ∇v ∇u dx`.
+
+    kᶜ = ξ.k  is the thermal conductivity, passed as the keyword `kᶜ`
+    (not `k`, which is the stiffness matrix argument).
+
+# Keyword arguments
+- `kᶜ` : thermal conductivity
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ.𝑤`.
+"""
+function ∫∇v∇udx(ap::T,k::AbstractMatrix; kᶜ::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         B₁ = ξ[:∂𝝭∂x]
         𝑤 = ξ.𝑤
-        kᶜ = ξ.k
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
@@ -18,13 +31,23 @@ function ∫∇v∇udx(ap::T,k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
-function ∫∫∇v∇udxdy(ap::T,k::AbstractMatrix) where T<:AbstractElement
+"""
+    ∫∫∇v∇udxdy(ap, k; kᶜ)
+
+Two-dimensional conduction stiffness, `∫ k ∇v·∇u dΩ`.
+
+# Keyword arguments
+- `kᶜ` : thermal conductivity
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`.
+"""
+function ∫∫∇v∇udxdy(ap::T,k::AbstractMatrix; kᶜ::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
         𝑤 = ξ.𝑤
-        kᶜ = ξ.k
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
@@ -35,14 +58,24 @@ function ∫∫∇v∇udxdy(ap::T,k::AbstractMatrix) where T<:AbstractElement
     end
 end
     
-function ∫∇v∇udΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
+"""
+    ∫∇v∇udΩ(ap, k; kᶜ)
+
+Three-dimensional conduction stiffness, `∫ k ∇v·∇u dΩ`.
+
+# Keyword arguments
+- `kᶜ` : thermal conductivity
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ[:∂𝝭∂z]`, `ξ.𝑤`.
+"""
+function ∫∇v∇udΩ(ap::T,k::AbstractMatrix; kᶜ::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
         B₃ = ξ[:∂𝝭∂z]
         𝑤 = ξ.𝑤
-        kᶜ = ξ.k
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
@@ -53,6 +86,14 @@ function ∫∇v∇udΩ(ap::T,k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
+"""
+    ∫∫qᵢpᵢdxdy(ap::T,k::AbstractMatrix)
+
+Mass matrix of the heat-flux variable, `∫ q·p dΩ`.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.𝑤`.
+"""
 function ∫∫qᵢpᵢdxdy(ap::T,k::AbstractMatrix) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -69,6 +110,14 @@ function ∫∫qᵢpᵢdxdy(ap::T,k::AbstractMatrix) where T<:AbstractElement
     end
 end
 
+"""
+    ∫∫∇𝒑bdxdy(ap::T,k::AbstractMatrix,f::AbstractVector)
+
+Source coupling for the mixed heat formulation, `∫ (∇·p) b dΩ`.
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:𝝭]`, gradients, `ξ.b`, `ξ.𝑤`.
+"""
 function ∫∫∇𝒑bdxdy(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -91,6 +140,14 @@ function ∫∫∇𝒑bdxdy(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:
     end
 end
 
+"""
+    ∫∫𝒑∇udxdy(aₚ::T,aᵤ::S,k::AbstractMatrix)
+
+Flux–gradient coupling `∫ p·∇u dΩ`.
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:𝝭]`, gradients, `ξ.𝑤`.
+"""
 function ∫∫𝒑∇udxdy(aₚ::T,aᵤ::S,k::AbstractMatrix) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ᵤ = aᵤ.𝓒;𝓖ᵤ = aᵤ.𝓖
     𝓒ₚ = aₚ.𝓒;𝓖ₚ = aₚ.𝓖
@@ -99,9 +156,9 @@ function ∫∫𝒑∇udxdy(aₚ::T,aᵤ::S,k::AbstractMatrix) where {T<:Abstrac
         B₁ = ξᵤ[:∂𝝭∂x]
         B₂ = ξᵤ[:∂𝝭∂y]
         𝑤 = ξᵤ.𝑤
-        for (i,xᵢ) in enumerate(𝓒ᵤ)
+        for (i,xᵢ) in enumerate(𝓒ₚ)
             I = xᵢ.𝐼
-            for (j,xⱼ) in enumerate(𝓒ₚ)
+            for (j,xⱼ) in enumerate(𝓒ᵤ)
                 J = xⱼ.𝐼
                 k[2*I-1,J] -= N[i]*B₁[j]*𝑤
                 k[2*I,J]   -= N[i]*B₂[j]*𝑤
@@ -110,6 +167,14 @@ function ∫∫𝒑∇udxdy(aₚ::T,aᵤ::S,k::AbstractMatrix) where {T<:Abstrac
     end
 end
 
+"""
+    ∫∫∇𝒑udxdy(aₚ::T,aᵤ::S,k::AbstractMatrix)
+
+Transpose flux coupling `∫ (∇·p) u dΩ`.
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:𝝭]`, gradients, `ξ.𝑤`.
+"""
 function ∫∫∇𝒑udxdy(aₚ::T,aᵤ::S,k::AbstractMatrix) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ᵤ = aᵤ.𝓒;𝓖ᵤ = aᵤ.𝓖
     𝓒ₚ = aₚ.𝓒;𝓖ₚ = aₚ.𝓖
@@ -129,6 +194,14 @@ function ∫∫∇𝒑udxdy(aₚ::T,aᵤ::S,k::AbstractMatrix) where {T<:Abstrac
     end
 end
 
+"""
+    ∫pᵢnᵢuds(aₚ::T,aᵤ::S,k::AbstractMatrix)
+
+Boundary flux coupling `∫ (p·n) u ds`.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.n₁`, `ξ.n₂`, `ξ.𝑤`.
+"""
 function ∫pᵢnᵢuds(aₚ::T,aᵤ::S,k::AbstractMatrix) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ᵤ = aᵤ.𝓒;𝓖ᵤ = aᵤ.𝓖
     𝓒ₚ = aₚ.𝓒;𝓖ₚ = aₚ.𝓖
@@ -149,6 +222,14 @@ function ∫pᵢnᵢuds(aₚ::T,aᵤ::S,k::AbstractMatrix) where {T<:AbstractEle
     end
 end
 
+"""
+    ∫vbdΩ(ap::T,f::AbstractVector)
+
+Volumetric heat source load, `f[I] += ∫ b Nᵢ dΩ`.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.b`, `ξ.𝑤`.
+"""
 function ∫vbdΩ(ap::T,f::AbstractVector) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -162,6 +243,14 @@ function ∫vbdΩ(ap::T,f::AbstractVector) where T<:AbstractElement
     end
 end
 
+"""
+    ∫vtdΓ(ap::T,f::AbstractVector)
+
+Boundary heat flux load, `f[I] += ∫ t Nᵢ dΓ`.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.t`, `ξ.𝑤`.
+"""
 function ∫vtdΓ(ap::T,f::AbstractVector) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -175,13 +264,28 @@ function ∫vtdΓ(ap::T,f::AbstractVector) where T<:AbstractElement
     end
 end
 
-function ∫vgdΓ(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:AbstractElement
+"""
+    ∫vgdΓ(ap, k, f; α)
+
+Penalty enforcement of a Dirichlet condition, `α ∫ (u-g) v dΓ`.
+
+    k[I,J] += α Nᵢ Nⱼ w
+    f[I]   += α Nᵢ g w
+
+`g` is the prescribed boundary value, supplied with `prescribe!(el, :g => f)`.
+
+# Keyword arguments
+- `α` : penalty coefficient (large values enforce the constraint more strongly)
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.g`, `ξ.𝑤`.
+"""
+function ∫vgdΓ(ap::T,k::AbstractMatrix,f::AbstractVector; α::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
         g = ξ.g
-        α = ξ.α
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
@@ -193,6 +297,15 @@ function ∫vgdΓ(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:AbstractEl
     end
 end
 
+"""
+    ∫λgdΓ(a::T,b::S,k::AbstractMatrix,f::AbstractVector)
+
+Lagrange-multiplier boundary term `∫ λ g dΓ`. The single-element overload
+takes `λ` from the same set as the boundary data.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.g`, `ξ.𝑤`.
+"""
 function ∫λgdΓ(a::T,b::S,k::AbstractMatrix,f::AbstractVector) where {T<:AbstractElement,S<:AbstractElement}
     𝓒₁= a.𝓒; 𝓖₁= a.𝓖
     𝓒₂= b.𝓒; 𝓖₂= b.𝓖
@@ -212,6 +325,70 @@ function ∫λgdΓ(a::T,b::S,k::AbstractMatrix,f::AbstractVector) where {T<:Abst
     end
 end
 
+"""
+    ∫λudΓ(a::T,b::S,k::AbstractMatrix)
+
+Lagrange-multiplier coupling `∫ λ u dΓ`.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.𝑤`.
+"""
+function ∫λudΓ(a::T,b::S,k::AbstractMatrix) where {T<:AbstractElement,S<:AbstractElement}
+    𝓒₁= a.𝓒; 𝓖₁= a.𝓖
+    𝓒₂= b.𝓒; 𝓖₂= b.𝓖
+    for (ξ₁,ξ₂) in zip(𝓖₁,𝓖₂)
+        𝑤 = ξ₁.𝑤
+        N = ξ₁[:𝝭]
+        N̄ = ξ₂[:𝝭]
+        n₁ = ξ₁.n₁
+        n₂ = ξ₁.n₂
+        nₘ = abs(n₁) ≥ abs(n₂) ? sign(n₁) : sign(n₂)
+        for (i,xᵢ) in enumerate(𝓒₁)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒₂)
+                J = xⱼ.𝐼
+                # println(I,J)
+                # println(N[i])
+                # println(N̄[j])
+                k[I,J] += nₘ*N[i]*N̄[j]*𝑤
+            end
+        end
+    end
+end
+
+"""
+    ∫λgdΓ(a::T,f::AbstractVector)
+
+Lagrange-multiplier boundary term `∫ λ g dΓ`. The single-element overload
+takes `λ` from the same set as the boundary data.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.g`, `ξ.𝑤`.
+"""
+function ∫λgdΓ(a::T,f::AbstractVector) where T<:AbstractElement
+    𝓒= a.𝓒; 𝓖= a.𝓖
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        g = ξ.g
+        n₁ = ξ.n₁
+        n₂ = ξ.n₂
+        nₘ = abs(n₁) ≥ abs(n₂) ? sign(n₁) : sign(n₂)
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            f[I] += nₘ*N[i]*g*𝑤
+        end
+    end
+end
+
+"""
+    ∫∇𝑛vgdΓ(ap::T,k::AbstractMatrix,f::AbstractVector)
+
+Boundary normal-derivative load `∫ (∂ₙu) g dΓ`.
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:𝝭]`, gradients, `ξ.n₁`, `ξ.n₂`, `ξ.g`, `ξ.𝑤`.
+"""
 function ∫∇𝑛vgdΓ(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -235,7 +412,25 @@ function ∫∇𝑛vgdΓ(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:Abs
     end
 end
 
-function ∫∇𝑛vgds(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:AbstractElement
+"""
+    ∫∇𝑛vgds(ap, k, f; α, kᶜ)
+
+Nitsche-type weak boundary condition for convection–diffusion,
+`∫ (k ∂ₙu - α(u-g)) v ds`.
+
+    k[I,J] += -kᶜ((∂ₙNᵢ)Nⱼ + Nᵢ(∂ₙNⱼ)) + α Nᵢ Nⱼ
+    f[I]   += (-kᶜ ∂ₙNᵢ + α Nᵢ) g
+
+The `-kᶜ ∂ₙN` terms are the consistency (flux) part, the `α` terms the penalty.
+
+# Keyword arguments
+- `α`  : Nitsche penalty coefficient
+- `kᶜ` : thermal conductivity
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:𝝭]`, `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.n₁`, `ξ.n₂`, `ξ.g`, `ξ.𝑤`.
+"""
+function ∫∇𝑛vgds(ap::T,k::AbstractMatrix,f::AbstractVector, kᶜ::Real; α::Real) where T<:AbstractElement
     𝓒 = ap.𝓒;𝓖 = ap.𝓖
     for ξ in 𝓖
         N = ξ[:𝝭]
@@ -245,8 +440,6 @@ function ∫∇𝑛vgds(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:Abst
         n₁ = ξ.n₁
         n₂ = ξ.n₂
         g = ξ.g
-        kᶜ = ξ.k
-        α = ξ.α
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
@@ -258,7 +451,15 @@ function ∫∇𝑛vgds(ap::T,k::AbstractMatrix,f::AbstractVector) where T<:Abst
     end
 end
 
-function ∫pᵢnᵢgⱼds(aₚ::T,aᵤ::S,k::AbstractMatrix,f::AbstractVector) where {T<:AbstractElement,S<:AbstractElement}
+"""
+    ∫pᵢnᵢgds(aₚ::T,aᵤ::S,k::AbstractMatrix,f::AbstractVector)
+
+Boundary flux load `∫ (p·n) g ds`.
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.n₁`, `ξ.n₂`, `ξ.g`, `ξ.𝑤`.
+"""
+function ∫pᵢnᵢgds(aₚ::T,aᵤ::S,k::AbstractMatrix,f::AbstractVector) where {T<:AbstractElement,S<:AbstractElement}
     𝓒ᵤ = aᵤ.𝓒;𝓖ᵤ = aᵤ.𝓖
     𝓒ₚ = aₚ.𝓒;𝓖ₚ = aₚ.𝓖
     for (ξᵤ,ξₚ) in zip(𝓖ᵤ,𝓖ₚ)
@@ -281,6 +482,18 @@ function ∫pᵢnᵢgⱼds(aₚ::T,aᵤ::S,k::AbstractMatrix,f::AbstractVector) 
     end
 end
 
+"""
+    g(ap::T,k::AbstractMatrix,f::AbstractVector,dof::Symbol=:d)
+
+Assemble the prescribed boundary values into the right-hand side,
+`f[I] += Nᵢ g w`. The nodal field read is selected by `dof` (default `:d`).
+
+
+    f[I] += Σ_g Nᵢ(𝒙_g) g(𝒙_g) w_g
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.g`, `ξ.𝑤`.
+"""
 function g(ap::T,k::AbstractMatrix,f::AbstractVector,dof::Symbol=:d) where T<:AbstractElement
     x, = ap.𝓒
     j = x.𝐼
@@ -294,7 +507,23 @@ function g(ap::T,k::AbstractMatrix,f::AbstractVector,dof::Symbol=:d) where T<:Ab
     f[j] = g
 end
 
-function ∫vᵢnᵢuds(a₁::T,a₂::S;k::AbstractMatrix) where {T,S<:AbstractElement}
+"""
+    ∫vᵢnᵢuds(a₁, a₂; kᶜ)
+
+Two-set boundary flux coupling, `k ∫ (∂ₙu) v ds`, with test functions on `a₁`
+and trial functions on `a₂`.
+
+Used by mixed formulations where the trace of one field is tested against the
+normal derivative of another.
+
+# Keyword arguments
+- `kᶜ` : thermal conductivity
+
+# Element requirements
+`set∇𝝭!` on `a₁` — reads `ξ₁[:∂𝝭∂x]`, `ξ₁[:∂𝝭∂y]`, `ξ₁.n₁`, `ξ₁.n₂`; the
+`𝓖` lists of `a₁` and `a₂` are zipped.
+"""
+function ∫vᵢnᵢuds(a₁::T,a₂::S, k::AbstractMatrix; kᶜ::Real) where {T,S<:AbstractElement}
     𝓖 = zip(a₁.𝓖,a₂.𝓖)
     for (ξ₁,ξ₂) in 𝓖
         N = ξ₂[:𝝭]
@@ -303,7 +532,6 @@ function ∫vᵢnᵢuds(a₁::T,a₂::S;k::AbstractMatrix) where {T,S<:AbstractE
         𝑤 = ξ₁.𝑤
         n₁ = ξ₁.n₁
         n₂ = ξ₁.n₂
-        kᶜ = ξ.k
         for (i,xᵢ) in enumerate(a₁.𝓒)
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(a₂.𝓒)
@@ -314,7 +542,19 @@ function ∫vᵢnᵢuds(a₁::T,a₂::S;k::AbstractMatrix) where {T,S<:AbstractE
     end
 end
 
-function ∫vᵢnᵢgds(ap::T;f::AbstractVector) where T<:AbstractElement
+"""
+    ∫vᵢnᵢgds(ap; f, kᶜ)
+
+Boundary flux load, `k ∫ (∂ₙu) g ds` evaluated into `f`.
+
+# Keyword arguments
+- `kᶜ` : thermal conductivity
+- `f`  : output vector
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.n₁`, `ξ.n₂`, `ξ.g`, `ξ.𝑤`.
+"""
+function ∫vᵢnᵢgds(ap::T, f::AbstractVector; kᶜ::Real) where T<:AbstractElement
     𝓒 = ap.𝓒;𝓖 = ap.𝓖
     for ξ in 𝓖
         B₁ = ξ[:∂𝝭∂x]
@@ -323,7 +563,6 @@ function ∫vᵢnᵢgds(ap::T;f::AbstractVector) where T<:AbstractElement
         n₁ = ξ.n₁
         n₂ = ξ.n₂
         g = ξ.g
-        kᶜ = ξ.k
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
             f[I] += kᶜ*(B₁[i]*n₁+B₂[i]*n₂)*g*𝑤
@@ -331,6 +570,15 @@ function ∫vᵢnᵢgds(ap::T;f::AbstractVector) where T<:AbstractElement
     end
 end
 
+"""
+    ∫uds(aps::Vector{T})
+
+Element-set overload of `∫uds`: the same integrand, summed over
+a vector of elements. See the element-level method for the formula.
+
+# Element requirements
+`set∇𝝭!` — reads the quadrature-point fields of the operator body.
+"""
 function ∫uds(aps::Vector{T}) where T<:AbstractElement
     u = zeros(length(aps))
     for (c,ap) in enumerate(aps)
@@ -339,11 +587,20 @@ function ∫uds(aps::Vector{T}) where T<:AbstractElement
             𝑤 = ξ.𝑤
             u[c] += ξ.u*𝑤
         end
-        u[c] /= ap.𝐿
+        u[c] /= ap.𝐽*2
     end
     return u
 end
 
+"""
+    L₂(ap::T)
+
+Relative L₂ error of the corresponding field against an exact
+solution, `‖e‖/‖u‖`. The exact field is supplied with `prescribe!`.
+
+# Element requirements
+`set𝝭!` (or `set∇𝝭!` for an H¹ norm) — reads `ξ[:𝝭]`, `ξ.𝑤` and the exact field.
+"""
 function L₂(ap::T) where T<:AbstractElement
     Δu²= 0
     ū² = 0
@@ -361,6 +618,15 @@ function L₂(ap::T) where T<:AbstractElement
     return Δu², ū²
 end
 
+"""
+    L₂(aps::Vector{T})
+
+Relative L₂ error of the corresponding field against an exact
+solution, `‖e‖/‖u‖`. The exact field is supplied with `prescribe!`.
+
+# Element requirements
+`set𝝭!` (or `set∇𝝭!` for an H¹ norm) — reads `ξ[:𝝭]`, `ξ.𝑤` and the exact field.
+"""
 function L₂(aps::Vector{T}) where T<:AbstractElement
     L₂Norm_Δu²= 0.
     L₂Norm_ū² = 0.
@@ -372,6 +638,15 @@ function L₂(aps::Vector{T}) where T<:AbstractElement
     return (L₂Norm_Δu²/L₂Norm_ū²)^0.5
 end
 
+"""
+    L₂𝒑(ap::T)
+
+Relative L₂ error of the corresponding field against an exact
+solution, `‖e‖/‖u‖`. The exact field is supplied with `prescribe!`.
+
+# Element requirements
+`set𝝭!` (or `set∇𝝭!` for an H¹ norm) — reads `ξ[:𝝭]`, `ξ.𝑤` and the exact field.
+"""
 function L₂𝒑(ap::T) where T<:AbstractElement
     Δ𝒑²= 0.
     𝒑̄² = 0.
@@ -395,6 +670,15 @@ function L₂𝒑(ap::T) where T<:AbstractElement
     return Δ𝒑², 𝒑̄²
 end
 
+"""
+    L₂𝒑(aps::Vector{T})
+
+Relative L₂ error of the corresponding field against an exact
+solution, `‖e‖/‖u‖`. The exact field is supplied with `prescribe!`.
+
+# Element requirements
+`set𝝭!` (or `set∇𝝭!` for an H¹ norm) — reads `ξ[:𝝭]`, `ξ.𝑤` and the exact field.
+"""
 function L₂𝒑(aps::Vector{T}) where T<:AbstractElement
     L₂Norm_Δ𝒑²= 0
     L₂Norm_𝒑̄² = 0
@@ -406,6 +690,15 @@ function L₂𝒑(aps::Vector{T}) where T<:AbstractElement
     return (L₂Norm_Δ𝒑²/L₂Norm_𝒑̄²)^0.5
 end
 
+"""
+    H₁(ap::T)
+
+Relative H¹ error of the corresponding field against an exact
+solution, `‖e‖/‖u‖`. The exact field is supplied with `prescribe!`.
+
+# Element requirements
+`set𝝭!` (or `set∇𝝭!` for an H¹ norm) — reads `ξ[:𝝭]`, `ξ.𝑤` and the exact field.
+"""
 function H₁(ap::T) where T<:AbstractElement
     Δ∇u²= 0
     ∇ū² = 0
@@ -440,6 +733,15 @@ function H₁(ap::T) where T<:AbstractElement
     return Δ∇u², ∇ū², Δu², ū²
 end
 
+"""
+    H₁(aps::Vector{T})
+
+Relative H¹ error of the corresponding field against an exact
+solution, `‖e‖/‖u‖`. The exact field is supplied with `prescribe!`.
+
+# Element requirements
+`set𝝭!` (or `set∇𝝭!` for an H¹ norm) — reads `ξ[:𝝭]`, `ξ.𝑤` and the exact field.
+"""
 function H₁(aps::Vector{T}) where T<:AbstractElement
     H₁Norm_Δu²= 0
     H₁Norm_ū² = 0

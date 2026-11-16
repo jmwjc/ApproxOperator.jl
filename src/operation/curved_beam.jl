@@ -1,6 +1,21 @@
-function ∫vᵢθᵢds(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+"""
+    ∫vᵢθᵢds(ap, k, f)
+
+Curved-beam penalty/constraint term over the reference surface,
+
+    ∫ α (𝒏 · v)(𝒏 · θ) ds
+
+with `𝒏` the surface covector from `ξ.n₁₁`, `ξ.n₂₂`, `ξ.n₁₂` and the prescribed
+vector `gᵢ` from `ξ.g₁`, `ξ.g₂`, `ξ.g₃`. Three DOFs per node.
+
+# Keyword arguments
+- `α` : penalty coefficient
+
+# Element requirements
+`set𝝭!` — reads `ξ[:𝝭]`, `ξ.n₁₁`, `ξ.n₂₂`, `ξ.n₁₂`, `ξ.g₁`, `ξ.g₂`, `ξ.g₃`, `ξ.𝑤`.
+"""
+function ∫vᵢθᵢds(ap::T, k::AbstractMatrix{Float64}, f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    α = op.α
     for ξ in 𝓖
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
@@ -27,12 +42,26 @@ function ∫vᵢθᵢds(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float
     end
 end
 
-function ∫κεγds(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
+"""
+    ∫κεγds(ap, k; EA, EI)
+    ∫κεds(ap, k; EA, EI)
+
+Curved-beam stiffness from membrane strain `ε`, curvature `κ` and shear `γ`,
+
+    a = ∫ (EA ε(v)ε(u) + EI κ(v)κ(u) + kGA γ(v)γ(u)) ds
+
+`∫κεds` is the same operator with the shear term omitted (thin/Euler–Bernoulli
+limit). Three DOFs per node: two translations and one rotation.
+
+# Keyword arguments
+- `EA` : axial stiffness
+- `EI` : bending stiffness
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:𝝭]`, `ξ[:∂𝝭∂x]`, `ξ.𝑤`.
+"""
+function ∫κεγds(ap::T, k::AbstractMatrix{Float64}; EA::Real, EI::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    EI = op.EI
-    EA = op.EA
-    kGA = op.kGA
-    R = op.R
     for ξ in 𝓖
         N = ξ[:𝝭]
         B = ξ[:∂𝝭∂x]
@@ -55,10 +84,18 @@ function ∫κεγds(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
     end
 end
 
-function ∫δNEA⁻¹Nds(a::T,b::S;k::AbstractMatrix{Float64},g::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+"""
+    ∫δNEA⁻¹Nds(a::T,b::S;k::AbstractMatrix{Float64},g::AbstractMatrix{Float64})
+
+Element-set overload of `∫δNEA⁻¹Nds`: the same integrand, summed over
+a vector of elements. See the element-level method for the formula.
+
+# Element requirements
+`set∇𝝭!` — reads the quadrature-point fields of the operator body.
+"""
+function ∫δNEA⁻¹Nds(a::T,b::S, k::AbstractMatrix{Float64}, g::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒₁ = a.𝓒; 𝓖₁ = a.𝓖
     𝓒₂ = a.𝓒; 𝓖₂ = a.𝓖
-    EA = op.EA
     for (ξ₁,ξ₂) in zip(𝓖₁,𝓖₂)
         N = ξ₁[:𝝭]
         B = ξ₁[:∂𝝭∂x]
@@ -81,10 +118,18 @@ function ∫δNEA⁻¹Nds(a::T,b::S;k::AbstractMatrix{Float64},g::AbstractMatrix
     end
 end
 
-function ∫δMEI⁻¹Mds(a::T,b::S;k::AbstractMatrix{Float64},g::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+"""
+    ∫δMEI⁻¹Mds(a::T,b::S;k::AbstractMatrix{Float64},g::AbstractMatrix{Float64})
+
+Element-set overload of `∫δMEI⁻¹Mds`: the same integrand, summed over
+a vector of elements. See the element-level method for the formula.
+
+# Element requirements
+`set∇𝝭!` — reads the quadrature-point fields of the operator body.
+"""
+function ∫δMEI⁻¹Mds(a::T,b::S, k::AbstractMatrix{Float64}, g::AbstractMatrix{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒₁ = a.𝓒; 𝓖₁ = a.𝓖
     𝓒₂ = a.𝓒; 𝓖₂ = a.𝓖
-    EI = op.EI
     for (ξ₁,ξ₂) in zip(𝓖₁,𝓖₂)
         N = ξ₁[:𝝭]
         B = ξ₁[:∂𝝭∂x]
@@ -109,7 +154,16 @@ function ∫δMEI⁻¹Mds(a::T,b::S;k::AbstractMatrix{Float64},g::AbstractMatrix
     end
 end
 
-function Bᵢvᵢ(a::T,b::S;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+"""
+    Bᵢvᵢ(a::T,b::S;k::AbstractMatrix{Float64},f::AbstractVector{Float64})
+
+Curved-beam strain matrix applied to the displacement, assembling
+`∫ Bᵀ v ds` into the right-hand side.
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:𝝭]`, first derivatives and the surface metric.
+"""
+function Bᵢvᵢ(a::T,b::S, k::AbstractMatrix{Float64}, f::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     𝓒₁ = a.𝓒; 𝓖₁ = a.𝓖
     𝓒₂ = a.𝓒; 𝓖₂ = a.𝓖
     for (ξ₁,ξ₂) in zip(𝓖₁,𝓖₂)
@@ -134,12 +188,17 @@ function Bᵢvᵢ(a::T,b::S;k::AbstractMatrix{Float64},f::AbstractVector{Float64
     end
 end
 
-function ∫κεds(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
+"""
+    ∫κεds(ap::T;k::AbstractMatrix{Float64}, EA, EI)
+
+Element-set overload of `∫κεds`: the same integrand, summed over
+a vector of elements. See the element-level method for the formula.
+
+# Element requirements
+`set∇𝝭!` — reads the quadrature-point fields of the operator body.
+"""
+function ∫κεds(ap::T, k::AbstractMatrix{Float64}; EA::Real, EI::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    EI = op.EI
-    EA = op.EA
-    a₁ = op.a₁
-    a₃ = op.a₃
     for ξ in 𝓖
         B = ξ[:∂𝝭∂x]
         C = ξ[:∂²𝝭∂x²]
@@ -148,8 +207,8 @@ function ∫κεds(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                k[2*I-1,2*J-1] += B[i]*(a₁[1]+a₁[2])*EA*(a₁[1]+a₁[2])*B[j]*𝑤
-                k[2*I,2*J]     -= C[i]*(a₃[1]+a₃[2])*EI*(a₃[1]+a₃[2])*C[j]*𝑤
+                k[2*I-1,2*J-1] += B[i]*(ξ.a₁[1]+ξ.a₁[2])*EA*(ξ.a₁[1]+ξ.a₁[2])*B[j]*𝑤
+                k[2*I,2*J]     -= C[i]*(ξ.a₃[1]+ξ.a₃[2])*EI*(ξ.a₃[1]+ξ.a₃[2])*C[j]*𝑤
             end
         end
     end

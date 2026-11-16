@@ -2,9 +2,24 @@ module Hyperelasticity
     
 using ..ApproxOperator: AbstractElement
 
-function ∫ESdx(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+"""
+    ∫ESdx(ap, k, f; E)
+
+1-D hyperelastic bar: tangent stiffness and internal force from the
+Saint-Venant–Kirchhoff stored energy.
+
+    F = 1 + du/dx,   E_GL = ½(F² - 1),   S = E·E_GL
+    k[I,J] += Bᵢ (S + F²E) Bⱼ w
+    f[I]   += Bᵢ E F E_GL w
+
+# Keyword arguments
+- `E` : Young's modulus
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ.𝑤`, and the nodal displacement `xᵢ.d`.
+"""
+function ∫ESdx(ap::T, k::AbstractMatrix{Float64}, f::AbstractVector{Float64}; E::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖 
-    Eᵉ = op.E
     for ξ in 𝓖
         B = ξ[:∂𝝭∂x]
         𝑤 = ξ.𝑤
@@ -25,10 +40,26 @@ function ∫ESdx(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) wh
     end
 end
 
-function Δ∫∫EᵢⱼSᵢⱼdxdy_SaintVenantKirchhoff(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
+"""
+    Δ∫∫EᵢⱼSᵢⱼdxdy_SaintVenantKirchhoff(ap, k; E, ν)
+
+Incremental tangent stiffness of a 2-D
+Saint-Venant–Kirchhoff material.
+
+    E = ½(FᵀF - I),   S = C:E,   Δf = ∫ Bᵀ (C + S:∂²E/∂u²) B Δu w
+
+The Green–Lagrange strain is used with the second Piola–Kirchhoff stress
+so the tangent carries both the material and the geometric term.
+
+# Keyword arguments
+- `E` : Young's modulus
+- `ν` : Poisson ratio
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`, and the nodal displacements.
+"""
+function Δ∫∫EᵢⱼSᵢⱼdxdy_SaintVenantKirchhoff(ap::T, k::AbstractMatrix{Float64}; E::Real, ν::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E = op.E
-    ν = op.ν
     for ξ in 𝓖
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
@@ -82,10 +113,26 @@ function Δ∫∫EᵢⱼSᵢⱼdxdy_SaintVenantKirchhoff(ap::T;k::AbstractMatrix
     end
 end
 
-function ∫∫EᵢⱼSᵢⱼdxdy_SaintVenantKirchhoff(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
+"""
+    ∫∫EᵢⱼSᵢⱼdxdy_SaintVenantKirchhoff(ap, k; E, ν)
+
+Incremental internal force of a 2-D
+Saint-Venant–Kirchhoff material.
+
+    E = ½(FᵀF - I),   S = C:E,   f[I] += ∫ Bᵀ S w
+
+The Green–Lagrange strain is used with the second Piola–Kirchhoff stress
+so the force is nonlinear in the displacement.
+
+# Keyword arguments
+- `E` : Young's modulus
+- `ν` : Poisson ratio
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`, and the nodal displacements.
+"""
+function ∫∫EᵢⱼSᵢⱼdxdy_SaintVenantKirchhoff(ap::T, f::AbstractVector{Float64}; E::Real, ν::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E = op.E
-    ν = op.ν
     for ξ in 𝓖
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
@@ -120,10 +167,24 @@ function ∫∫EᵢⱼSᵢⱼdxdy_SaintVenantKirchhoff(ap::T;f::AbstractVector{F
     end
 end
 
-function Δ∫∫EᵢⱼSᵢⱼdxdy_NeoHookean(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
+"""
+    Δ∫∫EᵢⱼSᵢⱼdxdy_NeoHookean(ap, k; E, ν)
+
+Full part of the tangent of a 2-D Neo-Hookean material.
+
+    Δf = ∫ Bᵀ (C + S:∂²E/∂u²) B Δu w
+
+Energy:  ψ = μ/2 (I₁ - 3) - μ ln J + λ/2 (ln J)²
+
+# Keyword arguments
+- `E` : Young's modulus
+- `ν` : Poisson ratio
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`, and the nodal displacements.
+"""
+function Δ∫∫EᵢⱼSᵢⱼdxdy_NeoHookean(ap::T, k::AbstractMatrix{Float64}; E::Real, ν::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E=op.E
-    ν=op.ν
     λ=E*ν/(1+ν)/(1-2*ν)
     μ=E/(1+ν)/2
     for ξ in 𝓖
@@ -207,10 +268,25 @@ function Δ∫∫EᵢⱼSᵢⱼdxdy_NeoHookean(ap::T;k::AbstractMatrix{Float64})
     end
 end
 
-function Δ∫∫EᵛᵢⱼSᵛᵢⱼdxdy_NeoHookean(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
+"""
+    Δ∫∫EᵛᵢⱼSᵛᵢⱼdxdy_NeoHookean(ap, k; E, ν)
+
+Volumetric part of the tangent of a 2-D Neo-Hookean material.
+
+    Δf = ∫ Bᵀ (C + S:∂²E/∂u²) B Δu w
+Combined with the deviatoric companion it reproduces the full operator.
+
+Energy:  ψ = μ/2 (I₁ - 3) - μ ln J + λ/2 (ln J)²
+
+# Keyword arguments
+- `E` : Young's modulus
+- `ν` : Poisson ratio
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`, and the nodal displacements.
+"""
+function Δ∫∫EᵛᵢⱼSᵛᵢⱼdxdy_NeoHookean(ap::T, k::AbstractMatrix{Float64}; E::Real, ν::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E=op.E
-    ν=op.ν
     λ=E*ν/(1+ν)/(1-2*ν)
     μ=E/(1+ν)/2
     for ξ in 𝓖
@@ -293,10 +369,25 @@ function Δ∫∫EᵛᵢⱼSᵛᵢⱼdxdy_NeoHookean(ap::T;k::AbstractMatrix{Flo
     end
 end
 
-function Δ∫∫EᵈᵢⱼSᵈᵢⱼdxdy_NeoHookean(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
+"""
+    Δ∫∫EᵈᵢⱼSᵈᵢⱼdxdy_NeoHookean(ap, k; E, ν)
+
+Deviatoric part of the tangent of a 2-D Neo-Hookean material.
+
+    Δf = ∫ Bᵀ (C + S:∂²E/∂u²) B Δu w
+Combined with the volumetric companion it reproduces the full operator.
+
+Energy:  ψ = μ/2 (I₁ - 3) - μ ln J + λ/2 (ln J)²
+
+# Keyword arguments
+- `E` : Young's modulus
+- `ν` : Poisson ratio
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`, and the nodal displacements.
+"""
+function Δ∫∫EᵈᵢⱼSᵈᵢⱼdxdy_NeoHookean(ap::T, k::AbstractMatrix{Float64}; E::Real, ν::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E=op.E
-    ν=op.ν
     λ=E*ν/(1+ν)/(1-2*ν)
     μ=E/(1+ν)/2
     for ξ in 𝓖
@@ -379,10 +470,24 @@ function Δ∫∫EᵈᵢⱼSᵈᵢⱼdxdy_NeoHookean(ap::T;k::AbstractMatrix{Flo
     end
 end
 
-function ∫∫EᵢⱼSᵢⱼdxdy_NeoHookean(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
+"""
+    ∫∫EᵢⱼSᵢⱼdxdy_NeoHookean(ap, k; E, ν)
+
+Full part of the internal force of a 2-D Neo-Hookean material.
+
+    f[I] += ∫ Bᵀ S w
+
+Energy:  ψ = μ/2 (I₁ - 3) - μ ln J + λ/2 (ln J)²
+
+# Keyword arguments
+- `E` : Young's modulus
+- `ν` : Poisson ratio
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`, and the nodal displacements.
+"""
+function ∫∫EᵢⱼSᵢⱼdxdy_NeoHookean(ap::T, f::AbstractVector{Float64}; E::Real, ν::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E=op.E
-    ν=op.ν
     λ=E*ν/(1+ν)/(1-2*ν)
     μ=E/(1+ν)/2
     for ξ in 𝓖
@@ -423,10 +528,25 @@ function ∫∫EᵢⱼSᵢⱼdxdy_NeoHookean(ap::T;f::AbstractVector{Float64}) w
     end
 end
 
-function ∫∫EᵛᵢⱼSᵛᵢⱼdxdy_NeoHookean(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
+"""
+    ∫∫EᵛᵢⱼSᵛᵢⱼdxdy_NeoHookean(ap, k; E, ν)
+
+Volumetric part of the internal force of a 2-D Neo-Hookean material.
+
+    f[I] += ∫ Bᵀ S w
+Combined with the deviatoric companion it reproduces the full operator.
+
+Energy:  ψ = μ/2 (I₁ - 3) - μ ln J + λ/2 (ln J)²
+
+# Keyword arguments
+- `E` : Young's modulus
+- `ν` : Poisson ratio
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`, and the nodal displacements.
+"""
+function ∫∫EᵛᵢⱼSᵛᵢⱼdxdy_NeoHookean(ap::T, f::AbstractVector{Float64}; E::Real, ν::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E=op.E
-    ν=op.ν
     λ=E*ν/(1+ν)/(1-2*ν)
     μ=E/(1+ν)/2
     for ξ in 𝓖
@@ -467,10 +587,25 @@ function ∫∫EᵛᵢⱼSᵛᵢⱼdxdy_NeoHookean(ap::T;f::AbstractVector{Float
     end
 end
 
-function ∫∫EᵈᵢⱼSᵈᵢⱼdxdy_NeoHookean(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
+"""
+    ∫∫EᵈᵢⱼSᵈᵢⱼdxdy_NeoHookean(ap, k; E, ν)
+
+Deviatoric part of the internal force of a 2-D Neo-Hookean material.
+
+    f[I] += ∫ Bᵀ S w
+Combined with the volumetric companion it reproduces the full operator.
+
+Energy:  ψ = μ/2 (I₁ - 3) - μ ln J + λ/2 (ln J)²
+
+# Keyword arguments
+- `E` : Young's modulus
+- `ν` : Poisson ratio
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`, and the nodal displacements.
+"""
+function ∫∫EᵈᵢⱼSᵈᵢⱼdxdy_NeoHookean(ap::T, f::AbstractVector{Float64}; E::Real, ν::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E=op.E
-    ν=op.ν
     λ=E*ν/(1+ν)/(1-2*ν)
     μ=E/(1+ν)/2
     for ξ in 𝓖
@@ -511,9 +646,17 @@ function ∫∫EᵈᵢⱼSᵈᵢⱼdxdy_NeoHookean(ap::T;f::AbstractVector{Float
     end
 end
 
-function ∫vᵢuᵢds(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+"""
+    ∫vᵢuᵢds(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64})
+
+Element-set overload of `∫vᵢuᵢds`: the same integrand, summed over
+a vector of elements. See the element-level method for the formula.
+
+# Element requirements
+`set∇𝝭!` — reads the quadrature-point fields of the operator body.
+"""
+function ∫vᵢuᵢds(ap::T, k::AbstractMatrix{Float64}, f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    α = op.α
     for ξ in 𝓖
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
@@ -545,10 +688,24 @@ function ∫vᵢuᵢds(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float6
         end
     end
 end
-function Δ∫∫EᵢⱼSᵢⱼdxdy_NeoHookean2(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
+"""
+    Δ∫∫EᵢⱼSᵢⱼdxdy_NeoHookean2(ap, k; E, ν)
+
+Full part of the tangent of a 2-D Neo-Hookean material (the `_2` variant).
+
+    Δf = ∫ Bᵀ (C + S:∂²E/∂u²) B Δu w
+
+Energy:  ψ = μ/2 (I₁ - 3) - μ ln J + λ/2 (ln J)²
+
+# Keyword arguments
+- `E` : Young's modulus
+- `ν` : Poisson ratio
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`, and the nodal displacements.
+"""
+function Δ∫∫EᵢⱼSᵢⱼdxdy_NeoHookean2(ap::T, k::AbstractMatrix{Float64}; E::Real, ν::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E=op.E
-    ν=op.ν
     K=E/(1-2*ν)/3
     λ=E*ν/(1+ν)/(1-2*ν)
     μ=E/(1+ν)/2
@@ -636,10 +793,25 @@ function Δ∫∫EᵢⱼSᵢⱼdxdy_NeoHookean2(ap::T;k::AbstractMatrix{Float64}
     end
 end
 
-function Δ∫∫EᵛᵢⱼSᵛᵢⱼdxdy_NeoHookean2(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
+"""
+    Δ∫∫EᵛᵢⱼSᵛᵢⱼdxdy_NeoHookean2(ap, k; E, ν)
+
+Volumetric part of the tangent of a 2-D Neo-Hookean material (the `_2` variant).
+
+    Δf = ∫ Bᵀ (C + S:∂²E/∂u²) B Δu w
+Combined with the deviatoric companion it reproduces the full operator.
+
+Energy:  ψ = μ/2 (I₁ - 3) - μ ln J + λ/2 (ln J)²
+
+# Keyword arguments
+- `E` : Young's modulus
+- `ν` : Poisson ratio
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`, and the nodal displacements.
+"""
+function Δ∫∫EᵛᵢⱼSᵛᵢⱼdxdy_NeoHookean2(ap::T, k::AbstractMatrix{Float64}; E::Real, ν::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E=op.E
-    ν=op.ν
     K=E/(1-2*ν)/3
     λ=E*ν/(1+ν)/(1-2*ν)
     μ=E/(1+ν)/2
@@ -725,10 +897,25 @@ function Δ∫∫EᵛᵢⱼSᵛᵢⱼdxdy_NeoHookean2(ap::T;k::AbstractMatrix{Fl
         end
     end
 end
-function Δ∫∫EᵈᵢⱼSᵈᵢⱼdxdy_NeoHookean2(ap::T;k::AbstractMatrix{Float64}) where T<:AbstractElement
+"""
+    Δ∫∫EᵈᵢⱼSᵈᵢⱼdxdy_NeoHookean2(ap, k; E, ν)
+
+Deviatoric part of the tangent of a 2-D Neo-Hookean material (the `_2` variant).
+
+    Δf = ∫ Bᵀ (C + S:∂²E/∂u²) B Δu w
+Combined with the volumetric companion it reproduces the full operator.
+
+Energy:  ψ = μ/2 (I₁ - 3) - μ ln J + λ/2 (ln J)²
+
+# Keyword arguments
+- `E` : Young's modulus
+- `ν` : Poisson ratio
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`, and the nodal displacements.
+"""
+function Δ∫∫EᵈᵢⱼSᵈᵢⱼdxdy_NeoHookean2(ap::T, k::AbstractMatrix{Float64}; E::Real, ν::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E=op.E
-    ν=op.ν
     K=E/(1-2*ν)/3
     λ=E*ν/(1+ν)/(1-2*ν)
     μ=E/(1+ν)/2
@@ -813,10 +1000,24 @@ function Δ∫∫EᵈᵢⱼSᵈᵢⱼdxdy_NeoHookean2(ap::T;k::AbstractMatrix{Fl
         end
     end
 end
-function ∫∫EᵢⱼSᵢⱼdxdy_NeoHookean2(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
+"""
+    ∫∫EᵢⱼSᵢⱼdxdy_NeoHookean2(ap, k; E, ν)
+
+Full part of the internal force of a 2-D Neo-Hookean material (the `_2` variant).
+
+    f[I] += ∫ Bᵀ S w
+
+Energy:  ψ = μ/2 (I₁ - 3) - μ ln J + λ/2 (ln J)²
+
+# Keyword arguments
+- `E` : Young's modulus
+- `ν` : Poisson ratio
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`, and the nodal displacements.
+"""
+function ∫∫EᵢⱼSᵢⱼdxdy_NeoHookean2(ap::T, f::AbstractVector{Float64}; E::Real, ν::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E=op.E
-    ν=op.ν
     K=E/(1-2*ν)/3
     λ=E*ν/(1+ν)/(1-2*ν)
     μ=E/(1+ν)/2
@@ -858,10 +1059,25 @@ function ∫∫EᵢⱼSᵢⱼdxdy_NeoHookean2(ap::T;f::AbstractVector{Float64}) 
         end
     end
 end
-function ∫∫EᵛᵢⱼSᵛᵢⱼdxdy_NeoHookean2(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
+"""
+    ∫∫EᵛᵢⱼSᵛᵢⱼdxdy_NeoHookean2(ap, k; E, ν)
+
+Volumetric part of the internal force of a 2-D Neo-Hookean material (the `_2` variant).
+
+    f[I] += ∫ Bᵀ S w
+Combined with the deviatoric companion it reproduces the full operator.
+
+Energy:  ψ = μ/2 (I₁ - 3) - μ ln J + λ/2 (ln J)²
+
+# Keyword arguments
+- `E` : Young's modulus
+- `ν` : Poisson ratio
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`, and the nodal displacements.
+"""
+function ∫∫EᵛᵢⱼSᵛᵢⱼdxdy_NeoHookean2(ap::T, f::AbstractVector{Float64}; E::Real, ν::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E=op.E
-    ν=op.ν
     K=E/(1-2*ν)/3
     λ=E*ν/(1+ν)/(1-2*ν)
     μ=E/(1+ν)/2
@@ -903,10 +1119,25 @@ function ∫∫EᵛᵢⱼSᵛᵢⱼdxdy_NeoHookean2(ap::T;f::AbstractVector{Floa
         end
     end
 end
-function ∫∫EᵈᵢⱼSᵈᵢⱼdxdy_NeoHookean2(ap::T;f::AbstractVector{Float64}) where T<:AbstractElement
+"""
+    ∫∫EᵈᵢⱼSᵈᵢⱼdxdy_NeoHookean2(ap, k; E, ν)
+
+Deviatoric part of the internal force of a 2-D Neo-Hookean material (the `_2` variant).
+
+    f[I] += ∫ Bᵀ S w
+Combined with the volumetric companion it reproduces the full operator.
+
+Energy:  ψ = μ/2 (I₁ - 3) - μ ln J + λ/2 (ln J)²
+
+# Keyword arguments
+- `E` : Young's modulus
+- `ν` : Poisson ratio
+
+# Element requirements
+`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ[:∂𝝭∂y]`, `ξ.𝑤`, and the nodal displacements.
+"""
+function ∫∫EᵈᵢⱼSᵈᵢⱼdxdy_NeoHookean2(ap::T, f::AbstractVector{Float64}; E::Real, ν::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    E=op.E
-    ν=op.ν
     K=E/(1-2*ν)/3
     λ=E*ν/(1+ν)/(1-2*ν)
     μ=E/(1+ν)/2
