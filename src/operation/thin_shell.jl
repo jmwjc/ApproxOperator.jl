@@ -229,18 +229,20 @@ function ∫κᵢⱼMᵢⱼdΩ(ap::T, k::AbstractMatrix{Float64}; E::Real, ν::R
 end
 
 """
-    ∫δθθdΓ(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}, E, ν, h)
+    ∫δθθdΓ(ap::T;k::AbstractMatrix{Float64},f::AbstractVector{Float64}, E, ν, h; α)
 
 Boundary term coupling the rotation trace, `∫ δθ θ dΓ`.
 
 # Keyword arguments
-Material constants are keywords where the operator needs them; see the
-signature above.
+- `E` : Young's modulus
+- `ν` : Poisson ratio
+- `h` : shell thickness
+- `α` : Nitsche/penalty parameter
 
 # Element requirements
 `set𝝭!` — reads `ξ[:𝝭]`, `ξ.g`, `ξ.𝑤`.
 """
-function ∫δθθdΓ(ap::T, k::AbstractMatrix{Float64}, f::AbstractVector{Float64}; E::Real, ν::Real, h::Real) where T<:AbstractElement
+function ∫δθθdΓ(ap::T, k::AbstractMatrix{Float64}, f::AbstractVector{Float64}; E::Real, ν::Real, h::Real, α::Real) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         𝑤 = ξ.𝑤

@@ -36,7 +36,8 @@ include("preprocession/importmsh.jl")
 # `GmshImport` is a submodule; without this the `export`s below would name
 # symbols that do not exist in `ApproxOperator` (Aqua flags them as undefined
 # exports, and `using ApproxOperator` would hand the user nothing).
-using .GmshImport: getPhysicalGroups, get𝑿ᵢ, getElements, getCurvedElements
+using .GmshImport: getPhysicalGroups, get𝑿ᵢ, getElements, getCurvedElements,
+                    getPiecewiseElements, getPiecewiseBoundaryElements
 include("preprocession/convert.jl")
 
 include("operation/heat.jl")
@@ -69,7 +70,8 @@ export ReproducingKernel, RegularGrid
 export PiecewiseParametric, PiecewisePolynomial
 export set𝝭!, set∇𝝭!, set∇²𝝭!, set∇̂³𝝭!
 # export RKGradientSmoothing, GRKGradientSmoothing
-export getPhysicalGroups, get𝑿ᵢ, getElements, getCurvedElements, getDOFs
+# export getPhysicalGroups, get𝑿ᵢ, getElements, getCurvedElements, getDOFs
+# export getPiecewiseElements, getPiecewiseBoundaryElements
 # `addCentroidNodes!` lives in `GmshImport` and is called as
 # `GmshImport.addCentroidNodes!(nodes, dimTag)`; it is not re-exported
 # because every other importer entry point is qualified too.

@@ -286,7 +286,7 @@ for 𝒑 in (:(:Linear1D),:(:Quadratic1D),:(:Cubic1D),:(:Quartic1D))
     end
 end
 
-for 𝒑 in (:(:Linear2D),:(:Quadratic2D),:(:Cubic2D))
+for 𝒑 in (:(:Linear2D),:(:Quadratic2D),:(:Cubic2D),:(:Quartic2D))
     @eval begin
         get∇𝒑( ap::ReproducingKernel{$𝒑},x::Any) = get𝒑(ap,x),get∂𝒑∂x(ap,x),get∂𝒑∂y(ap,x)
         get∇²𝒑(ap::ReproducingKernel{$𝒑},x::Any) = get𝒑(ap,x),get∂𝒑∂x(ap,x),get∂𝒑∂y(ap,x),get∂²𝒑∂x²(ap,x),get∂²𝒑∂x∂y(ap,x),get∂²𝒑∂y²(ap,x)
@@ -820,10 +820,12 @@ function set∇̂³𝝭!(ap::ReproducingKernel,𝒙::Node)
             ∂²𝝭∂x²_ += 2*𝒑₀ᵀ𝗠⁻¹[4,j]*𝒑[j]*𝜙
             ∂²𝝭∂x∂y_ += 𝒑₀ᵀ𝗠⁻¹[5,j]*𝒑[j]*𝜙
             ∂²𝝭∂y²_ += 2*𝒑₀ᵀ𝗠⁻¹[6,j]*𝒑[j]*𝜙
-            ∂³𝝭∂x³_ -= 6*𝒑₀ᵀ𝗠⁻¹[7,j]*𝒑[j]*𝜙
-            ∂³𝝭∂x²∂y_ -= 2*𝒑₀ᵀ𝗠⁻¹[8,j]*𝒑[j]*𝜙
-            ∂³𝝭∂x∂y²_ -= 2*𝒑₀ᵀ𝗠⁻¹[9,j]*𝒑[j]*𝜙
-            ∂³𝝭∂y³_ -= 6*𝒑₀ᵀ𝗠⁻¹[10,j]*𝒑[j]*𝜙
+            if n >= 10
+                ∂³𝝭∂x³_ -= 6*𝒑₀ᵀ𝗠⁻¹[7,j]*𝒑[j]*𝜙
+                ∂³𝝭∂x²∂y_ -= 2*𝒑₀ᵀ𝗠⁻¹[8,j]*𝒑[j]*𝜙
+                ∂³𝝭∂x∂y²_ -= 2*𝒑₀ᵀ𝗠⁻¹[9,j]*𝒑[j]*𝜙
+                ∂³𝝭∂y³_ -= 6*𝒑₀ᵀ𝗠⁻¹[10,j]*𝒑[j]*𝜙
+            end
         end
         𝝭[i] = 𝒑₀ᵀ𝗠⁻¹*𝒑*𝜙
         ∂𝝭∂x[i] = ∂𝝭∂x_

@@ -51,6 +51,8 @@ function get𝗠size(T::DataType)
         return 21
     elseif T<:ReproducingKernel{:Cubic2D}
         return 55
+    elseif T<:ReproducingKernel{:Quartic2D}
+        return 120
     elseif T<:ReproducingKernel{:Linear3D}
         return 10
     elseif T<:ReproducingKernel{:Quadratic3D}

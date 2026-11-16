@@ -1,6 +1,6 @@
 module GmshImport
 
-using ..ApproxOperator: AbstractElement, Element, Node, 𝑿ᵢ, 𝑿ₛ, SpatialPartition
+using ..ApproxOperator: AbstractElement, Element, Node, 𝑿ᵢ, 𝑿ₛ, SpatialPartition, get𝑛𝑝
 include("coordinates.jl")
 include("elements.jl")
 using .MeshCoordinates
@@ -234,8 +234,10 @@ Gmsh decides the element type; the quadrature rule is Gmsh's rule of order
     elements = getElements(nodes, entities["Ω"], 2)
 """
 getElements(nodes::Vector{N}, dimTag::Pair{Int,Vector{Int}},
-            integrationOrder::Int = -1; normal::Bool = false) where N<:Node =
-    getElements(nodes, ElementSpec(dimTag; quadrature = integrationOrder, normal = normal))
+            integrationOrder::Int = -1; normal::Bool = false,
+            delta::Bool = false) where N<:Node =
+    getElements(nodes, ElementSpec(dimTag; quadrature = integrationOrder,
+                                   normal = normal, delta = delta))
 
 """
     getElements(nodes, dimTag, integration::NTuple{2,Vector{Float64}}; normal = false)
@@ -245,8 +247,10 @@ Gmsh decides the element type; the quadrature rule is supplied explicitly.
     elements = getElements(nodes, entities["Ω"], (localCoord, weights))
 """
 getElements(nodes::Vector{N}, dimTag::Pair{Int,Vector{Int}},
-            integration::NTuple{2,Vector{Float64}}; normal::Bool = false) where N<:Node =
-    getElements(nodes, ElementSpec(dimTag; quadrature = integration, normal = normal))
+            integration::NTuple{2,Vector{Float64}}; normal::Bool = false,
+            delta::Bool = false) where N<:Node =
+    getElements(nodes, ElementSpec(dimTag; quadrature = integration,
+                                   normal = normal, delta = delta))
 
 """
     getElements(nodes, dimTag, type::DataType, integrationOrder = -1; normal = false)
@@ -256,9 +260,11 @@ Caller-chosen element type, Gmsh quadrature of order `integrationOrder`.
     elements = getElements(nodes, entities["Ω"], Element{:Tri6}, 3)
 """
 getElements(nodes::Vector{N}, dimTag::Pair{Int,Vector{Int}}, type::DataType,
-            integrationOrder::Int = -1; normal::Bool = false) where N<:Node =
+            integrationOrder::Int = -1; normal::Bool = false,
+            delta::Bool = false) where N<:Node =
     getElements(nodes, ElementSpec(dimTag; element = type,
-                                   quadrature = integrationOrder, normal = normal))
+                                   quadrature = integrationOrder,
+                                   normal = normal, delta = delta))
 
 """
     getElements(nodes, dimTag, type::DataType, integration; normal = false)
@@ -266,9 +272,11 @@ getElements(nodes::Vector{N}, dimTag::Pair{Int,Vector{Int}}, type::DataType,
 Caller-chosen element type and quadrature rule.
 """
 getElements(nodes::Vector{N}, dimTag::Pair{Int,Vector{Int}}, type::DataType,
-            integration::NTuple{2,Vector{Float64}}; normal::Bool = false) where N<:Node =
+            integration::NTuple{2,Vector{Float64}}; normal::Bool = false,
+            delta::Bool = false) where N<:Node =
     getElements(nodes, ElementSpec(dimTag; element = type,
-                                   quadrature = integration, normal = normal))
+                                   quadrature = integration,
+                                   normal = normal, delta = delta))
 
 """
     getElements(nodes, dimTag, type, integrationOrder, sp::SpatialPartition; normal = false)
@@ -280,15 +288,17 @@ element's own nodes — the layout a meshfree operator needs. `sp` is a
 """
 getElements(nodes::Vector{N}, dimTag::Pair{Int,Vector{Int}}, type::DataType,
             integrationOrder::Int, sp::SpatialPartition;
-            normal::Bool = false) where N<:Node =
+            normal::Bool = false, delta::Bool = false) where N<:Node =
     getElements(nodes, ElementSpec(dimTag; element = type, quadrature = integrationOrder,
-                                   assembly = :neighbour, search = sp, normal = normal))
+                                   assembly = :neighbour, search = sp,
+                                   normal = normal, delta = delta))
 
 getElements(nodes::Vector{N}, dimTag::Pair{Int,Vector{Int}}, type::DataType,
             integration::NTuple{2,Vector{Float64}}, sp::SpatialPartition;
-            normal::Bool = false) where N<:Node =
+            normal::Bool = false, delta::Bool = false) where N<:Node =
     getElements(nodes, ElementSpec(dimTag; element = type, quadrature = integration,
-                                   assembly = :neighbour, search = sp, normal = normal))
+                                   assembly = :neighbour, search = sp,
+                                   normal = normal, delta = delta))
 
 """
     getCurvedElements(nodes, dimTag, cs, integrationOrder = -1)

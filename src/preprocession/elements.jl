@@ -21,6 +21,7 @@ points replaces all 17.
                  (requires `dimTagΩ`)
 - `assembly`   : `:fem` or `:neighbour` (requires `search`)
 - `normal`     : also fill the outward normal `ξ.nᵢ` and tangent `ξ.sᵢ`
+- `delta`      : also fill the boundary endpoint sign `ξ.Δ` (Kirchhoff corners)
 - `map`        : surface map for `geometry = :curved`
 - `dimTagΩ`    : ambient entity pairs for `geometry = :boundary`
 - `search`     : spatial partition for `assembly = :neighbour`
@@ -47,6 +48,7 @@ struct ElementSpec
     geometry  :: Symbol
     assembly  :: Symbol
     normal    :: Bool
+    delta     :: Bool
     map       :: Any
     dimTagΩ   :: Any
     search    :: Any
@@ -56,9 +58,9 @@ end
 ElementSpec(dimTag::Pair{Int,Vector{Int}};
             element = :auto, quadrature = :auto,
             geometry::Symbol = :straight, assembly::Symbol = :fem,
-            normal::Bool = false, map = nothing,
+            normal::Bool = false, delta::Bool = false, map = nothing,
             dimTagΩ = nothing, search = nothing) =
-    ElementSpec(dimTag, element, quadrature, geometry, assembly, normal,
+    ElementSpec(dimTag, element, quadrature, geometry, assembly, normal, delta,
                 map, dimTagΩ, search)
 
 # Gmsh element-type tag -> element family name. The tags are the Gmsh/VTK
@@ -246,7 +248,7 @@ function getElements(nodes::Vector{N}, spec::ElementSpec) where N<:Node
     # created it once, before the entity loop, so all quadrature points share
     # the same vectors; recreating it per entity would give each entity its own
     # dictionary and break `prescribe!`, which writes into `elements[1]`'s dict.
-    data = initial_data(dim; normal = spec.normal)
+    data = initial_data(dim; normal = spec.normal, delta = spec.delta)
     for (elementType, nodeTag, tag) in entity_list(spec.dimTag)
         type = resolve_element(spec, elementType)
         localCoord, weights, ni = resolve_quadrature(spec, elementType)
@@ -262,6 +264,7 @@ function getElements(nodes::Vector{N}, spec::ElementSpec) where N<:Node
                                        localCoord, weights)
             else
                 fill_coordinates!(data, elementType, tag, localCoord, weights)
+                spec.delta && dim == 1 && fill_delta!(data, localCoord, weights)
             end
             jacobians = gmsh.model.mesh.getJacobians(elementType, localCoord, tag)[1]
             determinants = gmsh.model.mesh.getJacobians(elementType, localCoord, tag)[2]
@@ -282,3 +285,153 @@ function getElements(nodes::Vector{N}, spec::ElementSpec) where N<:Node
     end
     return elements
 end
+
+# ---------------------------------------------------------------------------
+# Piecewise element generators
+# ---------------------------------------------------------------------------
+
+"""
+    getPiecewiseElements(dimTag, type, integrationOrder = -1; normal = false)
+    getPiecewiseElements(dimTag, type, integration; normal = false)
+
+Build one piecewise element per Gmsh element, with an **independent** node set
+for the piecewise field.  Unlike `getElements`, the cell nodes are not taken
+from the mesh: each element gets `get𝑛𝑝(type)` fresh nodes with consecutive
+IDs `ni*(C-1)+1 : ni*C`.
+
+This is the generator used for the independent moment field `M` in the mixed
+Kirchhoff plate formulation.
+"""
+getPiecewiseElements(dimTag::Pair{Int,Vector{Int}}, type::DataType,
+                     integrationOrder::Int = -1; normal::Bool = false) =
+    _getPiecewiseElements(dimTag, type,
+                          ElementSpec(dimTag; quadrature = integrationOrder,
+                                      normal = normal))
+
+getPiecewiseElements(dimTag::Pair{Int,Vector{Int}}, type::DataType,
+                     integration::NTuple{2,Vector{Float64}};
+                     normal::Bool = false) =
+    _getPiecewiseElements(dimTag, type,
+                          ElementSpec(dimTag; quadrature = integration,
+                                      normal = normal))
+
+function _getPiecewiseElements(dimTag::Pair{Int,Vector{Int}}, type::DataType,
+                               spec::ElementSpec)
+    dim = dimTag.first
+    elements = AbstractElement[]
+    data = initial_data(dim; normal = spec.normal)
+    dataC = Dict{Symbol,Tuple{Int,Vector{Float64}}}()
+    niM = get𝑛𝑝(type(𝑿ᵢ[], 𝑿ₛ[]))
+    𝐺 = 0; 𝐶 = 0; 𝑠 = 0
+    for (elementType, nodeTag, tag) in entity_list(dimTag)
+        localCoord, weights, ni = resolve_quadrature(spec, elementType)
+        ng = length(weights)
+        fill_coordinates!(data, elementType, tag, localCoord, weights)
+        jacobians = gmsh.model.mesh.getJacobians(elementType, localCoord, tag)[1]
+        determinants = gmsh.model.mesh.getJacobians(elementType, localCoord, tag)[2]
+        fill_jacobian!(data, dim, elementType, tag, localCoord, jacobians)
+        spec.normal && fill_normal!(data, dim, elementType, tag, determinants, ng,
+                                    div(length(nodeTag), ni))
+        ne = div(length(nodeTag), ni)
+        for C in 1:ne
+            𝐶 += 1
+            𝓒 = [𝑿ᵢ((𝐼 = niM*(𝐶-1)+j,), dataC) for j in 1:niM]
+            𝓖 = [𝑿ₛ((𝑔 = 𝐺+g, 𝐺 = 𝐺+g, 𝐶 = 𝐶, 𝑠 = 𝑠+(g-1)*niM), data) for g in 1:ng]
+            𝐺 += ng
+            𝑠 += ng*niM
+            push!(elements, type(𝓒, 𝓖))
+        end
+        log_summary(elements, type, ng)
+    end
+    return elements
+end
+
+"""
+    getPiecewiseBoundaryElements(dimTag, dimTagΩ, type, integrationOrder = -1)
+    getPiecewiseBoundaryElements(dimTag, dimTagΩ, type, integration)
+
+Build piecewise elements on a set of boundary/edge entities, reusing the
+piecewise nodes of the **ambient cell** that owns each edge.  The edge order
+must be the cell-wise order (three edges per triangle or four per quad), as in
+the `Γ_C` physical group generated by `BenchmarkExample.addEdgeElements`.
+
+The generated quadrature data includes the normals `ξ.n₁, ξ.n₂`, the endpoint
+sign `ξ.Δ`, and the corner jump coefficients `ξ.Δn₁s₁`, `ξ.Δn₁s₂n₂s₁`,
+`ξ.Δn₂s₂`.
+"""
+getPiecewiseBoundaryElements(dimTag::Pair{Int,Vector{Int}},
+                             dimTagΩ::Pair{Int,Vector{Int}},
+                             type::DataType, integrationOrder::Int = -1) =
+    _getPiecewiseBoundaryElements(dimTag, dimTagΩ, type,
+                                  ElementSpec(dimTag; quadrature = integrationOrder,
+                                              geometry = :boundary,
+                                              dimTagΩ = dimTagΩ,
+                                              normal = true, delta = true))
+
+getPiecewiseBoundaryElements(dimTag::Pair{Int,Vector{Int}},
+                             dimTagΩ::Pair{Int,Vector{Int}},
+                             type::DataType,
+                             integration::NTuple{2,Vector{Float64}}) =
+    _getPiecewiseBoundaryElements(dimTag, dimTagΩ, type,
+                                  ElementSpec(dimTag; quadrature = integration,
+                                              geometry = :boundary,
+                                              dimTagΩ = dimTagΩ,
+                                              normal = true, delta = true))
+
+function _getPiecewiseBoundaryElements(dimTag::Pair{Int,Vector{Int}},
+                                       dimTagΩ::Pair{Int,Vector{Int}},
+                                       type::DataType, spec::ElementSpec)
+    dim = dimTag.first
+    elements = AbstractElement[]
+    data = initial_data(dim; normal = true, delta = true)
+    data[:Δn₁s₁] = (1, Float64[])
+    data[:Δn₁s₂n₂s₁] = (1, Float64[])
+    data[:Δn₂s₂] = (1, Float64[])
+    dataC = Dict{Symbol,Tuple{Int,Vector{Float64}}}()
+    niM = get𝑛𝑝(type(𝑿ᵢ[], 𝑿ₛ[]))
+
+    ambient = entity_list(dimTagΩ)
+    elementTypeΩ = ambient[1][1]
+    tagsΩ = dimTagΩ.second
+    nb = elementTypeΩ ∈ (2, 9) ? 3 : 4
+
+    𝐺 = 0; 𝐶 = 0; 𝑠 = 0; CΩ = 0
+    for (elementType, nodeTag, tag) in entity_list(dimTag)
+        localCoord, weights, ni = resolve_quadrature(spec, elementType)
+        ng = length(weights)
+        ne = div(length(nodeTag), ni)
+
+        # Only global coordinates and the edge-local coordinate are needed for
+        # the piecewise polynomial moment field; the ambient-cell local
+        # coordinates are not required.
+        fill_coordinates!(data, elementType, tag, localCoord, weights)
+        fill_delta!(data, localCoord, weights)
+        determinants = gmsh.model.mesh.getJacobians(elementType, localCoord, tag)[2]
+        fill_normal!(data, dim, elementType, tag, determinants, ng, ne)
+
+        for C in 1:ne
+            𝐶 += 1
+            n₁ = data[:n₁][2][𝐶]
+            n₂ = data[:n₂][2][𝐶]
+            s₁ = -n₂; s₂ = n₁
+            for g in 1:ng
+                ξg = localCoord[3*g-2]
+                Δ = ξg ≈ 1.0 ? 1.0 : (ξg ≈ -1.0 ? -1.0 : 0.0)
+                push!(data[:Δn₁s₁][2], Δ*n₁*s₁)
+                push!(data[:Δn₁s₂n₂s₁][2], Δ*(n₁*s₂ + n₂*s₁))
+                push!(data[:Δn₂s₂][2], Δ*n₂*s₂)
+            end
+            CΩ_ = div(C-1, nb) + 1
+            base = niM*(CΩ + CΩ_ - 1)
+            𝓒 = [𝑿ᵢ((𝐼 = base+j,), dataC) for j in 1:niM]
+            𝓖 = [𝑿ₛ((𝑔 = 𝐺+g, 𝐺 = 𝐺+g, 𝐶 = 𝐶, 𝑠 = 𝑠+(g-1)*niM), data) for g in 1:ng]
+            𝐺 += ng
+            𝑠 += ng*niM
+            push!(elements, type(𝓒, 𝓖))
+        end
+        CΩ += div(ne, nb)
+        log_summary(elements, type, ng)
+    end
+    return elements
+end
+

@@ -8,6 +8,7 @@ Every element produced by `GmshImport.getElements` points at one
   * [`initial_data`](@ref)             — create the dictionary with the keys a dimension needs
   * [`fill_coordinates!`](@ref)        — physical coordinates and Jacobian-weighted weights
   * [`fill_edge_coordinates!`](@ref)   — the same plus `:Δ` and ambient local coordinates
+  * [`fill_delta!`](@ref)              — boundary endpoint sign `:Δ`
   * [`fill_curved_coordinates!`](@ref) — the same on a mapped (curvilinear) surface
   * [`fill_jacobian!`](@ref)           — `:𝐽` and the inverse-Jacobian entries
   * [`fill_normal!`](@ref)             — outward normal `:nᵢ` and tangent `:sᵢ`
@@ -20,7 +21,7 @@ module MeshCoordinates
 import Gmsh: gmsh
 
 export initial_data, fill_coordinates!, fill_edge_coordinates!,
-       fill_curved_coordinates!, fill_jacobian!, fill_normal!
+       fill_delta!, fill_curved_coordinates!, fill_jacobian!, fill_normal!
 
 """
     initial_data(dim; normal=false)
@@ -32,8 +33,10 @@ node's index tuple and its value is the offset into `values`; see the layout
 description in `elements.jl`. All vectors start empty.
 
 With `normal = true` the outward-normal fields `:n₁ … :s₃` are created as well.
+With `delta = true` the endpoint-sign field `:Δ` is created for the
+Kirchhoff corner terms.
 """
-function initial_data(dim::Int; normal::Bool=false)
+function initial_data(dim::Int; normal::Bool=false, delta::Bool=false)
     data = Dict{Symbol,Tuple{Int,Vector{Float64}}}()
     data[:w]    = (1, Float64[])
     data[:ξ]    = (1, Float64[])
@@ -43,6 +46,9 @@ function initial_data(dim::Int; normal::Bool=false)
     data[:𝑤]    = (2, Float64[])
     data[:𝐽]    = (2, Float64[])
     data[:∂ξ∂x] = (2, Float64[])
+    if delta
+        data[:Δ] = (1, Float64[])
+    end
     if normal
         data[:n₁] = (3, Float64[]); data[:n₂] = (3, Float64[])
         data[:s₁] = (3, Float64[]); data[:s₂] = (3, Float64[])
@@ -96,6 +102,26 @@ function fill_coordinates!(data, elementType, tag, localCoord, weights)
 end
 
 """
+    fill_delta!(data, localCoord, weights)
+
+Append the endpoint sign `:Δ` for each boundary quadrature point:
+`+1` at the local coordinate `ξ = +1`, `-1` at `ξ = -1`, and `0` elsewhere.
+This is the field read by the Kirchhoff corner-force operators.
+
+The field is only appended when `data` already contains `:Δ`; create it with
+`initial_data(...; delta = true)` or `getElements(...; delta = true)`.
+"""
+function fill_delta!(data, localCoord, weights)
+    haskey(data, :Δ) || return data
+    ng = length(weights)
+    for g in 1:ng
+        ξg = localCoord[3*g-2]
+        push!(data[:Δ][2], ξg ≈ 1.0 ? 1.0 : (ξg ≈ -1.0 ? -1.0 : 0.0))
+    end
+    return data
+end
+
+"""
     fill_edge_coordinates!(data, dim, elementType, elementTypeΩ, tag, tagsΩ, CΩ,
                            nodeTag, localCoord, weights)
 
@@ -127,13 +153,11 @@ function fill_edge_coordinates!(data, dim, elementType, elementTypeΩ, tag, tags
     for i in 1:div(length(determinants), ng), (j, w) in enumerate(weights)
         push!(data[:𝑤][2], determinants[ng*(i-1)+j]*w)
     end
-    for g in 1:ng
-        ξg = localCoord[3*g-2]
-        push!(data[:Δ][2], ξg ≈ 1.0 ? 1.0 : (ξg ≈ -1.0 ? -1.0 : 0.0))
-    end
+    fill_delta!(data, localCoord, weights)
     # Map each boundary quadrature point back into its ambient element.
     for C in 1:ne
-        tagΩ = tagsΩ[CΩ + div(ne, nb)]
+        tagΩ = length(tagsΩ) == 1 ? tagsΩ[1] :
+               tagsΩ[min(CΩ + div(ne, nb), length(tagsΩ))]
         for g in 1:ng
             G = ng*(C-1) + g
             ξ, η, γ = gmsh.model.mesh.getLocalCoordinatesInElement(tagΩ, x[G], y[G], z[G])
