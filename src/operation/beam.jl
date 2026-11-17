@@ -6,8 +6,6 @@ const 𝐈₃ = [1.0 0.0 0.0;
             0.0 0.0 1.0]
 
 # ===================== 算子命名约定 =====================
-# 与 thin_shell.jl 的 ∫εᵢⱼNᵢⱼdΩ 风格一致，用广义应变/广义内力命名：
-#
 #   ∫εᵘNᵘdΩ  → Kᵘᵘ：位移-位移块
 #   ∫εᵘNᵠdΩ  → Kᵘᵠ：位移-转角块（行 u，列 φ）
 #   ∫εᵠNᵘdΩ  → Kᵠᵘ：转角-位移块（行 φ，列 u）
@@ -20,17 +18,6 @@ const 𝐈₃ = [1.0 0.0 0.0;
 #        Kᵠᵘ Kᵠᵠ]
 #
 # 局部 3×3 块 → 整体 3×3 块：Kᵍ = Rᵀ Kˡ R
-"""
-    𝐑ᵀ𝐊𝐑(𝐊::AbstractMatrix{Float64},𝐑::AbstractMatrix{Float64})
-
-Rotate a 3×3 element stiffness from local to global axes, `𝐑ᵀ 𝐊 𝐑`.
-
-
-    Kᵍ[a,b] = Σᵢ Σⱼ R[i,a] K[i,j] R[j,b]
-
-# Element requirements
-pure matrix algebra; no element data.
-"""
 function 𝐑ᵀ𝐊𝐑(𝐊::AbstractMatrix{Float64},𝐑::AbstractMatrix{Float64})
     𝐊ᵍ = zeros(3,3)
     for i in 1:3, j in 1:3
@@ -41,20 +28,6 @@ function 𝐑ᵀ𝐊𝐑(𝐊::AbstractMatrix{Float64},𝐑::AbstractMatrix{Floa
     return 𝐊ᵍ
 end
 
-"""
-    𝐑(ap::T)
-
-3×3 rotation matrix from the element axis to the global axes, built from the
-first two support nodes.
-
-
-    R = [ 𝒍₁ 𝒍₂ 𝒍₃ ]      with  𝒍₁ = (𝒙₂ - 𝒙₁)/|𝒙₂ - 𝒙₁|
-
-so that a local vector `vˡ` maps to the global frame as `𝒗 = R vˡ`.
-
-# Element requirements
-reads `ap.𝓒` coordinates only.
-"""
 function 𝐑(ap::T) where T<:AbstractElement
     𝓒 = ap.𝓒
     x₁ = 𝓒[1]
@@ -85,18 +58,6 @@ function 𝐑(ap::T) where T<:AbstractElement
             n₁ n₂ n₃]
 end
 
-"""
-    𝐐(ap::T)
-
-Transformation matrix between the local and global beam DOFs.
-
-
-    Q = diag(R, R)        acting on the six beam DOFs (three translations,
-                          three rotations) ordered as (u₁,u₂,u₃,φ₁,φ₂,φ₃)
-
-# Element requirements
-reads `ap.𝓒` coordinates only.
-"""
 function 𝐐(ap::T) where T<:AbstractElement
     𝐑ₑ = 𝐑(ap)
     𝐐ᵢ = zeros(6,6)
@@ -107,254 +68,166 @@ function 𝐐(ap::T) where T<:AbstractElement
     return 𝐐ᵢ
 end
 
+# ===================== 显式刚度算子 =====================
+# 仅适用于 Seg2（两节点线性）单元。形函数为
+#
+#     N₁(ξ) = (1-ξ)/2,   N₂(ξ) = (1+ξ)/2,   dx = (L/2)dξ
+#
+# 单元内的四个标量积分可解析求出（I,J = 1,2）：
+#
+#     W₁₁_IJ = ∫ N_{I,x} N_{J,x} dx = (1/L)[[ 1, -1],
+#                                         [-1,  1]]
+#     W₁₀_IJ = ∫ N_{I,x} N_J     dx = (1/2)[[-1, -1],
+#                                         [ 1,  1]]
+#     W₀₁_IJ = ∫ N_I     N_{J,x} dx = W₁₀_IJᵀ
+#     W₀₀_IJ = ∫ N_I     N_J     dx = (L/4)·𝟏   （中点减缩积分，避免剪切自锁）
+#
+# 有了 W₁₁、W₁₀、W₀₁、W₀₀，单元刚度不需要形函数与高斯积分，直接由 L、𝐑
+# 和截面常数拼装：
+#
+#     Kᵘᵘ_IJ = W₁₁_IJ · 𝐑ᵀdiag(EA, k₂GA, k₃GA)𝐑
+#     Kᵘᵠ_IJ = W₁₁_IJ · 𝐑ᵀ𝐊¹𝐑 + W₁₀_IJ · 𝐑ᵀ𝐊²𝐑
+#     Kᵠᵘ_IJ = W₁₁_IJ · 𝐑ᵀ𝐊¹ᵀ𝐑 + W₀₁_IJ · 𝐑ᵀ𝐊²ᵀ𝐑
+#     Kᵠᵠ_IJ = W₁₁_IJ · 𝐑ᵀ𝐊¹𝐑 + W₁₀_IJ · 𝐑ᵀ𝐊²𝐑 + W₀₁_IJ · 𝐑ᵀ𝐊²ᵀ𝐑 + W₀₀_IJ · 𝐑ᵀ𝐊³𝐑
+
 # ===================== Kᵘᵘ =====================
-"""
-    ∫εᵘNᵘdΩ(ap::T,k::AbstractMatrix{Float64})
-
-Element-set overload of `∫εᵘNᵘdΩ`: the same integrand, summed over
-a vector of elements. See the element-level method for the formula.
-
-# Element requirements
-`set∇𝝭!` — reads the quadrature-point fields of the operator body.
-"""
 function ∫εᵘNᵘdΩ(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝐊ᵘᵘ!(ap,k,𝐑(ap))
 end
 
-"""
-    𝐊ᵘᵘ!(ap, k, 𝐑; E)
-
-3-D beam stiffness, displacement–displacement block, `Kᵘᵘ`.
-
-    Kᵘᵘ = ∫ Bᵀ 𝐊 B ds,   𝐊 = diag(EA, k₂GA, k₃GA)
-
-`𝐑` is the 3×3 rotation from element-local to global axes, applied as
-`Kᵍ = 𝐑ᵀ Kˡ 𝐑`. Only this one 3×3 sub-block is assembled; the full 6×6 beam
-element is put together by the caller, as described in the module header.
-
-# Keyword arguments
-- `E` : Young's modulus
-
-# Element requirements
-`set∇𝝭!` — reads `ξ[:∂𝝭∂x]`, `ξ.E`, `ξ.G`, `ξ.A`, `ξ.k₂`, `ξ.k₃`, `ξ.𝑤`.
-"""
-function 𝐊ᵘᵘ!(ap::T,k::AbstractMatrix{Float64},𝐑::AbstractMatrix{Float64}; E::Real) where T<:AbstractElement
-    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    for ξ in 𝓖
-        B = ξ[:∂𝝭∂x]
-        𝑤 = ξ.𝑤
-        G = ξ.G
-        A = ξ.A
-        k₂ = ξ.k₂
-        k₃ = ξ.k₃
-        # Kᵘᵘ = BB·𝐊，𝐊 = diag(EA, k₂GA, k₃GA)
-        𝐊 = 𝐑ᵀ𝐊𝐑([E*A      0.0      0.0;
-                  0.0    k₂*G*A     0.0;
-                  0.0      0.0    k₃*G*A],𝐑)
-        for (i,xᵢ) in enumerate(𝓒)
-            I = xᵢ.𝐼
-            for (j,xⱼ) in enumerate(𝓒)
-                J = xⱼ.𝐼
-                𝐵𝐵 = B[i]*B[j]*𝑤
-                for a in 1:3, b in 1:3
-                    k[3*I-3+a,3*J-3+b] += 𝐊[a,b]*𝐵𝐵
-                end
+function 𝐊ᵘᵘ!(ap::T,k::AbstractMatrix{Float64},𝐑::AbstractMatrix{Float64}) where T<:AbstractElement
+    x₁ = ap.𝓒[1]; x₂ = ap.𝓒[2]
+    L = sqrt((x₂.x-x₁.x)^2 + (x₂.y-x₁.y)^2 + (x₂.z-x₁.z)^2)
+    # W₁₁_IJ = ∫ N_{I,x} N_{J,x} dx
+    W₁₁ = [ 1.0/L -1.0/L;
+          -1.0/L  1.0/L]
+    E = ap.E; G = ap.G; A = ap.A
+    k₂ = ap.k₂; k₃ = ap.k₃
+    # Kᵘᵘ = BB·𝐊，𝐊 = diag(EA, k₂GA, k₃GA)
+    𝐊 = 𝐑ᵀ𝐊𝐑([E*A     0.0      0.0;
+              0.0   k₂*G*A     0.0;
+              0.0     0.0    k₃*G*A],𝐑)
+    for i in 1:2
+        I = ap.𝓒[i].𝐼
+        for j in 1:2
+            J = ap.𝓒[j].𝐼
+            for a in 1:3, b in 1:3
+                k[3*I-3+a,3*J-3+b] += W₁₁[i,j]*𝐊[a,b]
             end
         end
     end
 end
 
 # ===================== Kᵘᵠ =====================
-"""
-    ∫εᵘNᵠdΩ(ap::T,k::AbstractMatrix{Float64})
-
-Element-set overload of `∫εᵘNᵠdΩ`: the same integrand, summed over
-a vector of elements. See the element-level method for the formula.
-
-# Element requirements
-`set∇𝝭!` — reads the quadrature-point fields of the operator body.
-"""
 function ∫εᵘNᵠdΩ(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝐊ᵘᵠ!(ap,k,𝐑(ap))
 end
 
-"""
-    𝐊ᵘᵠ!(ap, k, 𝐑; E)
-
-3-D beam stiffness, displacement–rotation coupling block, `Kᵘᵠ` (row `u`,
-column `φ`).
-
-
-    Kᵘᵠ = ∫ Bᵀ 𝐊φ Bφ ds      (row block u, column block φ)
-
-# Keyword arguments
-- `E` : Young's modulus
-
-# Element requirements
-`set∇𝝭!` — see [`𝐊ᵘᵘ!`](@ref).
-"""
-function 𝐊ᵘᵠ!(ap::T,k::AbstractMatrix{Float64},𝐑::AbstractMatrix{Float64}; E::Real) where T<:AbstractElement
-    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    for ξ in 𝓖
-        B = ξ[:∂𝝭∂x]
-        N = ξ[:𝝭]
-        𝑤 = ξ.𝑤
-        G = ξ.G
-        A = ξ.A
-        Iy = ξ.Iy
-        Iz = ξ.Iz
-        k₂ = ξ.k₂
-        k₃ = ξ.k₃
-        # Kᵘᵠ = BB·𝐊¹ + BN·𝐊²
-        𝐊¹ = 𝐑ᵀ𝐊𝐑([0.0    E*Iy   -E*Iz;
-                  -G*Iy     0.0     0.0;
-                   G*Iz     0.0     0.0],𝐑)
-        𝐊² = 𝐑ᵀ𝐊𝐑([   0.0      0.0       0.0;
-                       0.0      0.0   -k₂*G*A;
-                       0.0   k₃*G*A       0.0],𝐑)
-        for (i,xᵢ) in enumerate(𝓒)
-            I = xᵢ.𝐼
-            for (j,xⱼ) in enumerate(𝓒)
-                J = xⱼ.𝐼
-                𝐵𝐵 = B[i]*B[j]*𝑤
-                𝐵𝑁 = B[i]*N[j]*𝑤
-                for a in 1:3, b in 1:3
-                    k[3*I-3+a,3*J-3+b] += 𝐵𝐵*𝐊¹[a,b] + 𝐵𝑁*𝐊²[a,b]
-                end
+function 𝐊ᵘᵠ!(ap::T,k::AbstractMatrix{Float64},𝐑::AbstractMatrix{Float64}) where T<:AbstractElement
+    x₁ = ap.𝓒[1]; x₂ = ap.𝓒[2]
+    L = sqrt((x₂.x-x₁.x)^2 + (x₂.y-x₁.y)^2 + (x₂.z-x₁.z)^2)
+    # W₁₁_IJ = ∫ N_{I,x} N_{J,x} dx，W₁₀_IJ = ∫ N_{I,x} N_J dx
+    W₁₁ = [ 1.0/L -1.0/L;
+          -1.0/L  1.0/L]
+    W₁₀ = [-0.5 -0.5;
+           0.5  0.5]
+    E = ap.E; G = ap.G; A = ap.A
+    Iy = ap.Iy; Iz = ap.Iz
+    k₂ = ap.k₂; k₃ = ap.k₃
+    # Kᵘᵠ = W₁₁·𝐊¹ + W₁₀·𝐊²
+    𝐊¹ = 𝐑ᵀ𝐊𝐑([0.0      E*Iy   -E*Iz;
+               -G*Iy      0.0     0.0;
+                G*Iz      0.0     0.0],𝐑)
+    𝐊² = 𝐑ᵀ𝐊𝐑([   0.0      0.0       0.0;
+                   0.0      0.0   -k₂*G*A;
+                   0.0   k₃*G*A       0.0],𝐑)
+    for i in 1:2
+        I = ap.𝓒[i].𝐼
+        for j in 1:2
+            J = ap.𝓒[j].𝐼
+            for a in 1:3, b in 1:3
+                k[3*I-3+a,3*J-3+b] += W₁₁[i,j]*𝐊¹[a,b] + W₁₀[i,j]*𝐊²[a,b]
             end
         end
     end
 end
 
 # ===================== Kᵠᵘ = (Kᵘᵠ)ᵀ =====================
-"""
-    ∫εᵠNᵘdΩ(ap::T,k::AbstractMatrix{Float64})
-
-Element-set overload of `∫εᵠNᵘdΩ`: the same integrand, summed over
-a vector of elements. See the element-level method for the formula.
-
-# Element requirements
-`set∇𝝭!` — reads the quadrature-point fields of the operator body.
-"""
 function ∫εᵠNᵘdΩ(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝐊ᵠᵘ!(ap,k,𝐑(ap))
 end
 
-"""
-    𝐊ᵠᵘ!(ap, k, 𝐑; E)
-
-3-D beam stiffness, rotation–displacement coupling block, `Kᵠᵘ` (row `φ`,
-column `u`). This is the transpose of [`𝐊ᵘᵠ!`](@ref) for a symmetric element.
-
-
-    Kᵠᵘ = (Kᵘᵠ)ᵀ = ∫ Bφᵀ 𝐊φ B ds    (row block φ, column block u)
-
-# Keyword arguments
-- `E` : Young's modulus
-
-# Element requirements
-`set∇𝝭!` — see [`𝐊ᵘᵘ!`](@ref).
-"""
-function 𝐊ᵠᵘ!(ap::T,k::AbstractMatrix{Float64},𝐑::AbstractMatrix{Float64}; E::Real) where T<:AbstractElement
-    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    for ξ in 𝓖
-        B = ξ[:∂𝝭∂x]
-        N = ξ[:𝝭]
-        𝑤 = ξ.𝑤
-        G = ξ.G
-        A = ξ.A
-        Iy = ξ.Iy
-        Iz = ξ.Iz
-        k₂ = ξ.k₂
-        k₃ = ξ.k₃
-        # Kᵠᵘ = BB·𝐊¹ᵀ + NB·𝐊²ᵀ
-        𝐊¹ = 𝐑ᵀ𝐊𝐑([0.0    E*Iy   -E*Iz;
-                  -G*Iy     0.0     0.0;
-                   G*Iz     0.0     0.0],𝐑)
-        𝐊² = 𝐑ᵀ𝐊𝐑([   0.0      0.0       0.0;
-                       0.0      0.0   -k₂*G*A;
-                       0.0   k₃*G*A       0.0],𝐑)
-        for (i,xᵢ) in enumerate(𝓒)
-            I = xᵢ.𝐼
-            for (j,xⱼ) in enumerate(𝓒)
-                J = xⱼ.𝐼
-                𝐵𝐵 = B[i]*B[j]*𝑤
-                𝑁𝐵 = N[i]*B[j]*𝑤
-                for a in 1:3, b in 1:3
-                    k[3*I-3+a,3*J-3+b] += 𝐵𝐵*𝐊¹[b,a] + 𝑁𝐵*𝐊²[b,a]
-                end
+function 𝐊ᵠᵘ!(ap::T,k::AbstractMatrix{Float64},𝐑::AbstractMatrix{Float64}) where T<:AbstractElement
+    x₁ = ap.𝓒[1]; x₂ = ap.𝓒[2]
+    L = sqrt((x₂.x-x₁.x)^2 + (x₂.y-x₁.y)^2 + (x₂.z-x₁.z)^2)
+    # W₁₁_IJ = ∫ N_{I,x} N_{J,x} dx，W₀₁_IJ = ∫ N_I N_{J,x} dx
+    W₁₁ = [ 1.0/L -1.0/L;
+          -1.0/L  1.0/L]
+    W₀₁ = [-0.5  0.5;
+          -0.5  0.5]
+    E = ap.E; G = ap.G; A = ap.A
+    Iy = ap.Iy; Iz = ap.Iz
+    k₂ = ap.k₂; k₃ = ap.k₃
+    # Kᵠᵘ = W₁₁·𝐊¹ᵀ + W₀₁·𝐊²ᵀ
+    𝐊¹ = 𝐑ᵀ𝐊𝐑([0.0      E*Iy   -E*Iz;
+               -G*Iy      0.0     0.0;
+                G*Iz      0.0     0.0],𝐑)
+    𝐊² = 𝐑ᵀ𝐊𝐑([   0.0      0.0       0.0;
+                   0.0      0.0   -k₂*G*A;
+                   0.0   k₃*G*A       0.0],𝐑)
+    for i in 1:2
+        I = ap.𝓒[i].𝐼
+        for j in 1:2
+            J = ap.𝓒[j].𝐼
+            for a in 1:3, b in 1:3
+                k[3*I-3+a,3*J-3+b] += W₁₁[i,j]*𝐊¹[b,a] + W₀₁[i,j]*𝐊²[b,a]
             end
         end
     end
 end
 
 # ===================== Kᵠᵠ =====================
-"""
-    ∫εᵠNᵠdΩ(ap::T,k::AbstractMatrix{Float64})
-
-Element-set overload of `∫εᵠNᵠdΩ`: the same integrand, summed over
-a vector of elements. See the element-level method for the formula.
-
-# Element requirements
-`set∇𝝭!` — reads the quadrature-point fields of the operator body.
-"""
 function ∫εᵠNᵠdΩ(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝐊ᵠᵠ!(ap,k,𝐑(ap))
 end
 
-"""
-    𝐊ᵠᵠ!(ap, k, 𝐑; E)
-
-3-D beam stiffness, rotation–rotation block, `Kᵠᵠ`.
-
-    Kᵠᵠ = ∫ Bᵀ diag(GJ, EI_y, EI_z) B ds
-
-# Keyword arguments
-- `E` : Young's modulus
-
-# Element requirements
-`set∇𝝭!` — see [`𝐊ᵘᵘ!`](@ref).
-"""
-function 𝐊ᵠᵠ!(ap::T,k::AbstractMatrix{Float64},𝐑::AbstractMatrix{Float64}; E::Real) where T<:AbstractElement
-    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    for ξ in 𝓖
-        B = ξ[:∂𝝭∂x]
-        N = ξ[:𝝭]
-        𝑤 = ξ.𝑤
-        G = ξ.G
-        A = ξ.A
-        Iy = ξ.Iy
-        Iz = ξ.Iz
-        Iyy = ξ.Iyy
-        Izz = ξ.Izz
-        Iyz = ξ.Iyz
-        k₂ = ξ.k₂
-        k₃ = ξ.k₃
-        # Kᵠᵠ = BB·𝐊¹ + BN·𝐊² + NB·𝐊²ᵀ + NN·𝐊³
-        #   𝐊¹：扭转 G(Iyy+Izz) 与弯曲 EIyy、EIzz、EIyz
-        #   𝐊²：扭转-弯曲翘曲耦合 GIz、GIy
-        #   𝐊³：剪切柔度 k₃GA(φ₂)、k₂GA(φ₃)
-        𝐊¹ = 𝐑ᵀ𝐊𝐑([G*(Iyy+Izz)     0.0       0.0;
-                        0.0       E*Iyy    -E*Iyz;
-                        0.0      -E*Iyz     E*Izz],𝐑)
-        𝐊² = 𝐑ᵀ𝐊𝐑([0.0   G*Iz   G*Iy;
-                    0.0    0.0    0.0;
-                    0.0    0.0    0.0],𝐑)
-        𝐊³ = 𝐑ᵀ𝐊𝐑([   0.0       0.0       0.0;
-                       0.0    k₃*G*A      0.0;
-                       0.0       0.0    k₂*G*A],𝐑)
-        for (i,xᵢ) in enumerate(𝓒)
-            I = xᵢ.𝐼
-            for (j,xⱼ) in enumerate(𝓒)
-                J = xⱼ.𝐼
-                𝐵𝐵 = B[i]*B[j]*𝑤
-                𝐵𝑁 = B[i]*N[j]*𝑤
-                𝑁𝐵 = N[i]*B[j]*𝑤
-                𝑁𝑁 = N[i]*N[j]*𝑤
-                for a in 1:3, b in 1:3
-                    k[3*I-3+a,3*J-3+b] += 𝐵𝐵*𝐊¹[a,b] + 𝐵𝑁*𝐊²[a,b] +
-                                          𝑁𝐵*𝐊²[b,a] + 𝑁𝑁*𝐊³[a,b]
-                end
+function 𝐊ᵠᵠ!(ap::T,k::AbstractMatrix{Float64},𝐑::AbstractMatrix{Float64}) where T<:AbstractElement
+    x₁ = ap.𝓒[1]; x₂ = ap.𝓒[2]
+    L = sqrt((x₂.x-x₁.x)^2 + (x₂.y-x₁.y)^2 + (x₂.z-x₁.z)^2)
+    # W₁₁_IJ = ∫ N_{I,x} N_{J,x} dx，W₁₀_IJ = ∫ N_{I,x} N_J dx
+    # W₀₁_IJ = ∫ N_I N_{J,x} dx，W₀₀_IJ = ∫ N_I N_J dx（中点减缩积分）
+    W₁₁ = [ 1.0/L -1.0/L;
+          -1.0/L  1.0/L]
+    W₁₀ = [-0.5 -0.5;
+           0.5  0.5]
+    W₀₁ = [-0.5  0.5;
+          -0.5  0.5]
+    W₀₀ = [L/4 L/4;
+         L/4 L/4]
+    E = ap.E; G = ap.G; A = ap.A
+    Iy = ap.Iy; Iz = ap.Iz
+    Iyy = ap.Iyy; Izz = ap.Izz; Iyz = ap.Iyz
+    k₂ = ap.k₂; k₃ = ap.k₃
+    # Kᵠᵠ = W₁₁·𝐊¹ + W₁₀·𝐊² + W₀₁·𝐊²ᵀ + W₀₀·𝐊³
+    #   𝐊¹：扭转 G(Iyy+Izz) 与弯曲 EIyy、EIzz、EIyz
+    #   𝐊²：扭转-弯曲翘曲耦合 GIz、GIy
+    #   𝐊³：剪切柔度 k₃GA(φ₂)、k₂GA(φ₃)
+    𝐊¹ = 𝐑ᵀ𝐊𝐑([G*(Iyy+Izz)     0.0       0.0;
+                    0.0       E*Iyy    -E*Iyz;
+                    0.0      -E*Iyz     E*Izz],𝐑)
+    𝐊² = 𝐑ᵀ𝐊𝐑([0.0   G*Iz   G*Iy;
+                0.0    0.0    0.0;
+                0.0    0.0    0.0],𝐑)
+    𝐊³ = 𝐑ᵀ𝐊𝐑([   0.0       0.0       0.0;
+                   0.0    k₃*G*A      0.0;
+                   0.0       0.0    k₂*G*A],𝐑)
+    for i in 1:2
+        I = ap.𝓒[i].𝐼
+        for j in 1:2
+            J = ap.𝓒[j].𝐼
+            for a in 1:3, b in 1:3
+                k[3*I-3+a,3*J-3+b] += W₁₁[i,j]*𝐊¹[a,b] + W₁₀[i,j]*𝐊²[a,b] +
+                                      W₀₁[i,j]*𝐊²[b,a] + W₀₀[i,j]*𝐊³[a,b]
             end
         end
     end
@@ -362,23 +235,12 @@ end
 
 # 罚函数施加本质边界条件（位移部分）：∫α uᵢ(gᵢ−uᵢ)dΓ
 # 只写入位移块 Kᵘᵘ（3nₚ×3nₚ）与位移荷载 fᵘ（3nₚ）
-"""
-    ∫uᵢgᵢdΓ(ap, k, f; α)
-
-Penalty enforcement of a displacement boundary condition on a beam,
-`α ∫ (u-g)·v dΓ`.
-
-# Keyword arguments
-- `α` : penalty coefficient
-
-# Element requirements
-`set𝝭!` — reads `ξ[:𝝭]`, `ξ.g₁`, `ξ.g₂`, `ξ.g₃`, `ξ.𝑤`.
-"""
-function ∫uᵢgᵢdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}; α::Real) where T<:AbstractElement
+function ∫uᵢgᵢdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         N = ξ[:𝝭]
         𝑤 = ξ.𝑤
+        α = ξ.α
         g₁ = ξ.g₁; g₂ = ξ.g₂; g₃ = ξ.g₃
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
@@ -397,23 +259,12 @@ end
 
 # 罚函数施加本质边界条件（转角部分）：∫α φᵢ(gᵢ−φᵢ)dΓ
 # 只写入转角块 Kᵠᵠ（3nₚ×3nₚ）与转角荷载 fᵠ（3nₚ）
-"""
-    ∫φᵢgᵢdΓ(ap, k, f; α)
-
-Penalty enforcement of a rotation boundary condition on a beam,
-`α ∫ (φ-φ̄)·θ dΓ`.
-
-# Keyword arguments
-- `α` : penalty coefficient
-
-# Element requirements
-`set𝝭!` — reads `ξ[:𝝭]`, `ξ.g₁`, `ξ.g₂`, `ξ.g₃`, `ξ.𝑤`.
-"""
-function ∫φᵢgᵢdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}; α::Real) where T<:AbstractElement
+function ∫φᵢgᵢdΓ(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         N = ξ[:𝝭]
         𝑤 = ξ.𝑤
+        α = ξ.α
         g₄ = ξ.g₄; g₅ = ξ.g₅; g₆ = ξ.g₆
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
@@ -444,15 +295,6 @@ end
 #        Δ², d̄² = L₂d(elements)
 #      Δ²[c] = ∫(dᶜ_FE − dᶜ_exact)² dΩ，d̄²[c] = ∫(dᶜ_exact)² dΩ；
 #      各分量相对 L₂ 误差为 sqrt.(Δ² ./ d̄²)。
-"""
-    L₂d(ap::T)
-
-Relative L₂ error of the corresponding field against an exact
-solution, `‖e‖/‖u‖`. The exact field is supplied with `prescribe!`.
-
-# Element requirements
-`set𝝭!` (or `set∇𝝭!` for an H¹ norm) — reads `ξ[:𝝭]`, `ξ.𝑤` and the exact field.
-"""
 function L₂d(ap::T) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     Δ² = zeros(6)
@@ -476,15 +318,6 @@ function L₂d(ap::T) where T<:AbstractElement
     return Δ², d̄²
 end
 
-"""
-    L₂d(aps::Vector{T})
-
-Relative L₂ error of the corresponding field against an exact
-solution, `‖e‖/‖u‖`. The exact field is supplied with `prescribe!`.
-
-# Element requirements
-`set𝝭!` (or `set∇𝝭!` for an H¹ norm) — reads `ξ[:𝝭]`, `ξ.𝑤` and the exact field.
-"""
 function L₂d(aps::Vector{T}) where T<:AbstractElement
     Δ² = zeros(6)
     d̄² = zeros(6)
